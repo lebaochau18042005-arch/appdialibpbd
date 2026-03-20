@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "teacher"] },
+        "className": { "type": "string" },
+        "school": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Exam": {
+      "title": "Exam",
+      "description": "Exam definition, either AI generated or uploaded",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "type": { "type": "string", "enum": ["ai", "upload"] },
+        "fileUrl": { "type": "string" },
+        "fileType": { "type": "string" },
+        "questions": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "structure": { "type": "string", "description": "2025 structure reference" }
+      },
+      "required": ["id", "title", "creatorId", "type"]
+    },
+    "Attempt": {
+      "title": "Attempt",
+      "description": "Student exam attempt history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "examId": { "type": "string" },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "timeSpent": { "type": "number" },
+        "answers": { "type": "object" },
+        "date": { "type": "string", "format": "date-time" },
+        "teacherComment": { "type": "string" },
+        "progress": { "type": "string" }
+      },
+      "required": ["id", "userId", "examId", "score"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/exams/{examId}": {
+      "schema": "Exam",
+      "description": "Exam repository"
+    },
+    "/attempts/{attemptId}": {
+      "schema": "Attempt",
+      "description": "Exam attempts and results"
+    }
+  }
+}
