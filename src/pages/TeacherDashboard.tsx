@@ -41,18 +41,20 @@ export default function TeacherDashboard() {
     let unsubscribeAttempts: (() => void) | undefined;
     let unsubscribeExams: (() => void) | undefined;
 
-    if (user && profile?.role === 'teacher') {
-      setLoading(true);
-      
-      unsubscribeAttempts = examService.subscribeToAttempts((data) => {
-        setAttempts(data);
-        setLoading(false);
-      });
+    setLoading(true);
+    
+    unsubscribeAttempts = examService.subscribeToAttempts((data) => {
+      setAttempts(data);
+      setLoading(false);
+    });
 
+    if (user) {
       unsubscribeExams = examService.subscribeToExams(user.uid, (data) => {
         setExams(data);
       });
     } else {
+      // Load all exams if not logged in
+      examService.getAllExams().then(data => setExams(data));
       setLoading(false);
     }
 
@@ -140,46 +142,7 @@ export default function TeacherDashboard() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-3xl shadow-xl border border-slate-100 text-center">
-        <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Lock size={40} />
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-4">YÊU CẦU ĐĂNG NHẬP</h2>
-        <p className="text-slate-500 mb-8">Vui lòng đăng nhập bằng tài khoản Giáo viên để truy cập Dashboard.</p>
-        <button 
-          onClick={login}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
-        >
-          <LogIn size={20} /> ĐĂNG NHẬP NGAY
-        </button>
-      </div>
-    );
-  }
-
-  if (profile?.role !== 'teacher') {
-    return (
-      <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-3xl shadow-xl border border-slate-100 text-center">
-        <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <ShieldCheck size={40} />
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-4">TRUY CẬP BỊ TỪ CHỐI</h2>
-        <p className="text-slate-500 mb-8">Tài khoản của bạn không có quyền truy cập vào khu vực dành cho Giáo viên.</p>
-        <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-amber-700 text-sm font-medium">
-          Nếu bạn là Giáo viên, vui lòng liên hệ Admin để cập nhật quyền hạn.
-        </div>
-      </div>
-    );
-  }
+  // No login/role gates - teacher dashboard is open to all
 
   useEffect(() => {
     if (shouldTriggerClick && fileInputRef.current) {

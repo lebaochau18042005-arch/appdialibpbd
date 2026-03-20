@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/exam', label: 'Thi thử', icon: Map },
     { path: '/history', label: 'Lịch sử', icon: History },
     { path: '/profile', label: 'Cấu hình', icon: User },
-    ...(profile?.role === 'teacher' ? [{ path: '/teacher', label: 'Giáo viên', icon: Users }] : []),
+    { path: '/teacher', label: 'Giáo viên', icon: Users },
   ];
 
   return (
