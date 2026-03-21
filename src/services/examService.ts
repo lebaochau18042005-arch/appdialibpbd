@@ -259,7 +259,7 @@ export const examService = {
 
   async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html'): Promise<string> {
     try {
-      // 1. Upload file to Firebase Storage
+      // 1. Try uploading to Firebase Storage
       const storageRef = ref(storage, `exams/${creatorId}/${Date.now()}_${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
       const fileUrl = await getDownloadURL(snapshot.ref);
@@ -268,18 +268,46 @@ export const examService = {
       const examData = {
         title,
         creatorId,
-        type: 'upload',
+        type: 'upload' as const,
         fileUrl,
         fileType,
-        questions: [], 
+        questions: [],
         createdAt: new Date().toISOString()
       };
 
-      const docRef = await addDoc(collection(db, 'exams'), examData);
-      return docRef.id;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'exams');
-      return '';
+      try {
+        const docRef = await addDoc(collection(db, 'exams'), examData);
+        return docRef.id;
+      } catch (fsErr) {
+        if (isPermissionError(fsErr)) {
+          const localId = `local_${Date.now()}`;
+          lsSaveExam({ id: localId, ...examData });
+          return localId;
+        }
+        throw fsErr;
+      }
+    } catch (storageErr) {
+      // Firebase Storage also blocked — read file as data URL and save to localStorage
+      console.warn('Firebase Storage unavailable, saving file locally:', storageErr);
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const localId = `local_${Date.now()}`;
+      const localExam: Exam = {
+        id: localId,
+        title,
+        creatorId,
+        type: 'upload',
+        fileUrl: dataUrl,
+        fileType,
+        questions: [],
+        createdAt: new Date().toISOString()
+      };
+      lsSaveExam(localExam);
+      return localId;
     }
   },
 
