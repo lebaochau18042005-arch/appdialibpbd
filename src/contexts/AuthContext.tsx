@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { User, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { UserProfile, UserRole } from '../types';
@@ -21,45 +21,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
-        // Auto sign in anonymously so Firestore writes always have a valid uid
-        try {
-          await signInAnonymously(auth);
-        } catch (e) {
-          console.error('Anonymous sign-in failed:', e);
-          setLoading(false);
-        }
-        return; // onAuthStateChanged will fire again once anonymous user is set
-      }
-
       setUser(firebaseUser);
-      if (!firebaseUser.isAnonymous) {
-        // Fetch or create profile for real (non-anonymous) users
-        const profileDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (profileDoc.exists()) {
-          const existingProfile = profileDoc.data() as UserProfile;
-          if (firebaseUser.email === 'binhanchau2000@gmail.com' && existingProfile.role !== 'teacher') {
-            existingProfile.role = 'teacher';
-            await setDoc(doc(db, 'users', firebaseUser.uid), existingProfile);
+      if (firebaseUser && !firebaseUser.isAnonymous) {
+        // Fetch or create profile for real (Google/Email) users
+        try {
+          const profileDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (profileDoc.exists()) {
+            const existingProfile = profileDoc.data() as UserProfile;
+            if (firebaseUser.email === 'binhanchau2000@gmail.com' && existingProfile.role !== 'teacher') {
+              existingProfile.role = 'teacher';
+              await setDoc(doc(db, 'users', firebaseUser.uid), existingProfile);
+            }
+            setProfile(existingProfile);
+          } else {
+            const newProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: firebaseUser.displayName || 'Học sinh',
+              role: firebaseUser.email === 'binhanchau2000@gmail.com' ? 'teacher' : 'student',
+              className: '',
+            };
+            await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
+            setProfile(newProfile);
           }
-          setProfile(existingProfile);
-        } else {
-          const newProfile: UserProfile = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            name: firebaseUser.displayName || 'Học sinh',
-            role: firebaseUser.email === 'binhanchau2000@gmail.com' ? 'teacher' : 'student',
-            className: '',
-          };
-          await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
-          setProfile(newProfile);
+        } catch (e) {
+          console.warn('Could not load user profile from Firestore:', e);
+          setProfile({ name: firebaseUser.displayName || 'Người dùng', className: '' });
         }
       } else {
-        // Anonymous user - set a basic guest profile
-        setProfile({
-          name: 'Khách',
-          className: '',
-        });
+        // Guest user — no auth needed, localStorage fallback handles storage
+        setProfile(null);
       }
       setLoading(false);
     });
