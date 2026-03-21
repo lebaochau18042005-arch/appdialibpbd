@@ -72,10 +72,8 @@ export default function TeacherDashboard() {
     // but we keep it for manual refresh if needed
     setLoading(true);
     try {
-      const [attemptsData, examsData] = await Promise.all([
-        examService.getAllAttempts(),
-        examService.getExamsByCreator(user?.uid || '')
-      ]);
+      const attemptsData = await examService.getAllAttempts();
+      const examsData = user ? await examService.getExamsByCreator(user.uid) : await examService.getAllExams();
       setAttempts(attemptsData);
       setExams(examsData);
     } catch (error) {
@@ -121,7 +119,7 @@ export default function TeacherDashboard() {
   }, [searchParams, setSearchParams]);
 
   const handleSaveGeneratedExam = async () => {
-    if (!generatedQuestions || !user || isUploading) return;
+    if (!generatedQuestions || isUploading) return;
     
     if (!generatedExamTitle.trim()) {
       alert('Vui lòng nhập tiêu đề cho đề thi!');
@@ -132,8 +130,8 @@ export default function TeacherDashboard() {
     try {
       const examData: Omit<Exam, 'id'> = {
         title: generatedExamTitle,
-        creatorId: user.uid,
-        type: 'upload',
+        creatorId: user?.uid || 'anonymous-teacher',
+        type: 'ai',
         questions: generatedQuestions,
         createdAt: new Date().toISOString()
       };
@@ -181,7 +179,7 @@ export default function TeacherDashboard() {
   };
 
   const handleUploadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !uploadingType || !e.target.files?.[0]) return;
+    if (!uploadingType || !e.target.files?.[0]) return;
     
     const file = e.target.files[0];
     setSelectedFile(file);
@@ -190,11 +188,11 @@ export default function TeacherDashboard() {
   };
 
   const confirmUpload = async () => {
-    if (!user || !uploadingType || !selectedFile || !uploadTitle || isUploading) return;
+    if (!uploadingType || !selectedFile || !uploadTitle || isUploading) return;
 
     setIsUploading(true);
     try {
-      const id = await examService.saveUploadedExam(uploadTitle, user.uid, selectedFile, uploadingType);
+      const id = await examService.saveUploadedExam(uploadTitle, user?.uid || 'anonymous-teacher', selectedFile, uploadingType);
       if (id) {
         alert(`Đã tải lên đề thi ${uploadingType.toUpperCase()} thành công!`);
         await loadData();
