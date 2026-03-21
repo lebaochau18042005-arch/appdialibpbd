@@ -385,6 +385,17 @@ export const examService = {
   },
 
   async addTeacherComment(attemptId: string, comment: string, progress: string): Promise<void> {
+    // If this is a localStorage attempt, update it locally
+    const isLocalAttempt = attemptId.startsWith('la_') || attemptId.startsWith('local_');
+    if (isLocalAttempt) {
+      const attempts: QuizAttempt[] = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]');
+      const updated = attempts.map(a =>
+        a.id === attemptId ? { ...a, teacherComment: comment, studentProgress: progress } : a
+      );
+      localStorage.setItem('geo_pro_local_attempts', JSON.stringify(updated));
+      return;
+    }
+    // Otherwise try Firestore
     try {
       const docRef = doc(db, 'attempts', attemptId);
       await updateDoc(docRef, {
@@ -392,7 +403,19 @@ export const examService = {
         studentProgress: progress
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `attempts/${attemptId}`);
+      if (isPermissionError(error)) {
+        // Firestore blocked - save to localStorage as fallback
+        const attempts: QuizAttempt[] = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]');
+        const exists = attempts.find(a => a.id === attemptId);
+        if (exists) {
+          const updated = attempts.map(a =>
+            a.id === attemptId ? { ...a, teacherComment: comment, studentProgress: progress } : a
+          );
+          localStorage.setItem('geo_pro_local_attempts', JSON.stringify(updated));
+        }
+      } else {
+        handleFirestoreError(error, OperationType.UPDATE, `attempts/${attemptId}`);
+      }
     }
   },
 
