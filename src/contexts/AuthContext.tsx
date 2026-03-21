@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import { User, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { UserProfile, UserRole } from '../types';
@@ -21,20 +21,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        // Auto sign in anonymously so Firestore writes always have a valid uid
+        try {
+          await signInAnonymously(auth);
+        } catch (e) {
+          console.error('Anonymous sign-in failed:', e);
+          setLoading(false);
+        }
+        return; // onAuthStateChanged will fire again once anonymous user is set
+      }
+
       setUser(firebaseUser);
-      if (firebaseUser) {
-        // Fetch or create profile
+      if (!firebaseUser.isAnonymous) {
+        // Fetch or create profile for real (non-anonymous) users
         const profileDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (profileDoc.exists()) {
           const existingProfile = profileDoc.data() as UserProfile;
-          // Auto-upgrade specific user to teacher for testing/access
           if (firebaseUser.email === 'binhanchau2000@gmail.com' && existingProfile.role !== 'teacher') {
             existingProfile.role = 'teacher';
             await setDoc(doc(db, 'users', firebaseUser.uid), existingProfile);
           }
           setProfile(existingProfile);
         } else {
-          // Create default profile
           const newProfile: UserProfile = {
             uid: firebaseUser.uid,
             email: firebaseUser.email || '',
@@ -46,7 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(newProfile);
         }
       } else {
-        setProfile(null);
+        // Anonymous user - set a basic guest profile
+        setProfile({
+          name: 'Khách',
+          className: '',
+        });
       }
       setLoading(false);
     });
