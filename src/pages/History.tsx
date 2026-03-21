@@ -13,19 +13,21 @@ export default function History() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      loadHistory();
-    } else {
-      setLoading(false);
-    }
+    loadHistory();
   }, [user]);
 
   const loadHistory = async () => {
-    if (!user) return;
     setLoading(true);
     try {
-      const data = await examService.getStudentAttempts(user.uid);
-      setHistory(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      if (user && !user.isAnonymous) {
+        // Logged-in user: fetch from Firestore
+        const data = await examService.getStudentAttempts(user.uid);
+        setHistory(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      } else {
+        // Guest user: load from localStorage
+        const lsAttempts: QuizAttempt[] = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]');
+        setHistory(lsAttempts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -37,24 +39,6 @@ export default function History() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-3xl shadow-xl border border-slate-100 text-center">
-        <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Lock size={40} />
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-4">YÊU CẦU ĐĂNG NHẬP</h2>
-        <p className="text-slate-500 mb-8">Vui lòng đăng nhập để xem lịch sử ôn luyện của bạn.</p>
-        <button 
-          onClick={login}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
-        >
-          <LogIn size={20} /> ĐĂNG NHẬP NGAY
-        </button>
       </div>
     );
   }
