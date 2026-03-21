@@ -12,10 +12,15 @@ export default function Profile() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const LS_PROFILE_KEY = 'geo_pro_guest_profile';
+
   useEffect(() => {
-    if (user) {
+    if (user && !user.isAnonymous) {
       loadProfile();
     } else {
+      // Guest: load from localStorage
+      const saved = localStorage.getItem(LS_PROFILE_KEY);
+      if (saved) setProfile(JSON.parse(saved));
       setLoading(false);
     }
   }, [user]);
@@ -28,7 +33,6 @@ export default function Profile() {
       if (data) {
         setProfile(data);
       } else {
-        // Initialize with user info if no profile exists
         setProfile({
           name: user.displayName || '',
           email: user.email || '',
@@ -45,7 +49,13 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user || user.isAnonymous) {
+      // Guest: save to localStorage
+      localStorage.setItem(LS_PROFILE_KEY, JSON.stringify(profile));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      return;
+    }
     try {
       await examService.updateProfile(user.uid, profile);
       setSaved(true);
@@ -59,24 +69,6 @@ export default function Profile() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <RefreshCw className="w-8 h-8 animate-spin text-emerald-600" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-3xl shadow-xl border border-slate-100 text-center">
-        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Lock size={40} />
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-4">YÊU CẦU ĐĂNG NHẬP</h2>
-        <p className="text-slate-500 mb-8">Vui lòng đăng nhập để cập nhật hồ sơ học tập của bạn.</p>
-        <button 
-          onClick={login}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
-        >
-          <LogIn size={20} /> ĐĂNG NHẬP NGAY
-        </button>
       </div>
     );
   }
@@ -97,6 +89,12 @@ export default function Profile() {
         </div>
       </div>
 
+      {(!user || user.isAnonymous) && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 text-sm text-amber-700">
+          <span className="text-lg">💡</span>
+          <p>Bạn đang dùng tư cách khách. Thông tin sẽ lưu trên trình duyệt này. <button onClick={login} className="font-bold underline">Đăng nhập Google</button> để đồng bộ nhiều thiết bị.</p>
+        </div>
+      )}
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -142,7 +140,7 @@ export default function Profile() {
               className="w-full p-4 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-shadow"
             />
           </div>
-          {user.email === 'binhanchau2000@gmail.com' && (
+          {user && !user.isAnonymous && user.email === 'binhanchau2000@gmail.com' && (
             <div className="md:col-span-2 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
               <label className="block text-sm font-bold text-indigo-700 mb-2">Quyền hạn (Admin Tool)</label>
               <div className="flex gap-4">
