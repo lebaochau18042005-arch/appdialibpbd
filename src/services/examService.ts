@@ -5,27 +5,60 @@ import { Question, Exam, QuizAttempt, UserProfile } from '../types';
 import { Type } from "@google/genai";
 import { generateContentWithFallback } from './ai';
 
+// ===== LocalStorage Fallback Helpers =====
+const LS_EXAM_KEY = 'geo_pro_local_exams';
+const LS_ATTEMPT_KEY = 'geo_pro_local_attempts';
+
+function lsGetExams(): Exam[] {
+  try { return JSON.parse(localStorage.getItem(LS_EXAM_KEY) || '[]'); } catch { return []; }
+}
+function lsSaveExam(exam: Exam): void {
+  const exams = lsGetExams().filter(e => e.id !== exam.id);
+  localStorage.setItem(LS_EXAM_KEY, JSON.stringify([exam, ...exams]));
+}
+function lsDeleteExam(id: string): void {
+  localStorage.setItem(LS_EXAM_KEY, JSON.stringify(lsGetExams().filter(e => e.id !== id)));
+}
+function lsGetAttempts(): QuizAttempt[] {
+  try { return JSON.parse(localStorage.getItem(LS_ATTEMPT_KEY) || '[]'); } catch { return []; }
+}
+function lsSaveAttempt(attempt: QuizAttempt): void {
+  const attempts = lsGetAttempts();
+  localStorage.setItem(LS_ATTEMPT_KEY, JSON.stringify([attempt, ...attempts]));
+}
+function isPermissionError(e: unknown): boolean {
+  return e instanceof Error && e.message.includes('Missing or insufficient permissions');
+}
+// ==========================================
+
 export const examService = {
   // Real-time listeners
   subscribeToAttempts(callback: (attempts: QuizAttempt[]) => void): Unsubscribe {
     const q = collection(db, 'attempts');
-    return onSnapshot(q, (snapshot) => {
-      const attempts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizAttempt));
-      callback(attempts);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'attempts');
+    const unsub = onSnapshot(q, (snapshot) => {
+      const fsAttempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuizAttempt));
+      const lsAttempts = lsGetAttempts().filter(la => !fsAttempts.find(fa => fa.id === la.id));
+      callback([...fsAttempts, ...lsAttempts]);
+    }, (_error) => {
+      // Firestore failed - use only localStorage
+      callback(lsGetAttempts());
     });
+    return unsub;
   },
 
   subscribeToExams(creatorId: string, callback: (exams: Exam[]) => void): Unsubscribe {
     const q = query(collection(db, 'exams'), where('creatorId', '==', creatorId));
-    return onSnapshot(q, (snapshot) => {
-      const exams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Exam));
-      callback(exams);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'exams');
+    const unsub = onSnapshot(q, (snapshot) => {
+      const fsExams = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
+      const lsExams = lsGetExams().filter(le => le.creatorId === creatorId && !fsExams.find(fe => fe.id === le.id));
+      callback([...fsExams, ...lsExams]);
+    }, (_error) => {
+      // Firestore failed - use only localStorage
+      callback(lsGetExams().filter(e => e.creatorId === creatorId));
     });
+    return unsub;
   },
+
   // Generate AI Exam based on 2025 structure using Gemini
   async generateAIExam(): Promise<Question[]> {
     try {
@@ -187,6 +220,12 @@ export const examService = {
       const docRef = await addDoc(collection(db, 'exams'), exam);
       return docRef.id;
     } catch (error) {
+      if (isPermissionError(error)) {
+        // Firestore blocked - fall back to localStorage
+        const localId = `local_${Date.now()}`;
+        lsSaveExam({ id: localId, ...exam });
+        return localId;
+      }
       handleFirestoreError(error, OperationType.CREATE, 'exams');
       return '';
     }
@@ -204,12 +243,17 @@ export const examService = {
   },
 
   async getAllExams(): Promise<Exam[]> {
+    const lsExams = lsGetExams();
     try {
       const querySnapshot = await getDocs(collection(db, 'exams'));
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Exam));
+      const fsExams = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
+      // Merge: local exams not in Firestore
+      const onlyLocal = lsExams.filter(le => !fsExams.find(fe => fe.id === le.id));
+      return [...fsExams, ...onlyLocal];
     } catch (error) {
+      if (isPermissionError(error)) return lsExams;
       handleFirestoreError(error, OperationType.LIST, 'exams');
-      return [];
+      return lsExams;
     }
   },
 
@@ -240,39 +284,41 @@ export const examService = {
   },
 
   async deleteExam(examId: string): Promise<void> {
+    // Try localStorage first
+    lsDeleteExam(examId);
     try {
       const examRef = doc(db, 'exams', examId);
       const examSnap = await getDoc(examRef);
-      
       if (examSnap.exists()) {
         const exam = examSnap.data() as Exam;
-        
-        // If it's an uploaded file, delete from Storage too
         if (exam.type === 'upload' && exam.fileUrl) {
           try {
             const fileRef = ref(storage, exam.fileUrl);
             await deleteObject(fileRef);
           } catch (storageErr) {
             console.error("Error deleting file from storage:", storageErr);
-            // Continue deleting the document even if storage deletion fails
           }
         }
-        
         await deleteDoc(examRef);
       }
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `exams/${examId}`);
+      if (!isPermissionError(error)) {
+        handleFirestoreError(error, OperationType.DELETE, `exams/${examId}`);
+      }
     }
   },
 
   async saveAttempt(attempt: Omit<QuizAttempt, 'id'>): Promise<string> {
+    const attemptWithDate = { ...attempt, date: new Date().toISOString() };
     try {
-      const docRef = await addDoc(collection(db, 'attempts'), {
-        ...attempt,
-        date: new Date().toISOString()
-      });
+      const docRef = await addDoc(collection(db, 'attempts'), attemptWithDate);
       return docRef.id;
     } catch (error) {
+      if (isPermissionError(error)) {
+        const localId = `la_${Date.now()}`;
+        lsSaveAttempt({ id: localId, ...attemptWithDate } as QuizAttempt);
+        return localId;
+      }
       handleFirestoreError(error, OperationType.CREATE, 'attempts');
       return '';
     }
