@@ -20,7 +20,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Safety timeout: if Firebase takes too long, stop spinning and continue as guest
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 4000);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(timeout);
       setUser(firebaseUser);
       if (firebaseUser && !firebaseUser.isAnonymous) {
         // Fetch or create profile for real (Google/Email) users
@@ -55,15 +61,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, []);
 
   // Handle the result when returning from Google redirect
   useEffect(() => {
     getRedirectResult(auth).catch((err) => {
-      console.warn('Redirect login error:', err);
+      if (err?.code === 'auth/unauthorized-domain') {
+        alert('Đăng nhập Google chưa được kích hoạt cho trang này (domain chưa được cấu hình). Bạn có thể tiếp tục dùng ứng dụng với tư cách khách.');
+      } else {
+        console.warn('Redirect login error:', err);
+      }
     });
   }, []);
+
 
   const login = async () => {
     const provider = new GoogleAuthProvider();
