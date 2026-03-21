@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Search, Download, Trash2, Sparkles, Presentation } from 'lucide-react';
+import { FileText, Search, Download, Trash2, Sparkles, Presentation, Brain } from 'lucide-react';
 import { Exam } from '../../types';
 import { cn } from '../../utils/cn';
 import { exportExamToWord } from '../../utils/exportDocs';
@@ -12,6 +12,7 @@ interface ExamManagerProps {
   handleDownload: (id: string) => void;
   handleDeleteExam: (id: string) => void;
   setViewingExam: (exam: Exam) => void;
+  onExtractQuestions?: (exam: Exam) => void;
 }
 
 export default function ExamManager({
@@ -20,7 +21,8 @@ export default function ExamManager({
   setExamSearchTerm,
   handleDownload,
   handleDeleteExam,
-  setViewingExam
+  setViewingExam,
+  onExtractQuestions,
 }: ExamManagerProps) {
   const filteredExams = exams.filter(e => 
     e.title.toLowerCase().includes(examSearchTerm.toLowerCase())
@@ -73,6 +75,16 @@ export default function ExamManager({
                     {exam.type === 'ai' ? <Sparkles size={20} /> : <FileText size={20} />}
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* AI Extract button: only for uploaded exams with 0 questions */}
+                    {exam.type === 'upload' && (!exam.questions || exam.questions.length === 0) && onExtractQuestions && (
+                      <button 
+                        onClick={() => onExtractQuestions(exam)}
+                        className="p-2 text-slate-400 hover:text-purple-600 transition-colors"
+                        title="Trích xuất câu hỏi bằng AI"
+                      >
+                        <Brain size={20} />
+                      </button>
+                    )}
                     <button 
                       onClick={() => exportExamToWord(exam)}
                       className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
@@ -90,7 +102,7 @@ export default function ExamManager({
                     <button 
                       onClick={() => handleDownload(exam.id)}
                       className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"
-                      title="Tải xuống (.txt)"
+                      title="Tải xuống"
                     >
                       <Download size={20} />
                     </button>

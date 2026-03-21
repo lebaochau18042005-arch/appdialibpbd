@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
-import { Upload, History, MessageSquare, FileText, ShieldCheck, RefreshCw, Download, Search, User, BarChart, Lock, LogIn, Sparkles, CheckCircle2, XCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Upload, History, MessageSquare, FileText, ShieldCheck, RefreshCw, Download, Search, User, BarChart, Lock, LogIn, Sparkles, CheckCircle2, XCircle, AlertCircle, Trash2, Brain } from 'lucide-react';
 import { examService } from '../services/examService';
 import { QuizAttempt, Exam, Question } from '../types';
 import { cn } from '../utils/cn';
@@ -39,6 +39,38 @@ export default function TeacherDashboard() {
   const [uploadTitle, setUploadTitle] = useState('');
 
   const [examSearchTerm, setExamSearchTerm] = useState('');
+
+  // AI Question Extraction from uploaded file
+  const [extractingExam, setExtractingExam] = useState<Exam | null>(null);
+  const [extractText, setExtractText] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+
+  const handleExtractQuestions = (exam: Exam) => {
+    setExtractingExam(exam);
+    setExtractText('');
+  };
+
+  const confirmExtract = async () => {
+    if (!extractingExam || !extractText.trim() || isExtracting) return;
+    setIsExtracting(true);
+    try {
+      const { generateExamFromContext } = await import('../services/ai');
+      const questions = await generateExamFromContext(extractText);
+      const updatedExam: Exam = { ...extractingExam, questions, type: 'ai' as const };
+      // Update in localStorage
+      const lsKey = 'geo_pro_local_exams';
+      const allExams: Exam[] = JSON.parse(localStorage.getItem(lsKey) || '[]');
+      const newExams = allExams.map(e => e.id === updatedExam.id ? updatedExam : e);
+      localStorage.setItem(lsKey, JSON.stringify(newExams));
+      setExams(prev => prev.map(e => e.id === updatedExam.id ? updatedExam : e));
+      alert(`Đã trích xuất ${questions.length} câu hỏi từ nội dung!`);
+      setExtractingExam(null);
+    } catch (e) {
+      alert('Không thể trích xuất câu hỏi. Vui lòng thử lại.');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
 
   useEffect(() => {
     let unsubscribeAttempts: (() => void) | undefined;
@@ -307,6 +339,7 @@ export default function TeacherDashboard() {
         handleDownload={handleDownload}
         handleDeleteExam={handleDeleteExam}
         setViewingExam={setViewingExam}
+        onExtractQuestions={handleExtractQuestions}
       />
 
       {/* History Table Section */}
@@ -325,6 +358,56 @@ export default function TeacherDashboard() {
       />
 
       {/* Upload Confirmation Modal */}
+      {/* AI Extract Questions Modal */}
+      {extractingExam && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[80] p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl"
+          >
+            <div className="p-8 space-y-5">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                  <Brain size={28} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">TRÍCH XUẤT CÂU HỎI BẰNG AI</h3>
+                  <p className="text-sm text-slate-500">{extractingExam.title}</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 bg-purple-50 p-4 rounded-2xl border border-purple-100">
+                📋 <strong>Hướng dẫn:</strong> Mở file PDF hoặc Word, <strong>chọn tất cả nội dung</strong> (Ctrl+A), <strong>copy</strong> (Ctrl+C) rồi dán vào ô bên dưới.
+              </p>
+              <textarea
+                value={extractText}
+                onChange={e => setExtractText(e.target.value)}
+                placeholder="Dán nội dung đề thi vào đây... (Ctrl+V)\n\nVí dụ:\nCâu 1: Đặc điểm nào sau đây đúng với vị trí địa lí của nước ta?\nA. Nằm ở rìa phía đông bán đảo Đông Dương\n..."
+                rows={10}
+                className="w-full p-4 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-purple-400 outline-none resize-none font-mono"
+              />
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setExtractingExam(null)}
+                  className="px-6 py-3 text-slate-600 border border-slate-200 rounded-xl font-bold hover:bg-slate-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmExtract}
+                  disabled={!extractText.trim() || isExtracting}
+                  className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 transition-all"
+                >
+                  <Brain size={18} />
+                  {isExtracting ? 'Đang trích xuất...' : 'Trích xuất câu hỏi'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       <AnimatePresence>
         {showUploadConfirm && selectedFile && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[80] p-4">
