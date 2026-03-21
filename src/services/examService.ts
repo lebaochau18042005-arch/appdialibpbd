@@ -216,12 +216,18 @@ export const examService = {
   },
 
   async saveExam(exam: Omit<Exam, 'id'>): Promise<string> {
+    // If creator is anonymous/guest, skip Firestore entirely - save instantly
+    const isGuest = !exam.creatorId || exam.creatorId === 'anonymous' || exam.creatorId.includes('anonymous') || exam.creatorId.startsWith('guest_');
+    if (isGuest) {
+      const localId = `local_${Date.now()}`;
+      lsSaveExam({ id: localId, ...exam });
+      return localId;
+    }
     try {
       const docRef = await addDoc(collection(db, 'exams'), exam);
       return docRef.id;
     } catch (error) {
       if (isPermissionError(error)) {
-        // Firestore blocked - fall back to localStorage
         const localId = `local_${Date.now()}`;
         lsSaveExam({ id: localId, ...exam });
         return localId;
@@ -341,6 +347,13 @@ export const examService = {
 
   async saveAttempt(attempt: Omit<QuizAttempt, 'id'>): Promise<string> {
     const attemptWithDate = { ...attempt, date: new Date().toISOString() };
+    // If user is anonymous/guest, save instantly to localStorage
+    const isGuest = !attempt.userId || attempt.userId === 'anonymous' || attempt.userId.includes('anonymous') || attempt.userId.startsWith('guest_');
+    if (isGuest) {
+      const localId = `la_${Date.now()}`;
+      lsSaveAttempt({ id: localId, ...attemptWithDate } as QuizAttempt);
+      return localId;
+    }
     try {
       const docRef = await addDoc(collection(db, 'attempts'), attemptWithDate);
       return docRef.id;
