@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Geography Pro - Question Collector",
+  "version": "1.0.0",
+  "description": "Thu thập dữ liệu địa lý hoặc tin tức thời sự trên web để AI tự động chuyển thành câu hỏi đưa vào Geography Pro.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Tạo câu hỏi với Geography Pro"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSearchParams } from 'react-router-dom';
 import { Upload, History, MessageSquare, FileText, ShieldCheck, RefreshCw, Download, Search, User, BarChart, Lock, LogIn, Sparkles, CheckCircle2, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { examService } from '../services/examService';
 import { QuizAttempt, Exam, Question } from '../types';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
+import { generateExamFromContext } from '../services/ai';
 import TeacherStats from '../components/teacher/TeacherStats';
 import ExamManager from '../components/teacher/ExamManager';
 import HistoryTable from '../components/teacher/HistoryTable';
 
 export default function TeacherDashboard() {
   const { user, profile, loading: authLoading, login } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
@@ -96,6 +99,26 @@ export default function TeacherDashboard() {
       setIsGenerating(false);
     }
   };
+
+  useEffect(() => {
+    const autoContext = searchParams.get('autoContext');
+    if (autoContext) {
+      setIsGenerating(true);
+      generateExamFromContext(autoContext)
+        .then(questions => {
+          setGeneratedQuestions(questions);
+          setGeneratedExamTitle(`Đề thi từ Extension - ${new Date().toLocaleDateString('vi-VN')}`);
+          setShowConfirmModal(true);
+          // Remove the query param so it doesn't fire again on reload
+          setSearchParams({});
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Có lỗi khi tạo câu hỏi từ văn bản Extension.');
+        })
+        .finally(() => setIsGenerating(false));
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSaveGeneratedExam = async () => {
     if (!generatedQuestions || !user || isUploading) return;

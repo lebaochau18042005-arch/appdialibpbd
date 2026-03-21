@@ -133,3 +133,58 @@ Hãy đóng vai một chuyên gia giáo dục phân tích dữ liệu trên và 
     return "Xin lỗi, hệ thống AI đang quá tải. Hãy thử lại lúc khác để xem lộ trình nhé!";
   }
 }
+
+export async function generateExamFromContext(context: string): Promise<Question[]> {
+  const prompt = `Bạn là một chuyên gia ra đề thi môn Địa lý cấp THPT. Vui lòng đọc ĐOẠN VĂN BẢN (TÀI LIỆU/TIN TỨC) sau đây và tạo ra một số câu hỏi trắc nghiệm Địa lý bám sát nội dung. 
+
+Số lượng câu hỏi: Tùy thuộc vào độ dài nội dung, nhưng tạo tối đa 5 câu hỏi (Có thể là Trắc nghiệm nhiều lựa chọn, Đúng/Sai, hoặc Câu trả lời ngắn).
+Cấu trúc JSON đầu ra phải CHÍNH XÁC như định dạng được yêu cầu trong ngân hàng đề thi.
+
+[ĐOẠN VĂN BẢN]:
+${context}
+
+Trả về DUY NHẤT một mảng JSON chứa các câu hỏi, không kèm markdown \`\`\`json hay giải thích nào khác. Định dạng mỗi câu như sau:
+[
+  {
+    "id": "q1",
+    "type": "multiple_choice",
+    "topic": "Từ văn bản",
+    "text": "Nội dung câu hỏi Multiple Choice?",
+    "options": ["A", "B", "C", "D"],
+    "correctAnswerIndex": 0,
+    "explanation": "Giải thích"
+  },
+  {
+    "id": "q2",
+    "type": "true_false",
+    "topic": "Từ văn bản",
+    "text": "Nội dung câu hỏi Đúng/Sai",
+    "statements": [
+      {"id": "s1", "text": "Ý 1", "isTrue": true},
+      {"id": "s2", "text": "Ý 2", "isTrue": false}
+    ],
+    "explanation": "Giải thích"
+  },
+  {
+    "id": "q3",
+    "type": "short_answer",
+    "topic": "Từ văn bản",
+    "text": "Nội dung câu trả lời ngắn",
+    "correctAnswer": "Đáp án",
+    "explanation": "Giải thích"
+  }
+]`;
+
+  try {
+    const response = await generateContentWithFallback(prompt);
+    let text = response.text.trim();
+    if (text.startsWith('```json')) text = text.replace(/```json\n?/, '');
+    if (text.startsWith('```')) text = text.replace(/```\n?/, '');
+    if (text.endsWith('```')) text = text.substring(0, text.length - 3).trim();
+    
+    return JSON.parse(text) as Question[];
+  } catch (error) {
+    console.error("Lỗi tạo đề từ đoạn văn bản:", error);
+    throw new Error('Không thể tạo câu hỏi từ đoạn văn bản này.');
+  }
+}
