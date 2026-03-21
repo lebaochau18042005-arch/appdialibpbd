@@ -135,41 +135,49 @@ Hãy đóng vai một chuyên gia giáo dục phân tích dữ liệu trên và 
 }
 
 export async function generateExamFromContext(context: string): Promise<Question[]> {
-  const prompt = `Bạn là một chuyên gia ra đề thi môn Địa lý cấp THPT. Vui lòng đọc ĐOẠN VĂN BẢN (TÀI LIỆU/TIN TỨC) sau đây và tạo ra một số câu hỏi trắc nghiệm Địa lý bám sát nội dung. 
+  const prompt = `Bạn là một chuyên gia phân tích đề thi môn Địa lý THPT. Nhiệm vụ của bạn là TRÍCH XUẤT TOÀN BỘ câu hỏi từ ĐỀ THI được cung cấp bên dưới.
 
-Số lượng câu hỏi: Tùy thuộc vào độ dài nội dung, nhưng tạo tối đa 5 câu hỏi (Có thể là Trắc nghiệm nhiều lựa chọn, Đúng/Sai, hoặc Câu trả lời ngắn).
-Cấu trúc JSON đầu ra phải CHÍNH XÁC như định dạng được yêu cầu trong ngân hàng đề thi.
+QUY TẮC BẮT BUỘC:
+1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong đề - KHÔNG BỎ SÓT câu nào.
+2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice".
+3. Với câu Đúng/Sai (có các ý a, b, c, d): dùng type "true_false" với 4 statements.
+4. Với câu tự luận/điền số/tính toán ngắn: dùng type "short_answer".
+5. Phải xác định đáp án đúng dựa trên kiến thức Địa lý hoặc ghi chú trong đề.
+6. id phải là "q1", "q2", "q3",... theo thứ tự câu trong đề.
+7. KHÔNG thêm câu mới - chỉ chuyển đổi câu có sẵn sang JSON.
 
-[ĐOẠN VĂN BẢN]:
+[ĐỀ THI CẦN PHÂN TÍCH]:
 ${context}
 
-Trả về DUY NHẤT một mảng JSON chứa các câu hỏi, không kèm markdown \`\`\`json hay giải thích nào khác. Định dạng mỗi câu như sau:
+Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kèm markdown hay giải thích. Định dạng:
 [
   {
     "id": "q1",
     "type": "multiple_choice",
-    "topic": "Từ văn bản",
-    "text": "Nội dung câu hỏi Multiple Choice?",
-    "options": ["A", "B", "C", "D"],
+    "topic": "Địa lý",
+    "text": "Nội dung câu hỏi?",
+    "options": ["Phương án A", "Phương án B", "Phương án C", "Phương án D"],
     "correctAnswerIndex": 0,
-    "explanation": "Giải thích"
+    "explanation": "Giải thích đáp án đúng"
   },
   {
     "id": "q2",
     "type": "true_false",
-    "topic": "Từ văn bản",
+    "topic": "Địa lý",
     "text": "Nội dung câu hỏi Đúng/Sai",
     "statements": [
-      {"id": "s1", "text": "Ý 1", "isTrue": true},
-      {"id": "s2", "text": "Ý 2", "isTrue": false}
+      {"id": "s1", "text": "Ý a", "isTrue": true},
+      {"id": "s2", "text": "Ý b", "isTrue": false},
+      {"id": "s3", "text": "Ý c", "isTrue": true},
+      {"id": "s4", "text": "Ý d", "isTrue": false}
     ],
     "explanation": "Giải thích"
   },
   {
     "id": "q3",
     "type": "short_answer",
-    "topic": "Từ văn bản",
-    "text": "Nội dung câu trả lời ngắn",
+    "topic": "Địa lý",
+    "text": "Nội dung câu tự luận/tính toán?",
     "correctAnswer": "Đáp án",
     "explanation": "Giải thích"
   }
