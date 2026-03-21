@@ -14,6 +14,7 @@ import Profile from './pages/Profile';
 import TeacherDashboard from './pages/TeacherDashboard';
 import ExamSetup from './pages/ExamSetup';
 import ExamRoom from './pages/ExamRoom';
+import LearningPath from './pages/LearningPath';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/history" element={<History />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/teacher" element={<TeacherDashboard />} />
+            <Route path="/learning-path" element={<LearningPath />} />
           </Routes>
         </Layout>
       </AuthProvider>

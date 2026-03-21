@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, History, Home, Map, User, Users, LogIn, LogOut, Settings } from 'lucide-react';
+import { BookOpen, History, Home, Map, User, Users, LogIn, LogOut, Settings, Compass } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -23,6 +23,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/practice', label: 'Luyện tập', icon: BookOpen },
     { path: '/exam', label: 'Thi thử', icon: Map },
     { path: '/history', label: 'Lịch sử', icon: History },
+    { path: '/learning-path', label: 'Lộ trình', icon: Compass },
     { path: '/profile', label: 'Cấu hình', icon: User },
     { path: '/teacher', label: 'Giáo viên', icon: Users },
   ];

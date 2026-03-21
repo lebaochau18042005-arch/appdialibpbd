@@ -1,5 +1,5 @@
-import { GoogleGenAI, Type } from '@google/genai';
-import { Question, UserProfile } from '../types';
+import { GoogleGenAI } from '@google/genai';
+import { Question, UserProfile, QuizAttempt } from '../types';
 
 const FALLBACK_MODELS = [
   'gemini-3-flash-preview',
@@ -106,5 +106,30 @@ Gia sư AI:`;
   } catch (error: any) {
     console.error("Error chatting with AI tutor:", error);
     return `Xin lỗi, hệ thống AI đang quá tải hoặc gặp lỗi kết nối. (${error.message || 'Thử lại sau'})`;
+  }
+}
+
+export async function generateLearningPath(attempts: QuizAttempt[], profile?: UserProfile) {
+  try {
+    const prompt = `Dưới đây là lịch sử làm bài thi môn Địa lý cấp THPT của học sinh ${profile?.name || ''} (Mục tiêu: ${profile?.targetScore || 'Chưa rõ'} điểm).
+    
+Lịch sử làm bài:
+${JSON.stringify(attempts.map(a => ({
+  tên_đề_thi: a.examTitle,
+  điểm_số: a.score,
+  tổng_số_câu: a.totalQuestions,
+  ngày_thi: new Date(a.date).toLocaleDateString('vi-VN')
+})), null, 2)}
+
+Hãy đóng vai một chuyên gia giáo dục phân tích dữ liệu trên và đưa ra:
+1. **Phân tích tổng quan**: Đánh giá năng lực hiện tại của học sinh.
+2. **Nhận diện điểm yếu**: Dựa trên điểm số (nếu điểm thấp, khả năng hổng kiến thức ở đâu).
+3. **Lộ trình học tập cá nhân hóa**: Đề xuất kế hoạch học tập cụ thể theo từng giai đoạn (tuần 1, tuần 2...) để giúp học sinh nâng cao điểm số và đạt mục tiêu. Trình bày dưới dạng Markdown, sử dụng bullet points và in đậm rõ ràng, lời văn khích lệ và sinh động.`;
+
+    const response = await generateContentWithFallback(prompt);
+    return response.text;
+  } catch (error) {
+    console.error("Error generating learning path:", error);
+    return "Xin lỗi, hệ thống AI đang quá tải. Hãy thử lại lúc khác để xem lộ trình nhé!";
   }
 }
