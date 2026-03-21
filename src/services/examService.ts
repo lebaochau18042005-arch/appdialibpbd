@@ -259,9 +259,12 @@ export const examService = {
 
   async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html'): Promise<string> {
     try {
-      // 1. Try uploading to Firebase Storage
+      // 1. Try uploading to Firebase Storage (with timeout to avoid CORS hang)
       const storageRef = ref(storage, `exams/${creatorId}/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
+      const uploadTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Storage timeout - CORS/permission issue')), 5000)
+      );
+      const snapshot = await Promise.race([uploadBytes(storageRef, file), uploadTimeout]);
       const fileUrl = await getDownloadURL(snapshot.ref);
 
       // 2. Save metadata to Firestore
@@ -353,23 +356,31 @@ export const examService = {
   },
 
   async getStudentAttempts(userId: string): Promise<QuizAttempt[]> {
+    const lsAttempts = lsGetAttempts().filter(a => a.userId === userId);
     try {
       const q = query(collection(db, 'attempts'), where('userId', '==', userId));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizAttempt));
+      const fsAttempts = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuizAttempt));
+      const onlyLocal = lsAttempts.filter(la => !fsAttempts.find(fa => fa.id === la.id));
+      return [...fsAttempts, ...onlyLocal];
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, 'attempts');
-      return [];
+      if (isPermissionError(error)) return lsAttempts;
+      console.error('getStudentAttempts error:', error);
+      return lsAttempts;
     }
   },
 
   async getAllAttempts(): Promise<QuizAttempt[]> {
+    const lsAttempts = lsGetAttempts();
     try {
       const querySnapshot = await getDocs(collection(db, 'attempts'));
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as QuizAttempt));
+      const fsAttempts = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuizAttempt));
+      const onlyLocal = lsAttempts.filter(la => !fsAttempts.find(fa => fa.id === la.id));
+      return [...fsAttempts, ...onlyLocal];
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, 'attempts');
-      return [];
+      if (isPermissionError(error)) return lsAttempts;
+      console.error('getAllAttempts error:', error);
+      return lsAttempts;
     }
   },
 
