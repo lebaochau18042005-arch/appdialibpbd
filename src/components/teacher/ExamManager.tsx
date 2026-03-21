@@ -1,8 +1,9 @@
 import React from 'react';
-import { FileText, Search, Download, Trash2, Sparkles } from 'lucide-react';
+import { FileText, Search, Download, Trash2, Sparkles, Presentation } from 'lucide-react';
 import { Exam } from '../../types';
 import { cn } from '../../utils/cn';
 import { exportExamToWord } from '../../utils/exportDocs';
+import { generatePptx } from '../../utils/exportPptx';
 
 interface ExamManagerProps {
   exams: Exam[];
@@ -78,6 +79,13 @@ export default function ExamManager({
                       title="Xuất File Word"
                     >
                       <FileText size={20} />
+                    </button>
+                    <button 
+                      onClick={() => generatePptx(exam)}
+                      className="p-2 text-slate-400 hover:text-orange-500 transition-colors"
+                      title="Xuất PowerPoint"
+                    >
+                      <Presentation size={20} />
                     </button>
                     <button 
                       onClick={() => handleDownload(exam.id)}
