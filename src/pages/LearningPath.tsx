@@ -21,19 +21,16 @@ export default function LearningPath() {
     let unsubscribeAttempts: (() => void) | undefined;
 
     const loadData = async () => {
-      if (user) {
+      if (user && !user.isAnonymous) {
         unsubscribeAttempts = examService.subscribeToAttempts((data) => {
-          // Filter attempts for this user only
           const userAttempts = data.filter(a => a.userId === user.uid);
           setAttempts(userAttempts);
           setLoadingHistory(false);
         });
       } else {
-        // If not logged in, try to fetch from local storage or handle anonymous history
-        // In the current setup, anonymous history isn't fully supported across sessions easily without a user ID,
-        // so we'll just show empty if no user, but since ExamRoom uses 'anonymous', we can try to fetch all 'anonymous' attempts?
-        // Let's just say we need login for best results, but allow generation to run if we have attempts
-        setAttempts([]);
+        // Guest: load from localStorage
+        const lsAttempts: QuizAttempt[] = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]');
+        setAttempts(lsAttempts);
         setLoadingHistory(false);
       }
     };
@@ -44,6 +41,7 @@ export default function LearningPath() {
       if (unsubscribeAttempts) unsubscribeAttempts();
     };
   }, [user]);
+
 
   const handleGeneratePath = async () => {
     if (attempts.length === 0) {
