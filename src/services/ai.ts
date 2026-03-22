@@ -2,13 +2,14 @@ import { GoogleGenAI } from '@google/genai';
 import { Question, UserProfile, QuizAttempt } from '../types';
 
 const FALLBACK_MODELS = [
-  'gemini-2.0-flash',
   'gemini-2.0-flash-exp',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro'
+  'gemini-2.0-flash-001',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-001',
+  'gemini-1.5-flash-8b-latest'
 ];
 
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+const DEFAULT_MODEL = 'gemini-2.0-flash-exp';
 
 export async function generateContentWithFallback(prompt: string, config: any = {}) {
   // @ts-ignore
@@ -23,6 +24,7 @@ export async function generateContentWithFallback(prompt: string, config: any = 
   const modelsToTry = [preferredModel, ...FALLBACK_MODELS.filter(m => m !== preferredModel)];
   
   let lastError;
+  let firstError: string | undefined;
   for (const model of modelsToTry) {
     try {
       const response = await ai.models.generateContent({
@@ -32,12 +34,14 @@ export async function generateContentWithFallback(prompt: string, config: any = 
       });
       return response;
     } catch (error: any) {
-      console.warn(`[AI Fallback] Model ${model} thất bại do lỗi:`, error.message);
+      const msg = error?.message || String(error);
+      console.warn(`[AI Fallback] Model ${model} failed:`, msg);
+      if (!firstError) firstError = `${model}: ${msg}`;
       lastError = error;
     }
   }
 
-  throw new Error(`Tất cả các model đều thất bại. Lý do: ${lastError?.message || 'Lỗi không xác định'}`);
+  throw new Error(`Tất cả model thất bại. Lỗi đầu tiên: ${firstError}`);
 }
 
 export async function getExplanation(question: Question, userAnswer: any, isCorrect: boolean, profile?: UserProfile) {
