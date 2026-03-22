@@ -187,13 +187,26 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
   try {
     const response = await generateContentWithFallback(prompt);
     let text = response.text.trim();
-    if (text.startsWith('```json')) text = text.replace(/```json\n?/, '');
-    if (text.startsWith('```')) text = text.replace(/```\n?/, '');
-    if (text.endsWith('```')) text = text.substring(0, text.length - 3).trim();
-    
+    // Strip markdown code fences
+    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
+    text = text.replace(/\s*```\s*$/i, '').trim();
+    // Find the JSON array in the response
+    const startIdx = text.indexOf('[');
+    const endIdx = text.lastIndexOf(']');
+    if (startIdx === -1) {
+      throw new Error(`AI không trả về JSON hợp lệ. Nội dung nhận được: ${text.substring(0, 200)}`);
+    }
+    if (endIdx === -1 || endIdx < startIdx) {
+      // Try to close truncated JSON
+      text = text.substring(startIdx) + ']';
+    } else {
+      text = text.substring(startIdx, endIdx + 1);
+    }
     return JSON.parse(text) as Question[];
   } catch (error) {
-    console.error("Lỗi tạo đề từ đoạn văn bản:", error);
-    throw new Error('Không thể tạo câu hỏi từ đoạn văn bản này.');
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('Lỗi trích xuất câu hỏi:', msg);
+    throw new Error(msg);
   }
 }
+

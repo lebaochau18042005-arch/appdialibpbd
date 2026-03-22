@@ -66,7 +66,8 @@ export default function TeacherDashboard() {
       alert(`Đã trích xuất ${questions.length} câu hỏi từ nội dung!`);
       setExtractingExam(null);
     } catch (e) {
-      alert('Không thể trích xuất câu hỏi. Vui lòng thử lại.');
+      const errMsg = e instanceof Error ? e.message : String(e);
+      alert(`Lỗi trích xuất: ${errMsg}`);
     } finally {
       setIsExtracting(false);
     }
