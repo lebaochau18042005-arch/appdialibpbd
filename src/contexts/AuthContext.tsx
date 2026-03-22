@@ -4,12 +4,18 @@ import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { UserProfile, UserRole } from '../types';
 
+const TEACHER_CODE = 'GEO2025VN'; // Secret teacher code
+const LS_TEACHER_KEY = 'geo_pro_teacher_mode';
+
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
+  isTeacherMode: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  loginWithTeacherCode: (code: string) => boolean;
+  logoutTeacherMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +24,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isTeacherMode, setIsTeacherMode] = useState<boolean>(
+    () => localStorage.getItem(LS_TEACHER_KEY) === 'true'
+  );
 
   useEffect(() => {
     // Safety timeout: if Firebase takes too long, stop spinning and continue as guest
@@ -84,12 +93,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithRedirect(auth, provider);
   };
 
+  const loginWithTeacherCode = (code: string): boolean => {
+    if (code.trim().toUpperCase() === TEACHER_CODE) {
+      localStorage.setItem(LS_TEACHER_KEY, 'true');
+      setIsTeacherMode(true);
+      return true;
+    }
+    return false;
+  };
+
+  const logoutTeacherMode = () => {
+    localStorage.removeItem(LS_TEACHER_KEY);
+    setIsTeacherMode(false);
+  };
+
   const logout = async () => {
+    logoutTeacherMode();
     await signOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, isTeacherMode, login, logout, loginWithTeacherCode, logoutTeacherMode }}>
       {children}
     </AuthContext.Provider>
   );

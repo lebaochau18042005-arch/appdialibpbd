@@ -12,7 +12,7 @@ import ExamManager from '../components/teacher/ExamManager';
 import HistoryTable from '../components/teacher/HistoryTable';
 
 export default function TeacherDashboard() {
-  const { user, profile, loading: authLoading, login } = useAuth();
+  const { user, profile, loading: authLoading, isTeacherMode } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);

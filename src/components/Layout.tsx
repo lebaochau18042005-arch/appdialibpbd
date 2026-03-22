@@ -1,15 +1,17 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, History, Home, Map, User, Users, LogIn, LogOut, Settings, Compass } from 'lucide-react';
+import { BookOpen, History, Home, Map, User, Users, LogIn, LogOut, Settings, Compass, ShieldCheck, X, KeyRound } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
-import { useState, useEffect } from 'react';
 import ApiKeyModal from './ApiKeyModal';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { user, profile, login, logout } = useAuth();
+  const { user, isTeacherMode, logout, loginWithTeacherCode, logoutTeacherMode } = useAuth();
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState('');
 
   useEffect(() => {
     const savedKey = localStorage.getItem('GEMINI_API_KEY');
@@ -17,6 +19,17 @@ export default function Layout({ children }: { children: ReactNode }) {
       setIsApiKeyModalOpen(true);
     }
   }, []);
+
+  const handleCodeSubmit = () => {
+    const ok = loginWithTeacherCode(codeInput);
+    if (ok) {
+      setIsLoginModalOpen(false);
+      setCodeInput('');
+      setCodeError('');
+    } else {
+      setCodeError('Mã không đúng. Vui lòng thử lại.');
+    }
+  };
 
   const navItems = [
     { path: '/', label: 'Trang chủ', icon: Home },
@@ -62,17 +75,24 @@ export default function Layout({ children }: { children: ReactNode }) {
               <Settings className="w-4 h-4" />
               Lấy API key để sử dụng app
             </button>
-            {user ? (
-              <button
-                onClick={logout}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-emerald-100 hover:bg-emerald-500 hover:text-white"
-              >
-                <LogOut className="w-4 h-4" />
-                Đăng xuất
-              </button>
+            {(user || isTeacherMode) ? (
+              <div className="flex items-center gap-2">
+                {isTeacherMode && (
+                  <span className="flex items-center gap-1 px-2 py-1 bg-yellow-400 text-yellow-900 rounded-lg text-xs font-bold">
+                    <ShieldCheck className="w-3 h-3" /> Giáo viên
+                  </span>
+                )}
+                <button
+                  onClick={() => { logoutTeacherMode(); logout(); }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-emerald-100 hover:bg-emerald-500 hover:text-white"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Đăng xuất
+                </button>
+              </div>
             ) : (
               <button
-                onClick={login}
+                onClick={() => setIsLoginModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-white text-emerald-600 rounded-lg transition-colors font-bold shadow-sm hover:bg-emerald-50"
               >
                 <LogIn className="w-4 h-4" />
@@ -110,6 +130,42 @@ export default function Layout({ children }: { children: ReactNode }) {
       </nav>
       
       <ApiKeyModal isOpen={isApiKeyModalOpen} onClose={() => setIsApiKeyModalOpen(false)} />
+
+      {/* Teacher Code Login Modal */}
+      {isLoginModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-black text-slate-900">Mã Giáo Viên</h2>
+              </div>
+              <button onClick={() => { setIsLoginModalOpen(false); setCodeError(''); setCodeInput(''); }} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-slate-500 text-sm mb-4">Nhập mã bí mật để truy cập bảng điều khiển giáo viên.</p>
+            <input
+              type="password"
+              value={codeInput}
+              onChange={e => { setCodeInput(e.target.value); setCodeError(''); }}
+              onKeyDown={e => e.key === 'Enter' && handleCodeSubmit()}
+              placeholder="Nhập mã giáo viên..."
+              className="w-full p-4 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none mb-2 text-center text-lg font-mono tracking-widest"
+              autoFocus
+            />
+            {codeError && <p className="text-red-500 text-sm text-center mb-2">{codeError}</p>}
+            <button
+              onClick={handleCodeSubmit}
+              className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors mt-2"
+            >
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
