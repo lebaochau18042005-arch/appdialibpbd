@@ -19,7 +19,16 @@ export async function generateContentWithFallback(prompt: string, config: any = 
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const preferredModel = localStorage.getItem('GEMINI_MODEL') || DEFAULT_MODEL;
+  const storedModel = localStorage.getItem('GEMINI_MODEL');
+  // Clear stored model if it's an old/invalid name
+  const VALID_MODELS = new Set(FALLBACK_MODELS);
+  const preferredModel = (storedModel && VALID_MODELS.has(storedModel))
+    ? storedModel
+    : DEFAULT_MODEL;
+  if (storedModel && !VALID_MODELS.has(storedModel)) {
+    console.warn(`[AI] Xóa model cũ không hợp lệ: ${storedModel}, dùng ${DEFAULT_MODEL}`);
+    localStorage.removeItem('GEMINI_MODEL');
+  }
   
   const modelsToTry = [preferredModel, ...FALLBACK_MODELS.filter(m => m !== preferredModel)];
   
