@@ -9,6 +9,7 @@ export interface BaseQuestion {
   topic: string;
   lesson?: string;
   context?: string;
+  imageUrl?: string; // URL or base64 of chart/map/diagram image
   cognitiveLevel?: CognitiveLevel;
   explanation?: string;
   tips?: string;

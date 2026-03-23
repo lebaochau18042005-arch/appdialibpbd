@@ -46,15 +46,26 @@ export default function ExamActiveCard({
           )}
         </div>
 
-        <h2 className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-8">
+        <h2 className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-6">
           {currentQuestion.text}
         </h2>
+
+        {currentQuestion.imageUrl && (
+          <div className="mb-6 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
+            <img
+              src={currentQuestion.imageUrl}
+              alt="Hình minh họa câu hỏi"
+              className="max-w-full max-h-80 object-contain"
+            />
+          </div>
+        )}
 
         {currentQuestion.context && (
           <div className="mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-200 text-slate-700 italic">
             {currentQuestion.context}
           </div>
         )}
+
 
         <div className="space-y-4">
           {currentQuestion.type === 'multiple_choice' && currentQuestion.options.map((option, idx) => (

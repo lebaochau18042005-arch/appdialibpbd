@@ -45,6 +45,22 @@ export default function TeacherDashboard() {
   const [extractText, setExtractText] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
 
+  // Update imageUrl for a specific question in generatedQuestions
+  const handleQuestionImageUrl = (qIdx: number, url: string) => {
+    setGeneratedQuestions(prev => prev ? prev.map((q, i) =>
+      i === qIdx ? { ...q, imageUrl: url || undefined } : q
+    ) : prev);
+  };
+
+  const handleQuestionImageFile = (qIdx: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      handleQuestionImageUrl(qIdx, base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleExtractQuestions = (exam: Exam) => {
     setExtractingExam(exam);
     setExtractText('');
@@ -555,7 +571,39 @@ export default function TeacherDashboard() {
                           <p className="text-slate-800 font-bold text-base leading-relaxed">{q.text}</p>
                         </div>
                       </div>
-                      
+
+                      {/* Image attach section */}
+                      <div className="ml-12 mb-4">
+                        {q.imageUrl ? (
+                          <div className="relative group mb-2">
+                            <img src={q.imageUrl} alt="Hình câu hỏi" className="max-h-48 rounded-xl border border-slate-200 object-contain bg-white" />
+                            <button
+                              onClick={() => handleQuestionImageUrl(i, '')}
+                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Xóa hình"
+                            >✕</button>
+                          </div>
+                        ) : null}
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="Nhập URL hình ảnh (biểu đồ, bản đồ...)..."
+                            value={q.imageUrl && !q.imageUrl.startsWith('data:') ? q.imageUrl : ''}
+                            onChange={e => handleQuestionImageUrl(i, e.target.value)}
+                            className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 outline-none"
+                          />
+                          <label className="cursor-pointer flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-colors whitespace-nowrap">
+                            📷 Tải ảnh lên
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={e => { if (e.target.files?.[0]) handleQuestionImageFile(i, e.target.files[0]); e.target.value = ''; }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
                       {q.type === 'multiple_choice' && q.options && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-12">
                           {q.options.map((opt, idx) => (
