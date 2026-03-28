@@ -63,19 +63,25 @@ export default function ExamRoom() {
   const loadQuestions = useCallback(async () => {
     if (examId) {
       try {
-        const res = await fetch(`/api/exam/${examId}`);
-        const data = await res.json();
-        if (data.success) {
-          setExamQuestions(data.exam.questions);
-          setExamTitle(data.exam.title);
+        // Load directly from Firestore (no server API needed)
+        const allExams = await examService.getAllExams();
+        const found = allExams.find(e => e.id === examId);
+        if (found && found.questions && found.questions.length > 0) {
+          setExamQuestions(found.questions);
+          setExamTitle(found.title);
+        } else if (found && found.type === 'upload') {
+          // This is a file-based exam — can't do interactive quiz
+          alert('Đây là đề thi tải lên (file). Bạn có thể tải xuống để xem nội dung.');
+          navigate('/exam');
+          return;
         } else {
-          alert(data.error || 'Không tìm thấy đề thi!');
+          alert('Không tìm thấy đề thi hoặc đề chưa có câu hỏi. Vui lòng kiểm tra lại.');
           navigate('/exam');
           return;
         }
       } catch (err) {
         console.error('Lỗi khi tải đề thi:', err);
-        // Fallback to random if API fails (useful for dev)
+        alert('Lỗi kết nối. Hệ thống dùng đề ngẫu nhiên.');
         generateRandomExam();
       }
     } else {

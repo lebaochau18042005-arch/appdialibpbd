@@ -4,6 +4,8 @@ import { motion } from 'motion/react';
 import { Play, Upload, ArrowRight, Loader2, Sparkles, FileText, Search, History, ShieldCheck, Download } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { examService } from '../services/examService';
+import { db } from '../firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { Exam } from '../types';
 
@@ -16,20 +18,29 @@ export default function ExamSetup() {
   const [loadingExams, setLoadingExams] = useState(true);
 
   useEffect(() => {
-    loadExams();
-  }, []);
-
-  const loadExams = async () => {
     setLoadingExams(true);
-    try {
-      const data = await examService.getAllExams();
-      setExams(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    } catch (error) {
-      console.error(error);
-    } finally {
+    // Subscribe realtime to Firestore exams collection
+    const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fsExams = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
+      // Merge with any localStorage exams (for guests)
+      const lsExams: Exam[] = (() => {
+        try { return JSON.parse(localStorage.getItem('geo_pro_local_exams') || '[]'); } catch { return []; }
+      })();
+      const onlyLocal = lsExams.filter(le => !fsExams.find(fe => fe.id === le.id));
+      const all = [...fsExams, ...onlyLocal].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setExams(all);
       setLoadingExams(false);
-    }
-  };
+    }, (_err) => {
+      // Firestore unavailable — fallback to localStorage
+      try {
+        const lsExams: Exam[] = JSON.parse(localStorage.getItem('geo_pro_local_exams') || '[]');
+        setExams(lsExams);
+      } catch { setExams([]); }
+      setLoadingExams(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleStartAI = async () => {
     setIsCreating(true);
