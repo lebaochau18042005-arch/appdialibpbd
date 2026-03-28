@@ -33,6 +33,7 @@ export default function Quiz() {
   const [mcAnswer, setMcAnswer] = useState<number | null>(null);
   const [tfAnswer, setTfAnswer] = useState<Record<string, boolean>>({});
   const [saAnswer, setSaAnswer] = useState<string>('');
+  const [detailedAnswers, setDetailedAnswers] = useState<Record<string, { topic: string; isCorrect: boolean; userAnswer: any }>>({}); // per-question rich results
   
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
@@ -232,6 +233,16 @@ export default function Quiz() {
     setScore(s => s + pointsEarned);
     setIsAnswerCorrect(isCorrect);
     
+    // Record rich answer data for topic analysis
+    setDetailedAnswers(prev => ({
+      ...prev,
+      [currentQuestion.id]: {
+        topic: currentQuestion.topic || 'Chung',
+        isCorrect,
+        userAnswer: userAnswerForAi,
+      }
+    }));
+    
     if (socket && mode === 'exam') {
       socket.emit('submit_answer', {
         examId: examId || 'exam_local',
@@ -285,7 +296,7 @@ export default function Quiz() {
       score: Number(score.toFixed(2)),
       totalQuestions: quizQuestions.length,
       timeSpent,
-      answers: {} // Store real answers if needed
+      answers: detailedAnswers
     };
 
     await examService.saveAttempt(attempt);

@@ -178,9 +178,33 @@ export default function ExamRoom() {
     setIsFinished(true);
     
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+
+    // Build rich answers for topic analysis
+    const detailedAnswers: Record<string, { topic: string; isCorrect: boolean; userAnswer: any }> = {};
+    examQuestions.forEach((q, idx) => {
+      const answer = answers[idx];
+      let correct = false;
+      if (q.type === 'multiple_choice') {
+        correct = answer === q.correctAnswerIndex;
+      } else if (q.type === 'true_false') {
+        correct = answer ? q.statements.every(stmt => answer[stmt.id] === stmt.isTrue) : false;
+      } else if (q.type === 'short_answer') {
+        correct = answer ? answer.toString().trim().toLowerCase() === q.correctAnswer.toString().toLowerCase() : false;
+      }
+      detailedAnswers[q.id || String(idx)] = {
+        topic: q.topic || 'Chung',
+        isCorrect: correct,
+        userAnswer: answer,
+      };
+    });
     
+    const savedProfile = localStorage.getItem('examGeoProfile');
+    const parsedProfile = savedProfile ? JSON.parse(savedProfile) : null;
+
     const attempt: Omit<QuizAttempt, 'id'> = {
       userId: user?.uid || 'anonymous',
+      userName: parsedProfile?.name || user?.displayName || 'Học sinh ẩn danh',
+      className: parsedProfile?.className || profile?.className || 'Chưa xác định',
       examId: examId || 'ai_generated',
       examTitle: examTitle,
       date: new Date().toISOString(),
@@ -188,7 +212,7 @@ export default function ExamRoom() {
       score: Number(totalPoints.toFixed(2)),
       totalQuestions: examQuestions.length,
       timeSpent,
-      answers: {} // Should store real answers if needed
+      answers: detailedAnswers
     };
 
     await examService.saveAttempt(attempt);

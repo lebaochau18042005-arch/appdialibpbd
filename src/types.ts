@@ -79,3 +79,22 @@ export interface UserProfile {
   school?: string;
   targetScore?: string;
 }
+
+export interface StudentSummary {
+  key: string;           // userId or userName (for guests)
+  userName: string;
+  className: string;
+  totalAttempts: number;
+  avgScore: number;
+  highestScore: number;
+  lowestScore: number;
+  lastAttemptDate: string;
+  attempts: QuizAttempt[];
+}
+
+export interface TopicStats {
+  topic: string;
+  correct: number;
+  total: number;
+  percentage: number;
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
-import { Upload, History, MessageSquare, FileText, ShieldCheck, RefreshCw, Download, Search, User, BarChart, Lock, LogIn, Sparkles, CheckCircle2, XCircle, AlertCircle, Trash2, Brain } from 'lucide-react';
+import { Upload, History, MessageSquare, FileText, ShieldCheck, RefreshCw, Download, Search, User, BarChart, Lock, LogIn, Sparkles, CheckCircle2, XCircle, AlertCircle, Trash2, Brain, Users, LayoutDashboard, BookOpen } from 'lucide-react';
 import { examService } from '../services/examService';
 import { QuizAttempt, Exam, Question } from '../types';
 import { cn } from '../utils/cn';
@@ -10,6 +10,16 @@ import { generateExamFromContext } from '../services/ai';
 import TeacherStats from '../components/teacher/TeacherStats';
 import ExamManager from '../components/teacher/ExamManager';
 import HistoryTable from '../components/teacher/HistoryTable';
+import StudentManagement from '../components/teacher/StudentManagement';
+
+type DashboardTab = 'overview' | 'exams' | 'history' | 'students';
+
+const TABS: { id: DashboardTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'overview', label: 'Tổng quan', icon: <LayoutDashboard size={16} /> },
+  { id: 'exams', label: 'Ngân hàng đề', icon: <FileText size={16} /> },
+  { id: 'history', label: 'Lịch sử', icon: <History size={16} /> },
+  { id: 'students', label: 'Học sinh', icon: <Users size={16} /> },
+];
 
 export default function TeacherDashboard() {
   const { user, profile, loading: authLoading, isTeacherMode } = useAuth();
@@ -18,6 +28,7 @@ export default function TeacherDashboard() {
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [commentingId, setCommentingId] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [progress, setProgress] = useState('');
@@ -345,34 +356,64 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Stats Section */}
-      <TeacherStats attempts={attempts} />
+      {/* Tab Navigation */}
+      <div className="flex gap-1 p-1.5 bg-slate-100 rounded-2xl w-full md:w-auto overflow-x-auto">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              'flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap',
+              activeTab === tab.id
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            )}
+          >
+            {tab.icon}
+            {tab.label}
+            {tab.id === 'students' && attempts.length > 0 && (
+              <span className="ml-1 px-2 py-0.5 text-[10px] font-black bg-indigo-100 text-indigo-600 rounded-full">
+                {Array.from(new Set(attempts.map(a => a.userId || a.userName))).length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
-      {/* Exam Bank Section */}
-      <ExamManager
-        exams={exams}
-        examSearchTerm={examSearchTerm}
-        setExamSearchTerm={setExamSearchTerm}
-        handleDownload={handleDownload}
-        handleDeleteExam={handleDeleteExam}
-        setViewingExam={setViewingExam}
-        onExtractQuestions={handleExtractQuestions}
-      />
+      {/* Tab Content */}
+      {activeTab === 'overview' && <TeacherStats attempts={attempts} />}
 
-      {/* History Table Section */}
-      <HistoryTable
-        attempts={attempts}
-        classes={classes}
-        selectedClass={selectedClass}
-        setSelectedClass={setSelectedClass}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        loading={loading}
-        loadData={loadData}
-        setCommentingId={setCommentingId}
-        setComment={setComment}
-        setProgress={setProgress}
-      />
+      {activeTab === 'exams' && (
+        <ExamManager
+          exams={exams}
+          examSearchTerm={examSearchTerm}
+          setExamSearchTerm={setExamSearchTerm}
+          handleDownload={handleDownload}
+          handleDeleteExam={handleDeleteExam}
+          setViewingExam={setViewingExam}
+          onExtractQuestions={handleExtractQuestions}
+        />
+      )}
+
+      {activeTab === 'history' && (
+        <HistoryTable
+          attempts={attempts}
+          classes={classes}
+          selectedClass={selectedClass}
+          setSelectedClass={setSelectedClass}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          loading={loading}
+          loadData={loadData}
+          setCommentingId={setCommentingId}
+          setComment={setComment}
+          setProgress={setProgress}
+        />
+      )}
+
+      {activeTab === 'students' && (
+        <StudentManagement attempts={attempts} onRefresh={loadData} />
+      )}
 
       {/* Upload Confirmation Modal */}
       {/* AI Extract Questions Modal */}

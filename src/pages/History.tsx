@@ -1,16 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { History as HistoryIcon, Clock, Target, Calendar, MessageSquare, ShieldCheck, Download, RefreshCw, Lock, LogIn } from 'lucide-react';
-import { QuizAttempt } from '../types';
+import { History as HistoryIcon, Clock, Target, Calendar, MessageSquare, ShieldCheck, Download, RefreshCw, BarChart2, TrendingUp, TrendingDown } from 'lucide-react';
+import { QuizAttempt, TopicStats } from '../types';
 import { examService } from '../services/examService';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import ProgressChart from '../components/charts/ProgressChart';
 
 export default function History() {
-  const { user, loading: authLoading, login } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [history, setHistory] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const topicStats = useMemo<TopicStats[]>(() => {
+    const topicMap = new Map<string, { correct: number; total: number }>();
+    for (const attempt of history) {
+      if (!attempt.answers) continue;
+      for (const [, answerData] of Object.entries(attempt.answers)) {
+        const topic: string = (answerData as any).topic || 'Chung';
+        const isCorrect: boolean = (answerData as any).isCorrect === true;
+        if (!topicMap.has(topic)) topicMap.set(topic, { correct: 0, total: 0 });
+        const t = topicMap.get(topic)!;
+        t.total += 1;
+        if (isCorrect) t.correct += 1;
+      }
+    }
+    return Array.from(topicMap.entries())
+      .map(([topic, { correct, total }]) => ({
+        topic,
+        correct,
+        total,
+        percentage: total > 0 ? Math.round((correct / total) * 100) : 0,
+      }))
+      .sort((a, b) => a.percentage - b.percentage);
+  }, [history]);
 
   useEffect(() => {
     loadHistory();
@@ -92,6 +115,59 @@ export default function History() {
             <h3 className="text-xl font-bold text-slate-800 mb-2">Tiến độ điểm số</h3>
             <ProgressChart attempts={history} />
           </div>
+
+          {/* Topic Analysis */}
+          {topicStats.length > 0 && (
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 mb-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                  <BarChart2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Phân tích theo chủ đề</h3>
+                  <p className="text-sm text-slate-400">Chủ đề từ yếu đến mạnh dựa trên lịch sử làm bài</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {topicStats.map(ts => (
+                  <div key={ts.topic}>
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="flex items-center gap-2">
+                        {ts.percentage < 50
+                          ? <TrendingDown size={14} className="text-rose-400" />
+                          : ts.percentage >= 70
+                            ? <TrendingUp size={14} className="text-emerald-400" />
+                            : <BarChart2 size={14} className="text-amber-400" />}
+                        <span className="text-sm font-medium text-slate-700 truncate max-w-xs">{ts.topic}</span>
+                      </div>
+                      <span className={cn(
+                        'text-xs font-black',
+                        ts.percentage >= 70 ? 'text-emerald-600' : ts.percentage >= 50 ? 'text-amber-600' : 'text-rose-600'
+                      )}>
+                        {ts.correct}/{ts.total} ({ts.percentage}%)
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all duration-500',
+                          ts.percentage >= 70 ? 'bg-emerald-400' : ts.percentage >= 50 ? 'bg-amber-400' : 'bg-rose-400'
+                        )}
+                        style={{ width: `${ts.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-500">
+                  💡 <span className="text-rose-600">Đỏ (&lt;50%)</span> cần ôn tập gấp &nbsp;·&nbsp;
+                  <span className="text-amber-600">Vàng (50–70%)</span> cần củng cố &nbsp;·&nbsp;
+                  <span className="text-emerald-600">Xanh (&gt;70%)</span> nắm vững tốt
+                </p>
+              </div>
+            </div>
+          )}
           {history.map((attempt) => (
             <motion.div 
               key={attempt.id} 
