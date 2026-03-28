@@ -25,14 +25,16 @@ export const assignmentService = {
     targetClass: string,
     dueDate?: string
   ): Promise<string> {
-    const assignment: Omit<ExamAssignment, 'id'> = {
+    // Build assignment object — must NOT include undefined fields (Firestore rejects them)
+    const assignment: Record<string, any> = {
       examId,
       examTitle,
       assignedBy,
       targetClass,
-      dueDate,
       createdAt: new Date().toISOString(),
     };
+    if (dueDate) assignment.dueDate = dueDate;
+
     const ref = await addDoc(collection(db, 'exam_assignments'), assignment);
 
     // Broadcast thông báo: lấy tất cả user có className === targetClass
@@ -42,16 +44,16 @@ export const assignmentService = {
         : query(collection(db, 'users'), where('className', '==', targetClass));
 
       const usersSnap = await getDocs(usersQ);
-      const notificationData = {
-        type: 'new_exam' as const,
+      const notificationData: Record<string, any> = {
+        type: 'new_exam',
         examId,
         examTitle,
         message: `Giáo viên ${assignedBy} vừa giao đề thi "${examTitle}"${dueDate ? ` - Hạn nộp: ${new Date(dueDate).toLocaleDateString('vi-VN')}` : ''}.`,
         assignedBy,
         read: false,
         createdAt: new Date().toISOString(),
-        dueDate,
       };
+      if (dueDate) notificationData.dueDate = dueDate;
 
       const promises = usersSnap.docs.map(userDoc =>
         addDoc(collection(db, 'notifications', userDoc.id, 'items'), notificationData)
