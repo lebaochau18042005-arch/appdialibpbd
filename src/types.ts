@@ -53,6 +53,28 @@ export interface Exam {
   description?: string;
 }
 
+export interface ExamAssignment {
+  id: string;
+  examId: string;
+  examTitle: string;
+  assignedBy: string; // teacher name or uid
+  targetClass: string; // className, or 'all'
+  dueDate?: string;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  type: 'new_exam';
+  examId: string;
+  examTitle: string;
+  message: string;
+  assignedBy: string;
+  read: boolean;
+  createdAt: string;
+  dueDate?: string;
+}
+
 export interface QuizAttempt {
   id: string;
   userId: string;

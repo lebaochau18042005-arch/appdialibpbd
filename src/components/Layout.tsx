@@ -4,6 +4,7 @@ import { BookOpen, History, Home, Map, User, Users, LogIn, LogOut, Settings, Com
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import ApiKeyModal from './ApiKeyModal';
+import NotificationBell from './NotificationBell';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -82,6 +83,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <ShieldCheck className="w-3 h-3" /> Giáo viên
                   </span>
                 )}
+                {/* Notification Bell — only for students (not teacher mode) */}
+                {!isTeacherMode && <NotificationBell />}
                 <button
                   onClick={() => { logoutTeacherMode(); logout(); }}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium text-emerald-100 hover:bg-emerald-500 hover:text-white"
@@ -91,13 +94,17 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-emerald-600 rounded-lg transition-colors font-bold shadow-sm hover:bg-emerald-50"
-              >
-                <LogIn className="w-4 h-4" />
-                Đăng nhập
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Notification Bell for guests too if they have a profile */}
+                <NotificationBell />
+                <button
+                  onClick={() => setIsLoginModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-emerald-600 rounded-lg transition-colors font-bold shadow-sm hover:bg-emerald-50"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Đăng nhập
+                </button>
+              </div>
             )}
           </nav>
         </div>

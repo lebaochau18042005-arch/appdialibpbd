@@ -12,11 +12,13 @@ import ExamManager from '../components/teacher/ExamManager';
 import HistoryTable from '../components/teacher/HistoryTable';
 import StudentManagement from '../components/teacher/StudentManagement';
 import LiveStudentTracker from '../components/teacher/LiveStudentTracker';
+import ExamAssignPanel from '../components/teacher/ExamAssignPanel';
 
-type DashboardTab = 'overview' | 'exams' | 'history' | 'students';
+type DashboardTab = 'overview' | 'exams' | 'history' | 'students' | 'assign';
 
 const TABS: { id: DashboardTab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Tổng quan', icon: <LayoutDashboard size={16} /> },
+  { id: 'assign', label: 'Giao đề', icon: <BookOpen size={16} /> },
   { id: 'exams', label: 'Ngân hàng đề', icon: <FileText size={16} /> },
   { id: 'history', label: 'Lịch sử', icon: <History size={16} /> },
   { id: 'students', label: 'Học sinh', icon: <Users size={16} /> },
@@ -387,6 +389,10 @@ export default function TeacherDashboard() {
           <TeacherStats attempts={attempts} />
           <LiveStudentTracker />
         </div>
+      )}
+
+      {activeTab === 'assign' && (
+        <ExamAssignPanel exams={exams} attempts={attempts} />
       )}
 
       {activeTab === 'exams' && (
