@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Users, Search, X, BarChart2, Calendar, Clock, Target,
   MessageSquare, ChevronRight, TrendingUp, TrendingDown,
-  Award, BookOpen, Download, Filter, CheckCircle2, XCircle, RefreshCw
+  Award, BookOpen, Download, Filter, CheckCircle2, XCircle, RefreshCw,
+  ClipboardList, ChevronDown, ChevronUp, Edit3, Save
 } from 'lucide-react';
 import { QuizAttempt, StudentSummary, TopicStats } from '../../types';
 import { examService } from '../../services/examService';
@@ -295,6 +296,157 @@ function StudentDetailPanel({ student, onClose, onRefresh }: DetailPanelProps) {
   );
 }
 
+// ─── Class Roster Panel ───────────────────────────────────────────────────────
+interface RosterPanelProps {
+  rosterText: string;
+  rosterNames: string[];
+  rosterStats: { done: string[]; notDone: string[] };
+  doneNames: Set<string>;
+  showRoster: boolean;
+  setShowRoster: (v: boolean) => void;
+  editingRoster: boolean;
+  setEditingRoster: (v: boolean) => void;
+  draftRoster: string;
+  setDraftRoster: (v: string) => void;
+  saveRoster: () => void;
+  exportNotDone: () => void;
+}
+
+function ClassRosterPanel({
+  rosterNames, rosterStats, doneNames,
+  showRoster, setShowRoster,
+  editingRoster, setEditingRoster,
+  draftRoster, setDraftRoster,
+  saveRoster, exportNotDone,
+}: RosterPanelProps) {
+  return (
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-4">
+      {/* Collapsible header */}
+      <button
+        onClick={() => setShowRoster(!showRoster)}
+        className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+            <ClipboardList size={18} />
+          </div>
+          <div className="text-left">
+            <p className="font-black text-slate-800 text-sm">Danh sách lớp</p>
+            {rosterNames.length > 0 ? (
+              <p className="text-xs text-slate-400 font-medium">
+                <span className="text-emerald-600 font-black">{rosterStats.done.length}</span>
+                /{rosterNames.length} học sinh đã làm bài
+                {rosterStats.notDone.length > 0 && (
+                  <span className="text-rose-500 font-black"> · {rosterStats.notDone.length} chưa làm</span>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400 font-medium">Nhập danh sách tên học sinh để theo dõi</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {rosterStats.notDone.length > 0 && (
+            <button
+              onClick={e => { e.stopPropagation(); exportNotDone(); }}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors"
+            >
+              <Download size={12} /> Xuất DS chưa làm
+            </button>
+          )}
+          {showRoster ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+        </div>
+      </button>
+
+      {/* Expandable body */}
+      <AnimatePresence>
+        {showRoster && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-t border-slate-100"
+          >
+            <div className="p-5">
+              {editingRoster ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500 font-medium">Nhập mỗi tên trên một dòng (phải khớp chính xác với tên học sinh nhập khi vào app):</p>
+                  <textarea
+                    value={draftRoster}
+                    onChange={e => setDraftRoster(e.target.value)}
+                    rows={8}
+                    placeholder="Nguyễn Văn A&#10;Trần Thị B&#10;Lê Văn C&#10;..."
+                    className="w-full p-4 text-sm border border-slate-200 rounded-2xl resize-none focus:ring-2 focus:ring-amber-400 outline-none font-mono leading-loose"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setEditingRoster(false)}
+                      className="px-4 py-2 text-sm text-slate-500 border border-slate-200 rounded-xl font-bold hover:bg-slate-50"
+                    >Hủy</button>
+                    <button
+                      onClick={saveRoster}
+                      className="flex items-center gap-2 px-5 py-2 text-sm text-white bg-amber-500 rounded-xl font-bold hover:bg-amber-600 transition-colors"
+                    >
+                      <Save size={14} /> Lưu danh sách
+                    </button>
+                  </div>
+                </div>
+              ) : rosterNames.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-slate-400 text-sm mb-3">Chưa có danh sách. Nhấn nút bên dưới để nhập tên học sinh.</p>
+                  <button
+                    onClick={() => setEditingRoster(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl font-bold hover:bg-amber-100 transition-colors mx-auto"
+                  >
+                    <Edit3 size={14} /> Nhập danh sách lớp
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {rosterNames.map(name => {
+                      const done = doneNames.has(name.toLowerCase());
+                      return (
+                        <span
+                          key={name}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border',
+                            done
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                          )}
+                        >
+                          {done
+                            ? <CheckCircle2 size={11} className="text-emerald-500" />
+                            : <XCircle size={11} className="text-rose-400" />
+                          }
+                          {name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                    <div className="flex gap-4 text-xs font-bold">
+                      <span className="flex items-center gap-1 text-emerald-600"><CheckCircle2 size={12} />{rosterStats.done.length} đã làm</span>
+                      <span className="flex items-center gap-1 text-rose-500"><XCircle size={12} />{rosterStats.notDone.length} chưa làm</span>
+                    </div>
+                    <button
+                      onClick={() => { setDraftRoster(rosterNames.join('\n')); setEditingRoster(true); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                    >
+                      <Edit3 size={12} /> Chỉnh sửa
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function StudentManagement({ attempts, onRefresh }: StudentManagementProps) {
   const [search, setSearch] = useState('');
   const [selectedClass, setSelectedClass] = useState('Tất cả');
@@ -315,7 +467,45 @@ export default function StudentManagement({ attempts, onRefresh }: StudentManage
     });
   }, [students, search, selectedClass]);
 
-  if (attempts.length === 0) {
+  const LS_ROSTER_KEY = 'geo_pro_class_roster';
+  const [rosterText, setRosterText] = useState<string>(() => localStorage.getItem(LS_ROSTER_KEY) || '');
+  const [showRoster, setShowRoster] = useState(true);
+  const [editingRoster, setEditingRoster] = useState(false);
+  const [draftRoster, setDraftRoster] = useState(rosterText);
+
+  const rosterNames = useMemo(() =>
+    rosterText.split('\n').map(n => n.trim()).filter(Boolean),
+    [rosterText]
+  );
+
+  const doneNames = useMemo(() =>
+    new Set(students.map(s => s.userName.toLowerCase().trim())),
+    [students]
+  );
+
+  const rosterStats = useMemo(() => {
+    const done = rosterNames.filter(n => doneNames.has(n.toLowerCase()));
+    const notDone = rosterNames.filter(n => !doneNames.has(n.toLowerCase()));
+    return { done, notDone };
+  }, [rosterNames, doneNames]);
+
+  const saveRoster = () => {
+    localStorage.setItem(LS_ROSTER_KEY, draftRoster);
+    setRosterText(draftRoster);
+    setEditingRoster(false);
+  };
+
+  const exportNotDone = () => {
+    const csv = ['Họ tên', ...rosterStats.notDone].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'hoc_sinh_chua_lam_bai.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  if (attempts.length === 0 && rosterNames.length === 0) {
     return (
       <div className="bg-white p-16 rounded-3xl border border-slate-100 text-center shadow-sm">
         <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -329,6 +519,13 @@ export default function StudentManagement({ attempts, onRefresh }: StudentManage
 
   return (
     <>
+    <ClassRosterPanel
+      rosterText={rosterText} rosterNames={rosterNames} rosterStats={rosterStats}
+      doneNames={doneNames} showRoster={showRoster} setShowRoster={setShowRoster}
+      editingRoster={editingRoster} setEditingRoster={setEditingRoster}
+      draftRoster={draftRoster} setDraftRoster={setDraftRoster}
+      saveRoster={saveRoster} exportNotDone={exportNotDone}
+    />
     <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
       {/* Toolbar */}
       <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">

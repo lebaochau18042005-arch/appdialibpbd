@@ -6,6 +6,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
+import StudentProfileGate from './components/StudentProfileGate';
 import Home from './pages/Home';
 import PracticeSetup from './pages/PracticeSetup';
 import Quiz from './pages/Quiz';
@@ -20,20 +21,23 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/practice" element={<PracticeSetup />} />
-            <Route path="/exam" element={<ExamSetup />} />
-            <Route path="/exam-room" element={<ExamRoom />} />
-            <Route path="/quiz" element={<Quiz />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/teacher" element={<TeacherDashboard />} />
-            <Route path="/learning-path" element={<LearningPath />} />
-          </Routes>
-        </Layout>
+        <StudentProfileGate>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/practice" element={<PracticeSetup />} />
+              <Route path="/exam" element={<ExamSetup />} />
+              <Route path="/exam-room" element={<ExamRoom />} />
+              <Route path="/quiz" element={<Quiz />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/teacher" element={<TeacherDashboard />} />
+              <Route path="/learning-path" element={<LearningPath />} />
+            </Routes>
+          </Layout>
+        </StudentProfileGate>
       </AuthProvider>
     </BrowserRouter>
   );
 }
+

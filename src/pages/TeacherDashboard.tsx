@@ -11,6 +11,7 @@ import TeacherStats from '../components/teacher/TeacherStats';
 import ExamManager from '../components/teacher/ExamManager';
 import HistoryTable from '../components/teacher/HistoryTable';
 import StudentManagement from '../components/teacher/StudentManagement';
+import LiveStudentTracker from '../components/teacher/LiveStudentTracker';
 
 type DashboardTab = 'overview' | 'exams' | 'history' | 'students';
 
@@ -381,7 +382,12 @@ export default function TeacherDashboard() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'overview' && <TeacherStats attempts={attempts} />}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <TeacherStats attempts={attempts} />
+          <LiveStudentTracker />
+        </div>
+      )}
 
       {activeTab === 'exams' && (
         <ExamManager
