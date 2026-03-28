@@ -32,7 +32,17 @@ export default function Layout({ children }: { children: ReactNode }) {
     }
   };
 
-  const navItems = [
+  const studentNavItems = [
+    { path: '/', label: 'Trang Chủ', icon: Home },
+    { path: '/assigned', label: 'Đề Được Giao', icon: BookOpen, badge: true },
+    { path: '/practice', label: 'Luyện Tập', icon: Settings },
+    { path: '/exam', label: 'Thi Thử', icon: Map },
+    { path: '/learning-path', label: 'Lộ Trình', icon: Compass },
+    { path: '/history', label: 'Lịch Sử', icon: History },
+    { path: '/profile', label: 'Cấu Hình', icon: User },
+  ];
+
+  const teacherNavItems = [
     { path: '/', label: 'Trang chủ', icon: Home },
     { path: '/practice', label: 'Luyện tập', icon: BookOpen },
     { path: '/exam', label: 'Thi thử', icon: Map },
@@ -41,6 +51,27 @@ export default function Layout({ children }: { children: ReactNode }) {
     { path: '/profile', label: 'Cấu hình', icon: User },
     { path: '/teacher', label: 'Giáo viên', icon: Users },
   ];
+
+  const navItems = isTeacherMode ? teacherNavItems : studentNavItems;
+
+  // Count pending assignments for badge
+  const [assignedCount, setAssignedCount] = useState(0);
+  useEffect(() => {
+    if (isTeacherMode) return;
+    const profile = (() => { try { return JSON.parse(localStorage.getItem('examGeoProfile') || '{}'); } catch { return {}; } })();
+    const className = (profile.className || '').trim().toLowerCase();
+    if (!className) return;
+    const doneIds = new Set(
+      (() => { try { return JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]').map((a: any) => a.examId).filter(Boolean); } catch { return []; } })()
+    );
+    // Read from localStorage assignments for badge
+    const lsA = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_assignments') || '[]'); } catch { return []; } })();
+    const pending = lsA.filter((a: any) => {
+      const tc = (a.targetClass || '').toLowerCase();
+      return (tc === className || tc === 'all') && !doneIds.has(a.examId);
+    });
+    setAssignedCount(pending.length);
+  }, [isTeacherMode]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -54,20 +85,27 @@ export default function Layout({ children }: { children: ReactNode }) {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+              const showBadge = (item as any).badge && assignedCount > 0;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium",
+                    "relative flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium",
                     isActive ? "bg-emerald-700 text-white" : "text-emerald-100 hover:bg-emerald-500 hover:text-white"
                   )}
                 >
                   <Icon className="w-4 h-4" />
                   {item.label}
+                  {showBadge && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                      {assignedCount > 9 ? '9+' : assignedCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
+
             <button
               onClick={() => setIsApiKeyModalOpen(true)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all font-bold text-sm shadow-sm bg-white"
