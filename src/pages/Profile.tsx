@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { User, Save, CheckCircle2, RefreshCw, Lock, LogIn } from 'lucide-react';
+import { User, Save, CheckCircle2, RefreshCw, Cloud, CloudOff, LogIn } from 'lucide-react';
 import { UserProfile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { examService } from '../services/examService';
+import { syncService } from '../services/syncService';
 import { cn } from '../utils/cn';
 
 export default function Profile() {
-  const { user, loading: authLoading, login } = useAuth();
+  const { user, loading: authLoading, login, isSynced } = useAuth();
   const [profile, setProfile] = useState<UserProfile>({ name: '', className: '', school: '', targetScore: '' });
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -49,20 +50,24 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
-    if (!user || user.isAnonymous) {
-      // Guest: save to localStorage
-      localStorage.setItem(LS_PROFILE_KEY, JSON.stringify(profile));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-      return;
+    // Always save to localStorage
+    const localKey = 'examGeoProfile';
+    localStorage.setItem(localKey, JSON.stringify({
+      name: profile.name, className: profile.className,
+      school: profile.school || '', targetScore: profile.targetScore || '',
+    }));
+    // If Google signed in → also sync to Firestore
+    if (user && !user.isAnonymous) {
+      try {
+        await syncService.saveProfile(user.uid, {
+          name: profile.name, className: profile.className,
+          school: profile.school || '', targetScore: profile.targetScore || '',
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (e) { console.warn('Firestore save failed', e); }
     }
-    try {
-      await examService.updateProfile(user.uid, profile);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (error) {
-      console.error(error);
-    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   if (authLoading || (user && loading)) {
@@ -89,10 +94,24 @@ export default function Profile() {
         </div>
       </div>
 
-      {(!user || user.isAnonymous) && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 text-sm text-amber-700">
-          <span className="text-lg">💡</span>
-          <p>Bạn đang dùng tư cách khách. Thông tin sẽ lưu trên trình duyệt này. <button onClick={login} className="font-bold underline">Đăng nhập Google</button> để đồng bộ nhiều thiết bị.</p>
+      {isSynced ? (
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-sm text-emerald-700">
+          <Cloud className="w-5 h-5 shrink-0 text-emerald-600" />
+          <div>
+            <p className="font-bold">Đang đồng bộ với Google ({user?.email})</p>
+            <p className="text-emerald-600 text-xs mt-0.5">Cấu hình và lịch sử được lưu trên mọi thiết bị.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3 text-sm text-amber-700">
+          <CloudOff className="w-5 h-5 shrink-0 text-amber-500" />
+          <div className="flex-1">
+            <p className="font-bold">Đang lưu trên máy này</p>
+            <p className="text-amber-600 text-xs mt-0.5">Đăng nhập Google để đồng bộ qua nhiều thiết bị.</p>
+          </div>
+          <button onClick={login} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-200 rounded-xl text-amber-700 font-bold text-xs hover:bg-amber-50 transition-colors shrink-0">
+            <LogIn size={12} /> Đăng nhập
+          </button>
         </div>
       )}
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
