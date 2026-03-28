@@ -35,9 +35,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const studentNavItems = [
     { path: '/', label: 'Trang Chủ', icon: Home },
     { path: '/assigned', label: 'Đề Được Giao', icon: BookOpen, badge: true },
-    { path: '/practice', label: 'Luyện Tập', icon: Settings },
     { path: '/exam', label: 'Thi Thử', icon: Map },
-    { path: '/learning-path', label: 'Lộ Trình', icon: Compass },
+    { path: '/practice', label: 'Luyện Tập', icon: Compass },
     { path: '/history', label: 'Lịch Sử', icon: History },
     { path: '/profile', label: 'Cấu Hình', icon: User },
   ];
