@@ -13,24 +13,46 @@ service cloud.firestore {
 
     // User Rules
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read: if true; // Needed for broadcasting notifications to all users
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
     }
 
     // Exam Rules - allow any authenticated (even anonymous) user to read/create
     match /exams/{examId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
 
     // Attempt Rules - allow any authenticated user to create/read their own attempts
     match /attempts/{attemptId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated(); // For teacher comments
+      allow read: if true;
+      allow create: if true;
+      allow update: if true; // For teacher comments
+    }
+
+    // Exam Assignments - Teacher creates, everyone can read
+    match /exam_assignments/{assignId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    // Notifications - per-user subcollection
+    match /notifications/{userId}/items/{notifId} {
+      allow read: if true;
+      allow create: if true; // Teacher broadcasts to students
+      allow update: if true; // Mark as read
+      allow delete: if true;
+    }
+
+    // Live exam tracking - students write progress, teacher reads
+    match /live_exams/{examId}/students/{studentId} {
+      allow read: if true;
+      allow write: if true;
     }
   }
 }
