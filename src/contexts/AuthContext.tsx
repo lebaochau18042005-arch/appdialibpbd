@@ -58,6 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }));
               localStorage.setItem(LS_ROLE_KEY, 'student');
             }
+
+            // ── Auto-enable teacher mode if Firestore says so ────────────
+            if (existing.role === 'teacher') {
+              localStorage.setItem(LS_TEACHER_KEY, 'true');
+              setIsTeacherMode(true);
+              localStorage.setItem(LS_ROLE_KEY, 'teacher');
+            }
+
             setProfile(existing);
           } else {
             // New Google user — check if they have a local profile to migrate
@@ -111,6 +119,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (code.trim().toUpperCase() === TEACHER_CODE) {
       localStorage.setItem(LS_TEACHER_KEY, 'true');
       setIsTeacherMode(true);
+      // If Google user is signed in → save teacher role to Firestore for cross-device sync
+      const currentUser = auth.currentUser;
+      if (currentUser && !currentUser.isAnonymous) {
+        setDoc(doc(db, 'users', currentUser.uid), {
+          role: 'teacher',
+          uid: currentUser.uid,
+          email: currentUser.email || '',
+          name: currentUser.displayName || 'Giáo viên',
+          className: 'teacher',
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch(() => {});
+      }
       return true;
     }
     return false;
