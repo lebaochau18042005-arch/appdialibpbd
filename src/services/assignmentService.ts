@@ -36,7 +36,8 @@ export const assignmentService = {
     examTitle: string,
     assignedBy: string,
     targetClass: string,
-    dueDate?: string
+    dueDate?: string,
+    targetStudents?: string[]
   ): Promise<string> {
     const assignDoc: Record<string, any> = {
       title: `[Giao đề] ${examTitle}`,
@@ -50,6 +51,7 @@ export const assignmentService = {
       createdAt: new Date().toISOString(),
     };
     if (dueDate) assignDoc.dueDate = dueDate;
+    if (targetStudents && targetStudents.length > 0) assignDoc.targetStudents = targetStudents;
 
     let id = `local_${Date.now()}`;
     try {

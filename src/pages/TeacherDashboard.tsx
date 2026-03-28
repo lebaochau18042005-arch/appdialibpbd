@@ -13,12 +13,14 @@ import HistoryTable from '../components/teacher/HistoryTable';
 import StudentManagement from '../components/teacher/StudentManagement';
 import LiveStudentTracker from '../components/teacher/LiveStudentTracker';
 import ExamAssignPanel from '../components/teacher/ExamAssignPanel';
+import RosterUploader from '../components/teacher/RosterUploader';
 
-type DashboardTab = 'overview' | 'exams' | 'history' | 'students' | 'assign';
+type DashboardTab = 'overview' | 'exams' | 'history' | 'students' | 'assign' | 'roster';
 
 const TABS: { id: DashboardTab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Tổng quan', icon: <LayoutDashboard size={16} /> },
   { id: 'assign', label: 'Giao đề', icon: <BookOpen size={16} /> },
+  { id: 'roster', label: 'Danh sách lớp', icon: <Users size={16} /> },
   { id: 'exams', label: 'Ngân hàng đề', icon: <FileText size={16} /> },
   { id: 'history', label: 'Lịch sử', icon: <History size={16} /> },
   { id: 'students', label: 'Học sinh', icon: <Users size={16} /> },
@@ -393,6 +395,21 @@ export default function TeacherDashboard() {
 
       {activeTab === 'assign' && (
         <ExamAssignPanel exams={exams} attempts={attempts} />
+      )}
+
+      {activeTab === 'roster' && (
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+          <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
+            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center">
+              <Users size={22} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Danh Sách Học Sinh Theo Lớp</h2>
+              <p className="text-sm text-slate-500">Tải lên file danh sách từ Excel, CSV, hay Word để giao đề chính xác</p>
+            </div>
+          </div>
+          <RosterUploader />
+        </div>
       )}
 
       {activeTab === 'exams' && (
