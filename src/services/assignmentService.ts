@@ -3,31 +3,33 @@ import {
   collection,
   addDoc,
   onSnapshot,
-  doc,
-  updateDoc,
   query,
   orderBy,
-  limit,
   getDocs,
-  where,
 } from 'firebase/firestore';
 import { ExamAssignment, Notification } from '../types';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// STORAGE STRATEGY (no Firebase Console needed):
-//   - exam_assignments  → stored in the `exams` collection with type='assignment'
-//     (that collection already has open rules; no new rules needed)
-//   - notifications     → stored in localStorage per-user (no Firestore needed)
-//     (broadcasts are picked up next time student loads ExamSetup via onSnapshot)
+// STORAGE STRATEGY (no Firebase Console / no extra rules needed):
+//   - Assignments: saved in the existing `exams` collection (type='assignment')
+//     with localStorage as fallback.
+//   - Notifications: localStorage only — avoids all Firestore permission issues.
 // ──────────────────────────────────────────────────────────────────────────────
 
-const ASSIGN_TYPE = 'assignment'; // marker inside exams collection
+const LS_ASSIGN_KEY = 'geo_pro_assignments';
+const ASSIGN_TYPE = 'assignment';
+
+function lsGetAssignments(): ExamAssignment[] {
+  try { return JSON.parse(localStorage.getItem(LS_ASSIGN_KEY) || '[]'); } catch { return []; }
+}
+function lsAddAssignment(a: ExamAssignment) {
+  const list = lsGetAssignments().filter(x => x.id !== a.id);
+  localStorage.setItem(LS_ASSIGN_KEY, JSON.stringify([a, ...list].slice(0, 100)));
+}
 
 export const assignmentService = {
   // =====================
-  // GV: Giao đề cho lớp
-  // Saves into `exams` collection with type='assignment'; writes notification
-  // to localStorage for the current browser AND to any other stored user keys.
+  // GV: Giao đề — saves in `exams` collection, falls back to localStorage
   // =====================
   async assignExam(
     examId: string,
@@ -37,24 +39,40 @@ export const assignmentService = {
     dueDate?: string
   ): Promise<string> {
     const assignDoc: Record<string, any> = {
-      // Mimic the Exam shape so getAllExams filters it out (type='assignment')
-      title: `[ASSIGN] ${examTitle}`,
+      title: `[Giao đề] ${examTitle}`,
       examId,
       examTitle,
       assignedBy,
       targetClass,
-      type: ASSIGN_TYPE,  // stored in exams collection with this type
+      type: ASSIGN_TYPE,
       creatorId: 'teacher',
       questions: [],
       createdAt: new Date().toISOString(),
     };
     if (dueDate) assignDoc.dueDate = dueDate;
 
-    const ref = await addDoc(collection(db, 'exams'), assignDoc);
+    let id = `local_${Date.now()}`;
+    try {
+      const ref = await addDoc(collection(db, 'exams'), assignDoc);
+      id = ref.id;
+    } catch (e) {
+      console.warn('assignExam: Firestore write failed, using localStorage fallback', e);
+    }
 
-    // Broadcast: push notification into localStorage (works cross-tab on same device)
-    // On Vercel/production: students see new assignments via onSnapshot on exams collection
-    const notif: Omit<Notification, 'id'> = {
+    const assignment: ExamAssignment = {
+      id,
+      examId,
+      examTitle,
+      assignedBy,
+      targetClass,
+      createdAt: new Date().toISOString(),
+      ...(dueDate ? { dueDate } : {}),
+    };
+    lsAddAssignment(assignment);
+
+    // Save notification for this class in localStorage
+    const notif: Notification & { id: string } = {
+      id,
       type: 'new_exam',
       examId,
       examTitle,
@@ -64,50 +82,59 @@ export const assignmentService = {
       createdAt: new Date().toISOString(),
       ...(dueDate ? { dueDate } : {}),
     };
+    const classKey = `geo_notifications_class_${targetClass}`;
+    const allKey = 'geo_notifications_class_all';
+    const push = (key: string) => {
+      const existing: Notification[] = (() => {
+        try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+      })();
+      existing.unshift(notif);
+      localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+    };
+    push(classKey);
+    if (targetClass.toLowerCase() === 'all') push(allKey);
 
-    // Push to localStorage notifications list (keyed by targetClass)
-    const lsKey = `geo_notifications_class_${targetClass}`;
-    const existing: Notification[] = (() => {
-      try { return JSON.parse(localStorage.getItem(lsKey) || '[]'); } catch { return []; }
-    })();
-    existing.unshift({ ...notif, id: ref.id });
-    localStorage.setItem(lsKey, JSON.stringify(existing.slice(0, 50)));
-
-    return ref.id;
+    return id;
   },
 
   // =====================
-  // GV: Lắng nghe danh sách đề đã giao (realtime via exams collection)
+  // GV: Lắng nghe danh sách đề đã giao (realtime, with localStorage fallback)
+  // Uses simple query (no composite index needed)
   // =====================
   subscribeToAssignments(callback: (assignments: ExamAssignment[]) => void) {
-    const q = query(
-      collection(db, 'exams'),
-      where('type', '==', ASSIGN_TYPE),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
-    return onSnapshot(q, (snap) => {
-      callback(snap.docs.map(d => ({
-        id: d.id,
-        examId: d.data().examId || d.id,
-        examTitle: d.data().examTitle || d.data().title,
-        assignedBy: d.data().assignedBy || 'Giáo viên',
-        targetClass: d.data().targetClass || '',
-        dueDate: d.data().dueDate,
-        createdAt: d.data().createdAt,
-      } as ExamAssignment)));
+    // Simple query — no where+orderBy combo that needs a composite index
+    const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'));
+
+    const unsub = onSnapshot(q, (snap) => {
+      const fsAssignments = snap.docs
+        .filter(d => d.data().type === ASSIGN_TYPE)
+        .map(d => ({
+          id: d.id,
+          examId: d.data().examId || d.id,
+          examTitle: d.data().examTitle || d.data().title,
+          assignedBy: d.data().assignedBy || 'Giáo viên',
+          targetClass: d.data().targetClass || '',
+          dueDate: d.data().dueDate,
+          createdAt: d.data().createdAt,
+        } as ExamAssignment));
+
+      const lsAssignments = lsGetAssignments().filter(la => !fsAssignments.find(fa => fa.id === la.id));
+      const merged = [...fsAssignments, ...lsAssignments]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(merged);
     }, (err) => {
-      console.error('subscribeToAssignments error:', err);
+      console.error('subscribeToAssignments Firestore error, using localStorage', err);
+      callback(lsGetAssignments());
     });
+
+    return unsub;
   },
 
   // =====================
-  // HS: Lắng nghe thông báo từ localStorage theo lớp của học sinh
-  // Polls localStorage every 15s to pick up new assignments
+  // HS: Lắng nghe thông báo từ localStorage (polling + storage event)
   // =====================
   subscribeToNotifications(userId: string, callback: (notifs: Notification[]) => void) {
     const getNotifs = (): Notification[] => {
-      // Get the student's className from localStorage profile
       const className = (() => {
         try {
           const p = JSON.parse(localStorage.getItem('examGeoProfile') || '{}');
@@ -131,7 +158,6 @@ export const assignmentService = {
         });
       });
 
-      // Merge with read-status from personal localStorage
       const readKey = `geo_notifications_read_${userId}`;
       const readIds: string[] = (() => {
         try { return JSON.parse(localStorage.getItem(readKey) || '[]'); } catch { return []; }
@@ -143,13 +169,8 @@ export const assignmentService = {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     };
 
-    // Initial call
     callback(getNotifs());
-
-    // Poll interval (localStorage is sync, but useful for cross-tab updates)
-    const interval = setInterval(() => callback(getNotifs()), 15000);
-
-    // Also listen for storage events (cross-tab)
+    const interval = setInterval(() => callback(getNotifs()), 10000);
     const handleStorage = () => callback(getNotifs());
     window.addEventListener('storage', handleStorage);
 
@@ -160,7 +181,7 @@ export const assignmentService = {
   },
 
   // =====================
-  // HS: Đánh dấu đã đọc (localStorage)
+  // HS: Đánh dấu đã đọc
   // =====================
   async markNotificationRead(userId: string, notifId: string) {
     const readKey = `geo_notifications_read_${userId}`;
@@ -178,23 +199,23 @@ export const assignmentService = {
   // =====================
   async getAssignments(): Promise<ExamAssignment[]> {
     try {
-      const q = query(
-        collection(db, 'exams'),
-        where('type', '==', ASSIGN_TYPE),
-        orderBy('createdAt', 'desc')
-      );
+      const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
-      return snap.docs.map(d => ({
-        id: d.id,
-        examId: d.data().examId || d.id,
-        examTitle: d.data().examTitle || d.data().title,
-        assignedBy: d.data().assignedBy || 'Giáo viên',
-        targetClass: d.data().targetClass || '',
-        dueDate: d.data().dueDate,
-        createdAt: d.data().createdAt,
-      } as ExamAssignment));
+      const fs = snap.docs
+        .filter(d => d.data().type === ASSIGN_TYPE)
+        .map(d => ({
+          id: d.id,
+          examId: d.data().examId || d.id,
+          examTitle: d.data().examTitle || d.data().title,
+          assignedBy: d.data().assignedBy || 'Giáo viên',
+          targetClass: d.data().targetClass || '',
+          dueDate: d.data().dueDate,
+          createdAt: d.data().createdAt,
+        } as ExamAssignment));
+      const ls = lsGetAssignments().filter(la => !fs.find(fa => fa.id === la.id));
+      return [...fs, ...ls].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch {
-      return [];
+      return lsGetAssignments();
     }
   },
 };
