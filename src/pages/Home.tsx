@@ -7,7 +7,7 @@ import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { examService } from '../services/examService';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
 
 export default function Home() {
   const { user, isTeacherMode } = useAuth();
@@ -30,27 +30,35 @@ export default function Home() {
   useEffect(() => {
     if (isTeacherMode) return;
     const className = (() => {
-      try { return JSON.parse(localStorage.getItem('examGeoProfile') || '{}').className || ''; } catch { return ''; }
+      try { return (JSON.parse(localStorage.getItem('examGeoProfile') || '{}').className || '').trim().toLowerCase(); } catch { return ''; }
     })();
     if (!className) return;
 
     const lsAttempts: any[] = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]'); } catch { return []; } })();
-    const doneIds = new Set<string>(lsAttempts.map((a: any) => a.examId));
+    const doneIds = new Set<string>(lsAttempts.map((a: any) => a.examId).filter(Boolean));
 
-    const q = query(collection(db, 'exams'), where('type', '==', 'assignment'), orderBy('createdAt', 'desc'));
+    // Simple query — no compound where+orderBy (no composite index needed)
+    const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'), limit(100));
     const unsub = onSnapshot(q, (snap) => {
       const pending = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as any))
-        .filter((e: any) => (e.targetClass === className || e.targetClass === 'all') && !doneIds.has(e.examId || e.id));
+        .filter((e: any) => {
+          if (e.type !== 'assignment') return false;
+          const tc = (e.targetClass || '').trim().toLowerCase();
+          return (tc === className || tc === 'all') && !doneIds.has(e.examId || e.id);
+        });
       setPendingAssignments(pending);
     }, () => {
-      // fallback: check localStorage assignments
       const lsA: any[] = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_assignments') || '[]'); } catch { return []; } })();
-      setPendingAssignments(lsA.filter((a: any) => (a.targetClass === className || a.targetClass === 'all') && !doneIds.has(a.examId)));
+      setPendingAssignments(lsA.filter((a: any) => {
+        const tc = (a.targetClass || '').trim().toLowerCase();
+        return (tc === className || tc === 'all') && !doneIds.has(a.examId);
+      }));
     });
     return () => unsub();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTeacherMode]);
+
 
   const loadUserData = async () => {
     if (!user) return;
