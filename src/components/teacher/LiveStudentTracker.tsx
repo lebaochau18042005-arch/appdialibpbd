@@ -3,15 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Wifi, WifiOff, Users, Clock, CheckCircle2, Loader2, Bell, X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
-interface LiveStudent {
-  id: string;
-  name: string;
-  className: string;
-  score: number;
-  progress: number;
-  isFinished: boolean;
-  timeSpent?: number;
-}
+import { liveTrackingService, LiveStudent } from '../../services/liveTrackingService';
 
 interface ToastItem {
   id: string;
@@ -24,49 +16,7 @@ export default function LiveStudentTracker() {
   const [connected, setConnected] = useState(false);
   const [students, setStudents] = useState<LiveStudent[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const socketRef = useRef<any>(null);
   const examId = 'exam_local'; // listen to all generic exams
-
-  // Try to connect to socket — works only in dev or if server.ts is running
-  useEffect(() => {
-    let socket: any = null;
-    try {
-      // Dynamic import to avoid crash when socket.io-client not available
-      import('socket.io-client').then(({ io }) => {
-        socket = io({ transports: ['websocket', 'polling'] });
-        socketRef.current = socket;
-
-        socket.on('connect', () => {
-          setConnected(true);
-          socket.emit('teacher_join', { examId });
-        });
-
-        socket.on('disconnect', () => setConnected(false));
-
-        socket.on('initial_state', (data: LiveStudent[]) => {
-          setStudents(data);
-        });
-
-        socket.on('student_joined', (data: LiveStudent[]) => {
-          setStudents(data);
-          const newest = data[data.length - 1];
-          if (newest) addToast(`${newest.name} vừa vào thi!`, newest.name);
-        });
-
-        socket.on('student_updated', (data: LiveStudent[]) => {
-          setStudents(data);
-        });
-      }).catch(() => {
-        // socket.io-client not available — silent fail
-      });
-    } catch {
-      // silent fail
-    }
-
-    return () => {
-      socket?.disconnect();
-    };
-  }, []);
 
   const addToast = (message: string, studentName: string) => {
     const id = `${Date.now()}_${Math.random()}`;
@@ -75,6 +25,23 @@ export default function LiveStudentTracker() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 5000);
   };
+
+  useEffect(() => {
+    setConnected(true);
+    
+    const unsubscribe = liveTrackingService.subscribeToLiveStudents(examId, (updatedStudents, newStudents) => {
+      setStudents(updatedStudents);
+      newStudents.forEach(student => {
+        addToast(`${student.name} vừa vào thi!`, student.name);
+      });
+    });
+
+    return () => {
+      unsubscribe();
+      setConnected(false);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examId]);
 
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
@@ -126,7 +93,7 @@ export default function LiveStudentTracker() {
               <p className="text-sm text-slate-400">
                 {connected
                   ? `${students.length} học sinh trong phòng thi`
-                  : 'Đang chờ kết nối... (chỉ hoạt động khi có server)'}
+                  : 'Đang kết nối Firebase...'}
               </p>
             </div>
           </div>
@@ -161,7 +128,7 @@ export default function LiveStudentTracker() {
             <p className="text-slate-400 font-medium text-sm">
               {connected
                 ? 'Chưa có học sinh nào vào phòng thi.'
-                : 'Tính năng này hoạt động trong môi trường có server (npm run dev).'}
+                : 'Đang kết nối Firebase...'}
             </p>
             <p className="text-slate-300 text-xs mt-1">Khi học sinh bắt đầu làm bài, tên sẽ xuất hiện ở đây.</p>
           </div>

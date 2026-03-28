@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle2, XCircle, AlertCircle, ArrowRight, Loader2, RefreshCcw, Home, Clock } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { io, Socket } from 'socket.io-client';
+import { liveTrackingService } from '../services/liveTrackingService';
 import { questions } from '../data';
 import { Question, QuestionType, QuizAttempt, UserProfile } from '../types';
 import { getExplanation } from '../services/ai';
@@ -49,7 +49,7 @@ export default function Quiz() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [studentSessionId] = useState<string>(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [studentName, setStudentName] = useState<string>('');
   const [hasJoined, setHasJoined] = useState(false);
 
@@ -153,18 +153,14 @@ export default function Quiz() {
 
   useEffect(() => {
     if (mode === 'exam' && studentName && !hasJoined) {
-      const newSocket = io();
-      setSocket(newSocket);
-      
       const targetExamId = examId || 'exam_local';
-      newSocket.emit('join_exam', { examId: targetExamId, studentName, profile });
+      liveTrackingService.joinLiveExam(targetExamId, studentSessionId, {
+        name: studentName,
+        className: profile?.className || 'Chưa xác định'
+      });
       setHasJoined(true);
-
-      return () => {
-        newSocket.disconnect();
-      };
     }
-  }, [mode, studentName, hasJoined, examId, profile]);
+  }, [mode, studentName, hasJoined, examId, profile, studentSessionId]);
 
   useEffect(() => {
     if (isFinished || quizQuestions.length === 0) return;
@@ -243,13 +239,9 @@ export default function Quiz() {
       }
     }));
     
-    if (socket && mode === 'exam') {
-      socket.emit('submit_answer', {
-        examId: examId || 'exam_local',
-        questionId: `q_${currentIndex}`,
-        isCorrect,
-        points: pointsEarned
-      });
+    if (mode === 'exam') {
+      const newScore = score + pointsEarned;
+      liveTrackingService.updateLiveProgress(examId || 'exam_local', studentSessionId, currentIndex + 1, newScore);
     }
     
     setIsAiLoading(true);
@@ -281,8 +273,8 @@ export default function Quiz() {
     setIsFinished(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     
-    if (socket && mode === 'exam') {
-      socket.emit('finish_exam', { examId: examId || 'exam_local', timeSpent });
+    if (mode === 'exam') {
+      liveTrackingService.finishLiveExam(examId || 'exam_local', studentSessionId, timeSpent);
     }
     
     const attempt: Omit<QuizAttempt, 'id'> = {
