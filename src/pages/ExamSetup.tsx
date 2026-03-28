@@ -22,7 +22,10 @@ export default function ExamSetup() {
     // Subscribe realtime to Firestore exams collection
     const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fsExams = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
+      const fsExams = snapshot.docs
+        .map(d => ({ id: d.id, ...d.data() } as Exam))
+        .filter(e => e.type !== 'assignment'); // exclude assignment-marker docs
+
       // Merge with any localStorage exams (for guests)
       const lsExams: Exam[] = (() => {
         try { return JSON.parse(localStorage.getItem('geo_pro_local_exams') || '[]'); } catch { return []; }

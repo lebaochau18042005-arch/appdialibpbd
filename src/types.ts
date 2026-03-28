@@ -45,7 +45,7 @@ export interface Exam {
   id: string;
   title: string;
   creatorId: string;
-  type: 'ai' | 'upload';
+  type: 'ai' | 'upload' | 'assignment';
   fileUrl?: string;
   fileType?: 'word' | 'pdf' | 'html';
   questions: Question[];
