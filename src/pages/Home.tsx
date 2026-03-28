@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, Map, Target, Award, ArrowRight, Settings, LayoutDashboard, Users, FileText, Sparkles, ShieldCheck, History } from 'lucide-react';
+import { BookOpen, Map, Target, Award, ArrowRight, Settings, LayoutDashboard, Users, FileText, Sparkles, ShieldCheck, History, Bell, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { QuizAttempt, UserProfile } from '../types';
+import { QuizAttempt, UserProfile, Exam } from '../types';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { examService } from '../services/examService';
+import { db } from '../firebase';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, isTeacherMode } = useAuth();
   const [recentAttempts, setRecentAttempts] = useState<QuizAttempt[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [pendingAssignments, setPendingAssignments] = useState<Array<Exam & { examId: string; examTitle: string; assignedBy: string; targetClass: string; dueDate?: string }>>([]);
 
   useEffect(() => {
     if (user) {
@@ -18,13 +21,36 @@ export default function Home() {
     } else {
       const history = JSON.parse(localStorage.getItem('examGeoHistory') || '[]');
       setRecentAttempts(history.slice(0, 3));
-      
       const savedProfile = localStorage.getItem('examGeoProfile');
-      if (savedProfile) {
-        setProfile(JSON.parse(savedProfile));
-      }
+      if (savedProfile) setProfile(JSON.parse(savedProfile));
     }
   }, [user]);
+
+  // Subscribe to pending assignments for student's class
+  useEffect(() => {
+    if (isTeacherMode) return;
+    const className = (() => {
+      try { return JSON.parse(localStorage.getItem('examGeoProfile') || '{}').className || ''; } catch { return ''; }
+    })();
+    if (!className) return;
+
+    const lsAttempts: any[] = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]'); } catch { return []; } })();
+    const doneIds = new Set<string>(lsAttempts.map((a: any) => a.examId));
+
+    const q = query(collection(db, 'exams'), where('type', '==', 'assignment'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const pending = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as any))
+        .filter((e: any) => (e.targetClass === className || e.targetClass === 'all') && !doneIds.has(e.examId || e.id));
+      setPendingAssignments(pending);
+    }, () => {
+      // fallback: check localStorage assignments
+      const lsA: any[] = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_assignments') || '[]'); } catch { return []; } })();
+      setPendingAssignments(lsA.filter((a: any) => (a.targetClass === className || a.targetClass === 'all') && !doneIds.has(a.examId)));
+    });
+    return () => unsub();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTeacherMode]);
 
   const loadUserData = async () => {
     if (!user) return;
@@ -46,6 +72,46 @@ export default function Home() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-8 pb-20 md:pb-0"
     >
+      {/* ─── Pending Assignment Banner ─────────────────────────────── */}
+      {!isTeacherMode && pendingAssignments.length > 0 && (
+        <section className="bg-rose-50 border-2 border-rose-200 rounded-3xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-rose-500 text-white rounded-xl flex items-center justify-center animate-pulse">
+              <Bell size={18} />
+            </div>
+            <div>
+              <h2 className="font-black text-rose-700 text-base">Đề thi được giao cho lớp bạn!</h2>
+              <p className="text-rose-500 text-xs font-medium">{pendingAssignments.length} đề chưa làm — hãy hoàn thành sớm</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {pendingAssignments.map((a: any) => (
+              <Link
+                key={a.id}
+                to={`/exam-room?examId=${a.examId || a.id}`}
+                className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-rose-100 hover:border-rose-300 hover:shadow-md transition-all group"
+              >
+                <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0">
+                  <BookOpen size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-800 text-sm line-clamp-1">{a.examTitle || a.title}</p>
+                  <p className="text-xs text-slate-500">GV: {a.assignedBy || 'Giáo viên'}</p>
+                  {a.dueDate && (
+                    <p className="text-[10px] text-rose-500 font-bold flex items-center gap-1 mt-0.5">
+                      <Clock size={8} /> Hạn: {new Date(a.dueDate).toLocaleDateString('vi-VN')}
+                    </p>
+                  )}
+                </div>
+                <span className="px-3 py-1.5 text-xs font-black bg-indigo-600 text-white rounded-xl group-hover:bg-indigo-700 transition-colors shrink-0">
+                  Làm ngay →
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="bg-emerald-600 text-white rounded-3xl p-8 shadow-lg relative overflow-hidden">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-emerald-500 opacity-50 blur-3xl"></div>
         <div className="relative z-10 max-w-2xl">
