@@ -5,10 +5,9 @@ import {
   Bell, BookOpen, BarChart2, Map, History, Clock,
   ChevronRight, Flame, Trophy, Target, ArrowRight, Sparkles, AlertTriangle, X
 } from 'lucide-react';
-import { db } from '../firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { cn } from '../utils/cn';
 import { sessionService, LiveAlert } from '../services/sessionService';
+import { assignmentService } from '../services/assignmentService';
 
 interface AssignedExam {
   id: string; examId: string; examTitle: string;
@@ -91,28 +90,12 @@ export default function StudentHome() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to pending assignments from Firestore
+  // Subscribe to pending assignments via RTDB (cross-device sync)
   useEffect(() => {
-    const className = (profile.className || '').trim().toLowerCase();
-    if (!className) return;
+    if (!profile.className) return;
     const doneIds = getDoneIds();
-    const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'), limit(100));
-    const unsub = onSnapshot(q, (snap) => {
-      const pending = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as any))
-        .filter((e: any) => {
-          if (e.type !== 'assignment') return false;
-          const tc = (e.targetClass || '').trim().toLowerCase();
-          return (tc === className || tc === 'all') && !doneIds.has(e.examId || e.id);
-        });
-      setPendingAssignments(pending);
-    }, () => {
-      const lsA = JSON.parse(localStorage.getItem('geo_pro_assignments') || '[]');
-      const doneIds2 = getDoneIds();
-      setPendingAssignments(lsA.filter((a: any) => {
-        const tc = (a.targetClass || '').toLowerCase();
-        return (tc === className || tc === 'all') && !doneIds2.has(a.examId);
-      }));
+    const unsub = assignmentService.subscribeToStudentAssignments(profile.className, (list) => {
+      setPendingAssignments(list.filter(a => !doneIds.has(a.examId)));
     });
     return () => unsub();
   // eslint-disable-next-line react-hooks/exhaustive-deps

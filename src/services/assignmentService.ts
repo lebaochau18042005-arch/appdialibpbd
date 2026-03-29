@@ -1,36 +1,28 @@
-import { db } from '../firebase';
-import {
-  collection,
-  addDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  getDocs,
-} from 'firebase/firestore';
-import { ExamAssignment, Notification } from '../types';
+/**
+ * assignmentService — uses Firebase Realtime Database as primary storage
+ * so exam assignments sync cross-device without needing Firestore rules.
+ */
+import { rtdb } from '../firebase';
+import { ref, set, push, onValue, off, remove } from 'firebase/database';
+import { ExamAssignment } from '../types';
 
-// ──────────────────────────────────────────────────────────────────────────────
-// STORAGE STRATEGY (no Firebase Console / no extra rules needed):
-//   - Assignments: saved in the existing `exams` collection (type='assignment')
-//     with localStorage as fallback.
-//   - Notifications: localStorage only — avoids all Firestore permission issues.
-// ──────────────────────────────────────────────────────────────────────────────
+const LS_KEY = 'geo_pro_assignments';
 
-const LS_ASSIGN_KEY = 'geo_pro_assignments';
-const ASSIGN_TYPE = 'assignment';
-
-function lsGetAssignments(): ExamAssignment[] {
-  try { return JSON.parse(localStorage.getItem(LS_ASSIGN_KEY) || '[]'); } catch { return []; }
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+function lsGet(): ExamAssignment[] {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
 }
-function lsAddAssignment(a: ExamAssignment) {
-  const list = lsGetAssignments().filter(x => x.id !== a.id);
-  localStorage.setItem(LS_ASSIGN_KEY, JSON.stringify([a, ...list].slice(0, 100)));
+function lsSet(list: ExamAssignment[]) {
+  localStorage.setItem(LS_KEY, JSON.stringify(list.slice(0, 100)));
+}
+function lsAdd(a: ExamAssignment) {
+  lsSet([a, ...lsGet().filter(x => x.id !== a.id)]);
 }
 
+// ─── Main service ─────────────────────────────────────────────────────────────
 export const assignmentService = {
-  // =====================
-  // GV: Giao đề — saves in `exams` collection, falls back to localStorage
-  // =====================
+
+  // Teacher: create assignment → RTDB + localStorage
   async assignExam(
     examId: string,
     examTitle: string,
@@ -39,185 +31,113 @@ export const assignmentService = {
     dueDate?: string,
     targetStudents?: string[]
   ): Promise<string> {
+    const createdAt = new Date().toISOString();
     const assignDoc: Record<string, any> = {
-      title: `[Giao đề] ${examTitle}`,
       examId,
       examTitle,
       assignedBy,
       targetClass,
-      type: ASSIGN_TYPE,
-      creatorId: 'teacher',
-      questions: [],
-      createdAt: new Date().toISOString(),
+      createdAt,
+      ...(dueDate ? { dueDate } : {}),
+      ...(targetStudents?.length ? { targetStudents } : {}),
     };
-    if (dueDate) assignDoc.dueDate = dueDate;
-    if (targetStudents && targetStudents.length > 0) assignDoc.targetStudents = targetStudents;
 
+    // Write to RTDB
     let id = `local_${Date.now()}`;
     try {
-      const ref = await addDoc(collection(db, 'exams'), assignDoc);
-      id = ref.id;
+      const newRef = await push(ref(rtdb, 'assignments'), assignDoc);
+      id = newRef.key || id;
     } catch (e) {
-      console.warn('assignExam: Firestore write failed, using localStorage fallback', e);
+      console.warn('assignmentService: RTDB write failed, using localStorage', e);
     }
 
-    const assignment: ExamAssignment = {
-      id,
-      examId,
-      examTitle,
-      assignedBy,
-      targetClass,
-      createdAt: new Date().toISOString(),
-      ...(dueDate ? { dueDate } : {}),
-    };
-    lsAddAssignment(assignment);
-
-    // Save notification for this class in localStorage
-    const notif: Notification & { id: string } = {
-      id,
-      type: 'new_exam',
-      examId,
-      examTitle,
-      message: `Giáo viên ${assignedBy} vừa giao đề thi "${examTitle}"${dueDate ? ` - Hạn nộp: ${new Date(dueDate).toLocaleDateString('vi-VN')}` : ''}.`,
-      assignedBy,
-      read: false,
-      createdAt: new Date().toISOString(),
-      ...(dueDate ? { dueDate } : {}),
-    };
-    const classKey = `geo_notifications_class_${targetClass}`;
-    const allKey = 'geo_notifications_class_all';
-    const push = (key: string) => {
-      const existing: Notification[] = (() => {
-        try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
-      })();
-      existing.unshift(notif);
-      localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
-    };
-    push(classKey);
-    if (targetClass.toLowerCase() === 'all') push(allKey);
-
+    const assignment: ExamAssignment = { id, examId, examTitle, assignedBy, targetClass, createdAt, ...(dueDate ? { dueDate } : {}) };
+    lsAdd(assignment);
     return id;
   },
 
-  // =====================
-  // GV: Lắng nghe danh sách đề đã giao (realtime, with localStorage fallback)
-  // Uses simple query (no composite index needed)
-  // =====================
-  subscribeToAssignments(callback: (assignments: ExamAssignment[]) => void) {
-    // Simple query — no where+orderBy combo that needs a composite index
-    const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'));
-
-    const unsub = onSnapshot(q, (snap) => {
-      const fsAssignments = snap.docs
-        .filter(d => d.data().type === ASSIGN_TYPE)
-        .map(d => ({
-          id: d.id,
-          examId: d.data().examId || d.id,
-          examTitle: d.data().examTitle || d.data().title,
-          assignedBy: d.data().assignedBy || 'Giáo viên',
-          targetClass: d.data().targetClass || '',
-          dueDate: d.data().dueDate,
-          createdAt: d.data().createdAt,
-        } as ExamAssignment));
-
-      const lsAssignments = lsGetAssignments().filter(la => !fsAssignments.find(fa => fa.id === la.id));
-      const merged = [...fsAssignments, ...lsAssignments]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      callback(merged);
-    }, (err) => {
-      console.error('subscribeToAssignments Firestore error, using localStorage', err);
-      callback(lsGetAssignments());
-    });
-
-    return unsub;
-  },
-
-  // =====================
-  // HS: Lắng nghe thông báo từ localStorage (polling + storage event)
-  // =====================
-  subscribeToNotifications(userId: string, callback: (notifs: Notification[]) => void) {
-    const getNotifs = (): Notification[] => {
-      const className = (() => {
-        try {
-          const p = JSON.parse(localStorage.getItem('examGeoProfile') || '{}');
-          return p.className || '';
-        } catch { return ''; }
-      })();
-
-      const keys = className
-        ? [`geo_notifications_class_${className}`, 'geo_notifications_class_all']
-        : ['geo_notifications_class_all'];
-
-      const all: Notification[] = [];
-      const seen = new Set<string>();
-
-      keys.forEach(k => {
-        const items: Notification[] = (() => {
-          try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch { return []; }
-        })();
-        items.forEach(n => {
-          if (!seen.has(n.id)) { seen.add(n.id); all.push(n); }
+  // Teacher: subscribe to ALL assignments (realtime)
+  subscribeToAssignments(callback: (assignments: ExamAssignment[]) => void): () => void {
+    const assignRef = ref(rtdb, 'assignments');
+    const handler = (snap: any) => {
+      if (!snap.exists()) {
+        // Fall back to localStorage
+        callback(lsGet());
+        return;
+      }
+      const list: ExamAssignment[] = [];
+      snap.forEach((child: any) => {
+        const d = child.val();
+        list.push({
+          id: child.key,
+          examId: d.examId || child.key,
+          examTitle: d.examTitle || '',
+          assignedBy: d.assignedBy || 'Giáo viên',
+          targetClass: d.targetClass || '',
+          dueDate: d.dueDate,
+          createdAt: d.createdAt || '',
         });
       });
-
-      const readKey = `geo_notifications_read_${userId}`;
-      const readIds: string[] = (() => {
-        try { return JSON.parse(localStorage.getItem(readKey) || '[]'); } catch { return []; }
-      })();
-      const readSet = new Set(readIds);
-
-      return all
-        .map(n => ({ ...n, read: readSet.has(n.id) }))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Sort newest first
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(list);
     };
-
-    callback(getNotifs());
-    const interval = setInterval(() => callback(getNotifs()), 10000);
-    const handleStorage = () => callback(getNotifs());
-    window.addEventListener('storage', handleStorage);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('storage', handleStorage);
-    };
+    onValue(assignRef, handler, () => callback(lsGet()));
+    return () => off(assignRef, 'value', handler);
   },
 
-  // =====================
-  // HS: Đánh dấu đã đọc
-  // =====================
-  async markNotificationRead(userId: string, notifId: string) {
-    const readKey = `geo_notifications_read_${userId}`;
-    const readIds: string[] = (() => {
-      try { return JSON.parse(localStorage.getItem(readKey) || '[]'); } catch { return []; }
-    })();
-    if (!readIds.includes(notifId)) {
-      readIds.push(notifId);
-      localStorage.setItem(readKey, JSON.stringify(readIds));
-    }
+  // Student: subscribe to assignments for their class (realtime)
+  subscribeToStudentAssignments(
+    className: string,
+    callback: (assignments: ExamAssignment[]) => void
+  ): () => void {
+    const assignRef = ref(rtdb, 'assignments');
+    const cls = className.trim().toLowerCase();
+    const handler = (snap: any) => {
+      if (!snap.exists()) {
+        const ls = lsGet().filter(a => {
+          const tc = (a.targetClass || '').trim().toLowerCase();
+          return tc === cls || tc === 'all';
+        });
+        callback(ls);
+        return;
+      }
+      const list: ExamAssignment[] = [];
+      snap.forEach((child: any) => {
+        const d = child.val();
+        const tc = (d.targetClass || '').trim().toLowerCase();
+        if (tc !== cls && tc !== 'all') return;
+        list.push({
+          id: child.key,
+          examId: d.examId || child.key,
+          examTitle: d.examTitle || '',
+          assignedBy: d.assignedBy || 'Giáo viên',
+          targetClass: d.targetClass || '',
+          dueDate: d.dueDate,
+          createdAt: d.createdAt || '',
+        });
+      });
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(list);
+    };
+    onValue(assignRef, handler, () => {
+      const ls = lsGet().filter(a => {
+        const tc = (a.targetClass || '').trim().toLowerCase();
+        return tc === cls || tc === 'all';
+      });
+      callback(ls);
+    });
+    return () => off(assignRef, 'value', handler);
   },
 
-  // =====================
-  // GV: Lấy danh sách đề đã giao (async)
-  // =====================
-  async getAssignments(): Promise<ExamAssignment[]> {
-    try {
-      const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      const fs = snap.docs
-        .filter(d => d.data().type === ASSIGN_TYPE)
-        .map(d => ({
-          id: d.id,
-          examId: d.data().examId || d.id,
-          examTitle: d.data().examTitle || d.data().title,
-          assignedBy: d.data().assignedBy || 'Giáo viên',
-          targetClass: d.data().targetClass || '',
-          dueDate: d.data().dueDate,
-          createdAt: d.data().createdAt,
-        } as ExamAssignment));
-      const ls = lsGetAssignments().filter(la => !fs.find(fa => fa.id === la.id));
-      return [...fs, ...ls].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } catch {
-      return lsGetAssignments();
-    }
+  // Teacher: delete assignment
+  async deleteAssignment(id: string): Promise<void> {
+    try { await remove(ref(rtdb, `assignments/${id}`)); } catch {}
+    lsSet(lsGet().filter(a => a.id !== id));
+  },
+
+  // Compat: read assignments once (for ExamAssignPanel initial load)
+  getAssignments(): ExamAssignment[] {
+    return lsGet();
   },
 };
