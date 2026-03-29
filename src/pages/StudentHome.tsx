@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   Bell, BookOpen, BarChart2, Map, History, Clock,
-  ChevronRight, Flame, Trophy, Target, ArrowRight, Sparkles
+  ChevronRight, Flame, Trophy, Target, ArrowRight, Sparkles, AlertTriangle, X
 } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { cn } from '../utils/cn';
+import { sessionService, LiveAlert } from '../services/sessionService';
 
 interface AssignedExam {
   id: string; examId: string; examTitle: string;
@@ -63,6 +64,32 @@ export default function StudentHome() {
   const profile = getProfile();
   const [pendingAssignments, setPendingAssignments] = useState<AssignedExam[]>([]);
   const [recentAttempts, setRecentAttempts] = useState<any[]>([]);
+  const [liveAlert, setLiveAlert] = useState<LiveAlert | null>(null);
+  const [alertDismissed, setAlertDismissed] = useState(false);
+
+  // Send heartbeat when student opens the app
+  useEffect(() => {
+    if (!profile.name || !profile.className) return;
+    // Send immediately
+    sessionService.heartbeat({ name: profile.name, className: profile.className, school: profile.school });
+    // Then every 2 minutes
+    const interval = setInterval(() => {
+      sessionService.heartbeat({ name: profile.name, className: profile.className, school: profile.school });
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Subscribe to live alerts from teacher
+  useEffect(() => {
+    if (!profile.className) return;
+    const unsub = sessionService.subscribeToAlerts(profile.className, (alert) => {
+      setLiveAlert(alert);
+      if (alert) setAlertDismissed(false); // Re-show when new alert arrives
+    });
+    return () => unsub();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Subscribe to pending assignments from Firestore
   useEffect(() => {
@@ -141,6 +168,26 @@ export default function StudentHome() {
           </div>
         </div>
       </section>
+
+      {/* ── Live Alert Banner from Teacher ── */}
+      {liveAlert && !alertDismissed && (
+        <motion.section
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-3xl p-4 shadow-2xl shadow-red-500/30 flex items-center gap-4"
+        >
+          <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center shrink-0 animate-pulse">
+            <AlertTriangle size={20} />
+          </div>
+          <div className="flex-1">
+            <p className="font-black text-sm">⚠️ Thông báo từ Giáo viên</p>
+            <p className="text-white/90 text-xs mt-0.5">{liveAlert.message || 'Giáo viên đang theo dõi — Vào thi ngay!'}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link to="/assigned" className="px-3 py-1.5 bg-white text-red-600 rounded-xl font-black text-xs hover:bg-red-50 transition-colors">Vào thi</Link>
+            <button onClick={() => setAlertDismissed(true)} className="text-white/60 hover:text-white"><X size={16}/></button>
+          </div>
+        </motion.section>
+      )}
 
       {/* ── Pending Assignment Banner ── */}
       {pendingAssignments.length > 0 && (
