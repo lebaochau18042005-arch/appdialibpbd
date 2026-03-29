@@ -54,5 +54,18 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Student session tracking - heartbeat when student opens the app
+    match /sessions/{sessionId} {
+      allow read: if true;  // Teacher reads to see who's online
+      allow write: if true; // Students write their own heartbeat
+    }
+
+    // Live alerts - teacher broadcasts to students
+    match /live_alerts/{alertId} {
+      allow read: if true;  // Students listen for alerts
+      allow write: if true; // Teacher sends alerts
+      allow delete: if true;
+    }
   }
 }
