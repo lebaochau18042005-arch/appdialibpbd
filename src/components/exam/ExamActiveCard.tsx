@@ -4,6 +4,56 @@ import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 
+// ─── Markdown Table Renderer ───────────────────────────────────────────────────
+function QuestionText({ text }: { text: string }) {
+  const lines = text.split(/\r?\n/);
+  const parts: React.ReactNode[] = [];
+  let tableLines: string[] = [];
+  let key = 0;
+
+  const flushTable = () => {
+    if (tableLines.length < 2) {
+      tableLines.forEach(l => parts.push(<span key={key++} className="block">{l}</span>));
+      tableLines = [];
+      return;
+    }
+    const rows = tableLines
+      .filter(l => l.trim().startsWith('|') && !l.replace(/[|\s-]/g, '') === false)
+      .filter(l => !/^[\s|:-]+$/.test(l)); // skip separator rows like |---|---|
+    parts.push(
+      <div key={key++} className="my-4 overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
+        <table className="text-sm text-slate-700 w-full">
+          <tbody>
+            {rows.map((row, ri) => {
+              const cells = row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1);
+              return (
+                <tr key={ri} className={ri === 0 ? 'bg-indigo-50 font-bold text-indigo-800' : ri % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  {cells.map((cell, ci) => (
+                    <td key={ci} className="px-3 py-2 border border-indigo-100 whitespace-nowrap">{cell.trim()}</td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+    tableLines = [];
+  };
+
+  for (const line of lines) {
+    if (line.trim().startsWith('|')) {
+      tableLines.push(line);
+    } else {
+      if (tableLines.length) flushTable();
+      if (line.trim()) parts.push(<span key={key++} className="block mb-1">{line}</span>);
+    }
+  }
+  if (tableLines.length) flushTable();
+
+  return <div className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-6">{parts}</div>;
+}
+
 interface ExamActiveCardProps {
   currentQuestion: Question;
   currentIndex: number;
@@ -46,9 +96,7 @@ export default function ExamActiveCard({
           )}
         </div>
 
-        <h2 className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-6">
-          {currentQuestion.text}
-        </h2>
+        <QuestionText text={currentQuestion.text} />
 
         {currentQuestion.imageUrl && (
           <div className="mb-6 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
