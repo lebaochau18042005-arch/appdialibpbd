@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { examService } from '../services/examService';
 import { liveExamService } from '../services/liveExamService';
+import { assignmentService } from '../services/assignmentService';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   CheckCircle2, 
@@ -67,26 +68,38 @@ export default function ExamRoom() {
   const loadQuestions = useCallback(async () => {
     if (examId) {
       try {
-        // Load directly from Firestore (no server API needed)
+        // Load from Firestore first
         const allExams = await examService.getAllExams();
         const found = allExams.find(e => e.id === examId);
         if (found && found.questions && found.questions.length > 0) {
           setExamQuestions(found.questions);
           setExamTitle(found.title);
         } else if (found && found.type === 'upload') {
-          // This is a file-based exam — can't do interactive quiz
           alert('Đây là đề thi tải lên (file). Bạn có thể tải xuống để xem nội dung.');
           navigate('/exam');
           return;
         } else {
-          alert('Không tìm thấy đề thi hoặc đề chưa có câu hỏi. Vui lòng kiểm tra lại.');
-          navigate('/exam');
-          return;
+          // Firestore failed / rules block reads → try RTDB (assignment bundle)
+          const rtdbExam = await assignmentService.getExamQuestionsFromRTDB(examId);
+          if (rtdbExam && rtdbExam.questions.length > 0) {
+            setExamQuestions(rtdbExam.questions);
+            setExamTitle(rtdbExam.title);
+          } else {
+            alert('Không tìm thấy đề thi hoặc đề chưa có câu hỏi. Vui lòng kiểm tra lại.');
+            navigate('/exam');
+            return;
+          }
         }
       } catch (err) {
-        console.error('Lỗi khi tải đề thi:', err);
-        alert('Lỗi kết nối. Hệ thống dùng đề ngẫu nhiên.');
-        generateRandomExam();
+        console.error('Lỗi khi tải đề thi từ Firestore, thử RTDB:', err);
+        // Full fallback: try RTDB
+        const rtdbExam = await assignmentService.getExamQuestionsFromRTDB(examId);
+        if (rtdbExam && rtdbExam.questions.length > 0) {
+          setExamQuestions(rtdbExam.questions);
+          setExamTitle(rtdbExam.title);
+        } else {
+          generateRandomExam();
+        }
       }
     } else {
       generateRandomExam();

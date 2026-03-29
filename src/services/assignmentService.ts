@@ -3,7 +3,7 @@
  * so exam assignments sync cross-device without needing Firestore rules.
  */
 import { rtdb } from '../firebase';
-import { ref, set, push, onValue, off, remove } from 'firebase/database';
+import { ref, set, push, onValue, off, remove, get } from 'firebase/database';
 import { ExamAssignment } from '../types';
 
 const LS_KEY = 'geo_pro_assignments';
@@ -22,14 +22,15 @@ function lsAdd(a: ExamAssignment) {
 // ─── Main service ─────────────────────────────────────────────────────────────
 export const assignmentService = {
 
-  // Teacher: create assignment → RTDB + localStorage
+  // Teacher: create assignment → RTDB + localStorage (with exam questions bundled)
   async assignExam(
     examId: string,
     examTitle: string,
     assignedBy: string,
     targetClass: string,
     dueDate?: string,
-    targetStudents?: string[]
+    targetStudents?: string[],
+    examQuestions?: any[]
   ): Promise<string> {
     const createdAt = new Date().toISOString();
     const assignDoc: Record<string, any> = {
@@ -40,6 +41,7 @@ export const assignmentService = {
       createdAt,
       ...(dueDate ? { dueDate } : {}),
       ...(targetStudents?.length ? { targetStudents } : {}),
+      ...(examQuestions?.length ? { questions: examQuestions } : {}),
     };
 
     // Write to RTDB
@@ -54,6 +56,23 @@ export const assignmentService = {
     const assignment: ExamAssignment = { id, examId, examTitle, assignedBy, targetClass, createdAt, ...(dueDate ? { dueDate } : {}) };
     lsAdd(assignment);
     return id;
+  },
+
+  // Student: get exam questions from RTDB (by examId) as fallback when Firestore fails
+  async getExamQuestionsFromRTDB(examId: string): Promise<{ title: string; questions: any[] } | null> {
+    try {
+      const snap = await get(ref(rtdb, 'assignments'));
+      if (!snap.exists()) return null;
+      let result: { title: string; questions: any[] } | null = null;
+      snap.forEach((child: any) => {
+        if (result) return;
+        const d = child.val();
+        if (d.examId === examId && d.questions?.length) {
+          result = { title: d.examTitle || 'Đề thi', questions: d.questions };
+        }
+      });
+      return result;
+    } catch { return null; }
   },
 
   // Teacher: subscribe to ALL assignments (realtime)

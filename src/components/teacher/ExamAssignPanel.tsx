@@ -192,7 +192,11 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
       : assignTarget.targetClass;
     const targetStudents = assignTarget.type === 'individuals' ? assignTarget.students : [];
 
-    await assignmentService.assignExam(exam.id, exam.title, teacherName, targetClass, dueDate || undefined, targetStudents);
+    await assignmentService.assignExam(
+      exam.id, exam.title, teacherName, targetClass,
+      dueDate || undefined, targetStudents,
+      exam.questions || []
+    );
     setSuccess(`Đã giao đề "${exam.title}" cho ${assignTarget.type === 'individuals' ? `${targetStudents.length} học sinh` : `lớp "${targetClass}"`}!`);
     setSelectedExamId('');
     setAssignTarget(null);
