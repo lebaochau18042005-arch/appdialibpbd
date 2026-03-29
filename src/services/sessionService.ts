@@ -1,127 +1,116 @@
-import { db } from '../firebase';
+import { rtdb } from '../firebase';
 import {
-  doc, setDoc, collection, onSnapshot,
-  query, orderBy, where, limit, serverTimestamp, Timestamp, getDoc, deleteDoc
-} from 'firebase/firestore';
+  ref, set, onValue, off, serverTimestamp, remove, get
+} from 'firebase/database';
 
 export interface StudentSession {
   sessionId: string;
   name: string;
   className: string;
   school?: string;
-  lastSeen: any; // Firestore Timestamp
+  lastSeen: number; // Unix ms timestamp
   isOnline: boolean;
 }
 
 export interface LiveAlert {
-  className: string;  // 'all' or specific class
+  className: string;
   message: string;
   active: boolean;
-  createdAt: any;
+  createdAt: number;
 }
 
-const ONLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes = online
+const ONLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
 
 export const sessionService = {
 
-  // ─── Student: send heartbeat on login & every 2 min ──────────────────────
+  // ─── Student: heartbeat on login & every 2 min ───────────────────────────
 
   async heartbeat(studentInfo: { name: string; className: string; school?: string }) {
     if (!studentInfo.name || !studentInfo.className) return;
-    const sessionId = `${studentInfo.className}_${studentInfo.name.replace(/\s+/g, '_')}`;
+    const sessionId = `${studentInfo.className}__${studentInfo.name.replace(/\s+/g, '_')}`;
     try {
-      await setDoc(doc(db, 'sessions', sessionId), {
+      await set(ref(rtdb, `sessions/${sessionId}`), {
         sessionId,
         name: studentInfo.name,
         className: studentInfo.className,
         school: studentInfo.school || '',
-        lastSeen: serverTimestamp(),
+        lastSeen: Date.now(),
         isOnline: true,
-      }, { merge: true });
+      });
     } catch (e) {
       console.warn('sessionService.heartbeat failed:', e);
     }
   },
 
-  // ─── Teacher: subscribe to all online sessions ────────────────────────────
+  // ─── Teacher: subscribe to all sessions ──────────────────────────────────
 
   subscribeToSessions(callback: (sessions: StudentSession[]) => void): () => void {
-    const q = query(
-      collection(db, 'sessions'),
-      orderBy('lastSeen', 'desc'),
-      limit(200)
-    );
-    return onSnapshot(q, (snap) => {
-      const sessions: StudentSession[] = snap.docs.map(d => {
-        const data = d.data() as StudentSession;
-        // Calculate isOnline based on lastSeen timestamp
-        const lastSeenMs = data.lastSeen instanceof Timestamp
-          ? data.lastSeen.toMillis()
-          : Date.now();
-        const isOnline = Date.now() - lastSeenMs < ONLINE_THRESHOLD_MS;
-        return { ...data, isOnline };
+    const sessionsRef = ref(rtdb, 'sessions');
+    const handler = (snap: any) => {
+      if (!snap.exists()) { callback([]); return; }
+      const sessions: StudentSession[] = [];
+      snap.forEach((child: any) => {
+        const data = child.val() as StudentSession;
+        const isOnline = Date.now() - (data.lastSeen || 0) < ONLINE_THRESHOLD_MS;
+        sessions.push({ ...data, isOnline });
+      });
+      // Sort: online first, then by lastSeen desc
+      sessions.sort((a, b) => {
+        if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+        return (b.lastSeen || 0) - (a.lastSeen || 0);
       });
       callback(sessions);
-    }, (err) => {
-      console.warn('sessionService.subscribeToSessions error:', err);
-    });
+    };
+    onValue(sessionsRef, handler);
+    return () => off(sessionsRef, 'value', handler);
   },
 
-  // ─── Teacher: send live alert to a class ─────────────────────────────────
+  // ─── Teacher: send live alert ─────────────────────────────────────────────
 
   async sendLiveAlert(className: string, message: string) {
-    const key = className === 'all' ? 'all' : className;
-    await setDoc(doc(db, 'live_alerts', key), {
+    const key = className === 'all' ? 'all' : className.replace(/[.#$[\]]/g, '_');
+    await set(ref(rtdb, `live_alerts/${key}`), {
       className,
       message,
       active: true,
-      createdAt: serverTimestamp(),
+      createdAt: Date.now(),
     });
   },
 
   async clearLiveAlert(className: string) {
-    try {
-      await deleteDoc(doc(db, 'live_alerts', className === 'all' ? 'all' : className));
-    } catch {}
+    const key = className === 'all' ? 'all' : className.replace(/[.#$[\]]/g, '_');
+    try { await remove(ref(rtdb, `live_alerts/${key}`)); } catch {}
   },
 
-  // ─── Student: subscribe to live alerts for their class ───────────────────
+  // ─── Student: subscribe to alerts for their class ────────────────────────
 
   subscribeToAlerts(
     className: string,
     callback: (alert: LiveAlert | null) => void
   ): () => void {
-    // Check class-specific alert AND 'all' alert
-    const classRef = doc(db, 'live_alerts', className);
-    const allRef = doc(db, 'live_alerts', 'all');
+    const classKey = className.replace(/[.#$[\]]/g, '_');
+    const classRef = ref(rtdb, `live_alerts/${classKey}`);
+    const allRef = ref(rtdb, 'live_alerts/all');
 
-    let latest: LiveAlert | null = null;
     let classAlert: LiveAlert | null = null;
     let allAlert: LiveAlert | null = null;
 
-    const notify = () => {
-      latest = classAlert || allAlert || null;
-      callback(latest);
-    };
+    const notify = () => callback(classAlert || allAlert || null);
 
-    const unsub1 = onSnapshot(classRef, snap => {
-      classAlert = snap.exists() ? (snap.data() as LiveAlert) : null;
-      notify();
-    });
-    const unsub2 = onSnapshot(allRef, snap => {
-      allAlert = snap.exists() ? (snap.data() as LiveAlert) : null;
-      notify();
-    });
+    const h1 = (snap: any) => { classAlert = snap.exists() ? snap.val() : null; notify(); };
+    const h2 = (snap: any) => { allAlert = snap.exists() ? snap.val() : null; notify(); };
 
-    return () => { unsub1(); unsub2(); };
+    onValue(classRef, h1);
+    onValue(allRef, h2);
+
+    return () => { off(classRef, 'value', h1); off(allRef, 'value', h2); };
   },
 
-  // ─── Format time helpers ──────────────────────────────────────────────────
+  // ─── Format time helper ───────────────────────────────────────────────────
 
-  formatLastSeen(lastSeen: any): string {
+  formatLastSeen(lastSeen: number | undefined): string {
     if (!lastSeen) return 'Chưa xác định';
-    const ms = lastSeen instanceof Timestamp ? lastSeen.toMillis() : Date.now();
-    const diff = Date.now() - ms;
+    const diff = Date.now() - lastSeen;
     if (diff < 60_000) return 'Vừa vào';
     if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} phút trước`;
     if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} giờ trước`;
