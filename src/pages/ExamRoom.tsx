@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { examService } from '../services/examService';
+import { liveExamService } from '../services/liveExamService';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   CheckCircle2, 
@@ -52,11 +53,14 @@ export default function ExamRoom() {
   const [loadingExplanation, setLoadingExplanation] = useState<number | null>(null);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const sessionKeyRef = useRef<string>('');
 
   useEffect(() => {
     const savedProfile = localStorage.getItem('examGeoProfile');
     if (savedProfile) {
-      setProfile(JSON.parse(savedProfile));
+      const p = JSON.parse(savedProfile);
+      setProfile(p);
+      sessionKeyRef.current = liveExamService.makeSessionKey(p.name || 'unknown', p.className || '');
     }
   }, []);
 
@@ -93,6 +97,17 @@ export default function ExamRoom() {
     
     setStartTime(Date.now());
     setTimeLeft(3000);
+
+    // Join live monitoring session if this is an assigned exam
+    if (examId) {
+      const savedProfile = localStorage.getItem('examGeoProfile');
+      const p = savedProfile ? JSON.parse(savedProfile) : null;
+      if (p?.name) {
+        const key = liveExamService.makeSessionKey(p.name, p.className || '');
+        sessionKeyRef.current = key;
+        liveExamService.joinSession(examId, key, { name: p.name, className: p.className || '' });
+      }
+    }
   }, [examId, mode, navigate]);
 
   const generateRandomExam = () => {
@@ -139,19 +154,26 @@ export default function ExamRoom() {
   const currentQuestion = examQuestions[currentIndex];
 
   const handleAnswer = (answer: any) => {
-    setAnswers(prev => ({
-      ...prev,
-      [currentIndex]: answer
-    }));
+    const newAnswers = { ...answers, [currentIndex]: answer };
+    setAnswers(newAnswers);
+
+    // Report to RTDB for live teacher monitoring
+    if (examId && sessionKeyRef.current && currentQuestion) {
+      const progress = Object.keys(newAnswers).length;
+      const { totalPoints } = calculateScoreFromAnswers(newAnswers);
+      liveExamService.reportAnswer(
+        examId, sessionKeyRef.current,
+        currentIndex, currentQuestion,
+        answer, progress, totalPoints
+      );
+    }
   };
 
-  const calculateScore = () => {
+  const calculateScoreFromAnswers = (ans: Record<number, any>) => {
     let totalPoints = 0;
     let maxPoints = 0;
-
     examQuestions.forEach((q, idx) => {
-      const answer = answers[idx];
-      
+      const answer = ans[idx];
       if (q.type === 'multiple_choice') {
         maxPoints += 0.25;
         if (answer === q.correctAnswerIndex) totalPoints += 0.25;
@@ -159,10 +181,7 @@ export default function ExamRoom() {
         maxPoints += 1.0;
         if (answer) {
           let correctCount = 0;
-          q.statements.forEach(stmt => {
-            if (answer[stmt.id] === stmt.isTrue) correctCount++;
-          });
-          
+          q.statements.forEach((stmt: any) => { if (answer[stmt.id] === stmt.isTrue) correctCount++; });
           if (correctCount === 1) totalPoints += 0.1;
           else if (correctCount === 2) totalPoints += 0.25;
           else if (correctCount === 3) totalPoints += 0.5;
@@ -173,9 +192,10 @@ export default function ExamRoom() {
         if (answer && answer.trim() === q.correctAnswer.toString()) totalPoints += 0.25;
       }
     });
-
     return { totalPoints, maxPoints };
   };
+
+  const calculateScore = () => calculateScoreFromAnswers(answers);
 
   const handleSubmitExam = async () => {
     const { totalPoints, maxPoints } = calculateScore();
@@ -222,6 +242,11 @@ export default function ExamRoom() {
     };
 
     await examService.saveAttempt(attempt);
+
+    // Mark live session as finished
+    if (examId && sessionKeyRef.current) {
+      liveExamService.finishSession(examId, sessionKeyRef.current, Number(totalPoints.toFixed(2)), examQuestions.length);
+    }
   };
 
   const isQuestionAnswered = (index: number) => {

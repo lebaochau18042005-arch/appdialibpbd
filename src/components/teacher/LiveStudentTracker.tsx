@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Wifi, WifiOff, Users, Clock, CheckCircle2, Loader2, Bell, X, Send, RefreshCw, Radio } from 'lucide-react';
+import { Wifi, WifiOff, Users, Clock, CheckCircle2, Loader2, Bell, X, Send, RefreshCw, Radio, Eye } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { liveTrackingService, LiveStudent } from '../../services/liveTrackingService';
 import { sessionService, StudentSession } from '../../services/sessionService';
+import LiveExamMonitor from './LiveExamMonitor';
+import { db } from '../../firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 interface ToastItem { id: string; message: string; studentName: string; timestamp: number; }
 
@@ -16,7 +19,9 @@ export default function LiveStudentTracker() {
   const [alertClass, setAlertClass] = useState('all');
   const [alertSent, setAlertSent] = useState(false);
   const [sending, setSending] = useState(false);
-  const [view, setView] = useState<'exam' | 'sessions'>('sessions');
+  const [view, setView] = useState<'exam' | 'sessions' | 'monitor'>('sessions');
+  const [monitorExamId, setMonitorExamId] = useState('');
+  const [assignments, setAssignments] = useState<any[]>([]);
   const examId = 'exam_local';
 
   const addToast = (message: string, studentName: string) => {
@@ -25,7 +30,21 @@ export default function LiveStudentTracker() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
   };
 
-  // Live exam tracking
+  // Load assignment list for exam selector
+  useEffect(() => {
+    const q = query(collection(db, 'exams'), where('type', '==', 'assignment'));
+    const unsub = onSnapshot(q, snap => {
+      setAssignments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {
+      try {
+        const ls = JSON.parse(localStorage.getItem('geo_pro_assignments') || '[]');
+        setAssignments(ls);
+      } catch {}
+    });
+    return () => unsub();
+  }, []);
+
+  // Live exam tracking (legacy)
   useEffect(() => {
     setConnected(true);
     const unsubscribe = liveTrackingService.subscribeToLiveStudents(examId, (updatedStudents, newStudents) => {
@@ -135,9 +154,13 @@ export default function LiveStudentTracker() {
           </div>
           <div className="flex items-center gap-2">
             <div className="flex bg-slate-100 rounded-xl p-0.5 text-xs font-black">
-              {[{ key: 'sessions', label: '🟢 Sĩ số' }, { key: 'exam', label: '📊 Thi Live' }].map(({ key, label }) => (
+              {[
+                { key: 'sessions', label: '🟢 Sĩ số' },
+                { key: 'monitor', label: '👁️ Giám sát' },
+                { key: 'exam', label: '📊 Live cũ' }
+              ].map(({ key, label }) => (
                 <button key={key} onClick={() => setView(key as any)}
-                  className={cn('px-3 py-1.5 rounded-xl transition-all', view === key ? 'bg-white shadow text-slate-800' : 'text-slate-500')}>
+                  className={cn('px-3 py-1.5 rounded-xl transition-all whitespace-nowrap', view === key ? 'bg-white shadow text-slate-800' : 'text-slate-500')}>
                   {label}
                 </button>
               ))}
@@ -147,6 +170,23 @@ export default function LiveStudentTracker() {
             </div>
           </div>
         </div>
+
+        {/* ── Monitor view (Anti-cheat grid) ── */}
+        {view === 'monitor' && (
+          <div className="p-4 space-y-3">
+            <div>
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Chọn đề cần giám sát</label>
+              <select value={monitorExamId} onChange={e => setMonitorExamId(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                <option value="">-- Chọn đề đang thi --</option>
+                {assignments.map((a: any) => (
+                  <option key={a.id} value={a.examId || a.id}>{a.examTitle || a.title}</option>
+                ))}
+              </select>
+            </div>
+            <LiveExamMonitor examId={monitorExamId} totalQuestions={28} />
+          </div>
+        )}
 
         {/* ── Sessions view ── */}
         {view === 'sessions' && (
