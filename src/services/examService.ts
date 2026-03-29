@@ -1,4 +1,5 @@
-import { db, handleFirestoreError, OperationType, storage } from '../firebase';
+import { db, handleFirestoreError, OperationType, storage, rtdb } from '../firebase';
+import { ref as rtdbRef, push as rtdbPush, set as rtdbSet, onValue as rtdbOnValue, off as rtdbOff, update as rtdbUpdate } from 'firebase/database';
 import { collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc, setDoc, onSnapshot, Unsubscribe, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Question, Exam, QuizAttempt, UserProfile } from '../types';
@@ -361,25 +362,52 @@ export const examService = {
 
   async saveAttempt(attempt: Omit<QuizAttempt, 'id'>): Promise<string> {
     const attemptWithDate = { ...attempt, date: new Date().toISOString() };
-    // If user is anonymous/guest, save instantly to localStorage
-    const isGuest = !attempt.userId || attempt.userId === 'anonymous' || attempt.userId.includes('anonymous') || attempt.userId.startsWith('guest_');
-    if (isGuest) {
-      const localId = `la_${Date.now()}`;
-      lsSaveAttempt({ id: localId, ...attemptWithDate } as QuizAttempt);
-      return localId;
-    }
+    const localId = `la_${Date.now()}`;
+
+    // Always save to RTDB so teacher can see cross-device (strip undefined fields)
+    const rtdbPayload: Record<string, any> = {};
+    Object.entries(attemptWithDate).forEach(([k, v]) => { if (v !== undefined) rtdbPayload[k] = v; });
+    rtdbPayload.id = localId;
     try {
-      const docRef = await addDoc(collection(db, 'attempts'), attemptWithDate);
-      return docRef.id;
-    } catch (error) {
-      if (isPermissionError(error)) {
-        const localId = `la_${Date.now()}`;
-        lsSaveAttempt({ id: localId, ...attemptWithDate } as QuizAttempt);
-        return localId;
-      }
-      handleFirestoreError(error, OperationType.CREATE, 'attempts');
-      return '';
+      await rtdbSet(rtdbRef(rtdb, `attempts/${localId}`), rtdbPayload);
+    } catch (e) { console.warn('RTDB attempt save failed', e); }
+
+    // Also save locally
+    lsSaveAttempt({ id: localId, ...attemptWithDate } as QuizAttempt);
+
+    // Try Firestore for authenticated users
+    const isGuest = !attempt.userId || attempt.userId === 'anonymous' || attempt.userId.includes('anonymous') || attempt.userId.startsWith('guest_');
+    if (!isGuest) {
+      try {
+        const docRef = await addDoc(collection(db, 'attempts'), attemptWithDate);
+        return docRef.id;
+      } catch { /* fall through */ }
     }
+    return localId;
+  },
+
+  // Subscribe to ALL attempts from RTDB (for teacher dashboard)
+  subscribeToRTDBAttempts(callback: (attempts: QuizAttempt[]) => void): () => void {
+    const attRef = rtdbRef(rtdb, 'attempts');
+    const handler = (snap: any) => {
+      if (!snap.exists()) { callback([]); return; }
+      const list: QuizAttempt[] = [];
+      snap.forEach((child: any) => {
+        const d = child.val();
+        list.push({ id: child.key, ...d });
+      });
+      list.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+      callback(list);
+    };
+    rtdbOnValue(attRef, handler, () => callback([]));
+    return () => rtdbOff(attRef, 'value', handler);
+  },
+
+  // Teacher: add comment/progress to RTDB attempt
+  async addRTDBComment(attemptId: string, teacherComment: string, studentProgress: string): Promise<void> {
+    try {
+      await rtdbUpdate(rtdbRef(rtdb, `attempts/${attemptId}`), { teacherComment, studentProgress, commentedAt: new Date().toISOString() });
+    } catch (e) { console.warn('addRTDBComment failed', e); }
   },
 
   async getStudentAttempts(userId: string): Promise<QuizAttempt[]> {

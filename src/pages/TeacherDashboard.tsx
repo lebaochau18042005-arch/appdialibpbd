@@ -107,13 +107,31 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     let unsubscribeAttempts: (() => void) | undefined;
+    let unsubscribeRTDBAttempts: (() => void) | undefined;
     let unsubscribeExams: (() => void) | undefined;
 
     setLoading(true);
-    
-    unsubscribeAttempts = examService.subscribeToAttempts((data) => {
-      setAttempts(data);
+    const rtdbAttempts: QuizAttempt[] = [];
+    const fsAttempts: QuizAttempt[] = [];
+
+    const mergeAndSetAttempts = () => {
+      const merged = [...rtdbAttempts];
+      fsAttempts.forEach(fa => { if (!merged.find(ra => ra.id === fa.id)) merged.push(fa); });
+      merged.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+      setAttempts(merged);
       setLoading(false);
+    };
+
+    // Subscribe RTDB attempts (cross-device student submissions)
+    unsubscribeRTDBAttempts = (examService as any).subscribeToRTDBAttempts?.((data: QuizAttempt[]) => {
+      rtdbAttempts.splice(0, rtdbAttempts.length, ...data);
+      mergeAndSetAttempts();
+    });
+
+    // Subscribe Firestore/localStorage attempts
+    unsubscribeAttempts = examService.subscribeToAttempts((data) => {
+      fsAttempts.splice(0, fsAttempts.length, ...data);
+      mergeAndSetAttempts();
     });
 
     if (user) {
@@ -121,13 +139,13 @@ export default function TeacherDashboard() {
         setExams(data);
       });
     } else {
-      // Load all exams if not logged in
       examService.getAllExams().then(data => setExams(data));
       setLoading(false);
     }
 
     return () => {
       if (unsubscribeAttempts) unsubscribeAttempts();
+      if (unsubscribeRTDBAttempts) unsubscribeRTDBAttempts();
       if (unsubscribeExams) unsubscribeExams();
     };
   }, [user, profile]);
@@ -290,7 +308,11 @@ export default function TeacherDashboard() {
   };
 
   const handleSubmitComment = async (attemptId: string) => {
-    await examService.addTeacherComment(attemptId, comment, progress);
+    // Save to both Firestore/localStorage AND RTDB
+    await Promise.allSettled([
+      examService.addTeacherComment(attemptId, comment, progress),
+      (examService as any).addRTDBComment?.(attemptId, comment, progress)
+    ]);
     setCommentingId(null);
     setComment('');
     setProgress('');
