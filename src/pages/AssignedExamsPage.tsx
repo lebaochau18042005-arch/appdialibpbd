@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Bell, BookOpen, CheckCircle2, Clock, ArrowLeft, Inbox } from 'lucide-react';
-import { db } from '../firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { assignmentService } from '../services/assignmentService';
 import { cn } from '../utils/cn';
 
 function getProfile() {
@@ -33,23 +32,26 @@ export default function AssignedExamsPage() {
 
   useEffect(() => {
     if (!className) { setLoading(false); return; }
-    const q = query(collection(db, 'exams'), orderBy('createdAt', 'desc'), limit(100));
-    const unsub = onSnapshot(q, (snap) => {
+
+    // Subscribe to RTDB assignments (where teacher actually stores them)
+    const unsub = assignmentService.subscribeToAssignments((all) => {
       const doneIds = getDoneIds();
-      const parsed: AssigmentItem[] = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as any))
+      const parsed: AssigmentItem[] = all
         .filter((e: any) => {
-          if (e.type !== 'assignment') return false;
           const tc = (e.targetClass || '').trim().toLowerCase();
           return tc === className || tc === 'all';
         })
         .map((e: any) => ({
-          id: e.id, examId: e.examId || e.id, examTitle: e.examTitle || e.title || 'Đề thi',
-          assignedBy: e.assignedBy || 'Giáo viên', targetClass: e.targetClass,
-          dueDate: e.dueDate, createdAt: e.createdAt,
+          id: e.id,
+          examId: e.examId || e.id,
+          examTitle: e.examTitle || e.title || 'Đề thi',
+          assignedBy: e.assignedBy || 'Giáo viên',
+          targetClass: e.targetClass,
+          dueDate: e.dueDate,
+          createdAt: e.createdAt,
           done: doneIds.has(e.examId || e.id),
         }));
-      // Sort: undone first, then by dueDate proximity
+      // Sort: undone first, then by dueDate
       parsed.sort((a, b) => {
         if (a.done !== b.done) return a.done ? 1 : -1;
         if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
@@ -58,15 +60,8 @@ export default function AssignedExamsPage() {
       });
       setItems(parsed);
       setLoading(false);
-    }, () => {
-      const lsA = JSON.parse(localStorage.getItem('geo_pro_assignments') || '[]');
-      const doneIds = getDoneIds();
-      setItems(lsA
-        .filter((a: any) => { const tc = (a.targetClass || '').toLowerCase(); return tc === className || tc === 'all'; })
-        .map((a: any) => ({ ...a, done: doneIds.has(a.examId) }))
-      );
-      setLoading(false);
     });
+
     return () => unsub();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [className]);
