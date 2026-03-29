@@ -40,7 +40,11 @@ export default function StudentPicker({ value, onChange }: Props) {
     setSelectedClass(className);
     setCheckedStudents(new Set());
     setCustomClass('');
-    // If user is in individual tab, load the students for that class
+    // Auto-apply if in 'class' tab — immediately close and confirm
+    if (tab === 'class') {
+      onChange({ type: 'class', targetClass: className });
+      setOpen(false);
+    }
   };
 
   const toggleStudent = (name: string) => {
