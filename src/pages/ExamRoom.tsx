@@ -67,39 +67,36 @@ export default function ExamRoom() {
 
   const loadQuestions = useCallback(async () => {
     if (examId) {
-      try {
-        // Load from Firestore first
-        const allExams = await examService.getAllExams();
-        const found = allExams.find(e => e.id === examId);
-        if (found && found.questions && found.questions.length > 0) {
-          setExamQuestions(found.questions);
-          setExamTitle(found.title);
-        } else if (found && found.type === 'upload') {
-          alert('Đây là đề thi tải lên (file). Bạn có thể tải xuống để xem nội dung.');
-          navigate('/exam');
-          return;
-        } else {
-          // Firestore failed / rules block reads → try RTDB (assignment bundle)
-          const rtdbExam = await assignmentService.getExamQuestionsFromRTDB(examId);
-          if (rtdbExam && rtdbExam.questions.length > 0) {
-            setExamQuestions(rtdbExam.questions);
-            setExamTitle(rtdbExam.title);
-          } else {
-            alert('Không tìm thấy đề thi hoặc đề chưa có câu hỏi. Vui lòng kiểm tra lại.');
+      // ── Try 1: RTDB assignment bundle ── fastest, works on all devices
+      let loaded = false;
+      const rtdbExam = await assignmentService.getExamQuestionsFromRTDB(examId);
+      if (rtdbExam && rtdbExam.questions.length > 0) {
+        setExamQuestions(rtdbExam.questions);
+        setExamTitle(rtdbExam.title);
+        loaded = true;
+      }
+
+      if (!loaded) {
+        // ── Try 2: Firestore + localStorage ──
+        try {
+          const allExams = await examService.getAllExams();
+          const found = allExams.find(e => e.id === examId);
+          if (found && found.questions && found.questions.length > 0) {
+            setExamQuestions(found.questions);
+            setExamTitle(found.title);
+            loaded = true;
+          } else if (found && found.type === 'upload') {
+            alert('Đây là đề thi tải lên (file). Bạn có thể tải xuống để xem nội dung.');
             navigate('/exam');
             return;
           }
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải đề thi từ Firestore, thử RTDB:', err);
-        // Full fallback: try RTDB
-        const rtdbExam = await assignmentService.getExamQuestionsFromRTDB(examId);
-        if (rtdbExam && rtdbExam.questions.length > 0) {
-          setExamQuestions(rtdbExam.questions);
-          setExamTitle(rtdbExam.title);
-        } else {
-          generateRandomExam();
-        }
+        } catch { /* Firestore failed, continue */ }
+      }
+
+      if (!loaded) {
+        alert('Không tìm thấy đề thi.\nVui lòng yêu cầu giáo viên giao lại đề để câu hỏi được đồng bộ.');
+        navigate('/exam');
+        return;
       }
     } else {
       generateRandomExam();
