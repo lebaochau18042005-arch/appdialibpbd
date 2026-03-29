@@ -101,7 +101,12 @@ export const examService = {
             (f) Cơ cấu ngành (%) = (GDP ngành / Tổng GDP) x 100
             (g) Năng suất (tạ/ha) = Sản lượng / Diện tích
             (h) Bình quân lương thực (kg/người) = Sản lượng / DS
-            (i) Tỉ lệ đô thị hóa (%) = DS thành thị / Tổng DS x 100`;
+            (i) Tỉ lệ đô thị hóa (%) = DS thành thị / Tổng DS x 100
+       7. ⚠️ QUY TẮc NHÚNG SỐ LIỆU - BẮT BUỘC ÁP DỤNG CHO MỌI CÂU:
+          - TUYỆT ĐỐI KHÔNG ĐƯỢC viết: "Căn cứ vào bảng số liệu..." hay "Dựa vào biểu đồ..." mà KHÔNG kèm số liệu cụ thể ngay trong câu hỏi.
+          - Mọi câu hỏi phải tự đầy đủ: học sinh chỉ đọc trường "text" là đủ thông tin để tính toán, không cần bất kỳ tài liệu ngoài nào.
+          - Ví dụ ĐÚNG cho Phần III: "Năm 2024, dân số Việt Nam 98,2 triệu người, sản lượng lúa 43,5 triệu tấn. Năm 2010: dân số 86,9 triệu, sản lượng 40,0 triệu tấn. Tính bình quân lương thực năm 2024 (kg/người)?"
+          - Ví dụ SAI (CẤM): "Căn cứ vào bảng số liệu lượng mưa, hãy cho biết..." mà không có số liệu nào đi kèm.`;
 
       const prompt = `Hãy tạo ngay một đề thi Địa lí chuẩn 2025 gồm 28 câu hỏi. 
       Đảm bảo cập nhật đầy đủ các sửa đổi mới nhất:
