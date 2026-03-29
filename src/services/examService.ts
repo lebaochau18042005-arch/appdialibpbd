@@ -87,7 +87,20 @@ export const examService = {
          - BÃI BỎ: Không ra đề về nội dung "Phát triển các vùng kinh tế trọng điểm".
       3. KHÔNG SỬ DỤNG ATLAT: Thay thế mọi yêu cầu sử dụng Atlat bằng việc sử dụng "Bản đồ" hoặc kiến thức đã học.
       4. YÊU CẦU PHẦN II (ĐÚNG/SAI): Luôn có 1 câu về bảng số liệu/biểu đồ Đông Nam Á (Lớp 11).
-      5. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.`;
+      5. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.
+       6. ⚠️ CẤU TRÚC PHẦN III - TRẢ LỜI NGẮN (6 câu - TÍNH TOÁN):
+          - TẤT CẢ 6 câu Phần III PHẢI là bài TÍNH TOÁN có số liệu đề bài cụ thể, yêu cầu tính một kết quả là CON SỐ (có đơn vị).
+          - KHÔNG RA câu kiến thức thuần túy cho Phần III. correctAnswer phải là số.
+          - Các dạng công thức bắt buộc:
+            (a) Tỉ suất sinh thô (‰) = (số sinh / tổng DS) x 1000
+            (b) Tỉ suất tử thô (‰) = (số chết / tổng DS) x 1000
+            (c) Tỉ lệ tăng tự nhiên (‰) = CBR - CDR
+            (d) Mật độ dân số (ng/km2) = DS / Diện tích
+            (e) Tốc độ tăng trưởng GDP (%) = [(GDP_n - GDP_0) / GDP_0] x 100
+            (f) Cơ cấu ngành (%) = (GDP ngành / Tổng GDP) x 100
+            (g) Năng suất (tạ/ha) = Sản lượng / Diện tích
+            (h) Bình quân lương thực (kg/người) = Sản lượng / DS
+            (i) Tỉ lệ đô thị hóa (%) = DS thành thị / Tổng DS x 100`;
 
       const prompt = `Hãy tạo ngay một đề thi Địa lí chuẩn 2025 gồm 28 câu hỏi. 
       Đảm bảo cập nhật đầy đủ các sửa đổi mới nhất:
