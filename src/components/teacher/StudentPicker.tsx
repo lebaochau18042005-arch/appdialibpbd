@@ -35,6 +35,14 @@ export default function StudentPicker({ value, onChange }: Props) {
     s.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // When clicking class in individual tab, keep students visible
+  const handleClassClick = (className: string) => {
+    setSelectedClass(className);
+    setCheckedStudents(new Set());
+    setCustomClass('');
+    // If user is in individual tab, load the students for that class
+  };
+
   const toggleStudent = (name: string) => {
     setCheckedStudents(prev => {
       const next = new Set(prev);
@@ -133,7 +141,7 @@ export default function StudentPicker({ value, onChange }: Props) {
                     {rosters.map(r => (
                       <button
                         key={r.id}
-                        onClick={() => { setSelectedClass(r.className); setCheckedStudents(new Set()); setCustomClass(''); }}
+                        onClick={() => handleClassClick(r.className)}
                         className={cn(
                           'flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-bold transition-all',
                           selectedClass === r.className
@@ -197,6 +205,15 @@ export default function StudentPicker({ value, onChange }: Props) {
                       </label>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Individual tab: no class selected yet */}
+              {tab === 'individual' && !selectedClass && !customClass.trim() && (
+                <div className="text-center py-4 text-slate-400">
+                  <GraduationCap size={28} className="mx-auto mb-2 text-slate-300" />
+                  <p className="text-xs font-bold text-slate-500">Chọn lớp ở trên</p>
+                  <p className="text-[11px] mt-0.5">để xem danh sách học sinh cụ thể</p>
                 </div>
               )}
 
