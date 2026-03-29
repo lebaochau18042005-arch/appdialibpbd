@@ -1,4 +1,6 @@
 import * as XLSX from 'xlsx';
+import { rtdb } from '../firebase';
+import { ref, set, get, onValue, off, remove } from 'firebase/database';
 
 // Types
 export interface StudentEntry {
@@ -32,12 +34,92 @@ export const rosterService = {
     const updated = rosters.filter(r => r.id !== roster.id);
     updated.unshift(roster);
     localStorage.setItem(LS_KEY, JSON.stringify(updated));
+    // Sync to RTDB for cross-device student auto-detect
+    this.syncRosterToRTDB(roster);
     return roster;
+  },
+
+  // ─── RTDB sync ────────────────────────────────────────────────────────────
+
+  async syncRosterToRTDB(roster: ClassRoster) {
+    try {
+      const safeClass = roster.className.replace(/[.#$[\]/]/g, '_');
+      const studentsObj: Record<string, string> = {};
+      roster.students.forEach((s, i) => {
+        const key = s.name.replace(/[.#$[\]/]/g, '_').slice(0, 80) || `s${i}`;
+        studentsObj[key] = s.name;
+      });
+      await set(ref(rtdb, `rosters/${safeClass}`), {
+        className: roster.className,
+        updatedAt: roster.updatedAt,
+        students: studentsObj,
+      });
+    } catch (e) {
+      console.warn('rosterService.syncRosterToRTDB failed:', e);
+    }
+  },
+
+  // Student: find which class they belong to by name (RTDB lookup)
+  async findClassForStudent(studentName: string): Promise<string | null> {
+    if (!studentName.trim()) return null;
+    const nameLower = studentName.trim().toLowerCase();
+    try {
+      const snap = await get(ref(rtdb, 'rosters'));
+      if (!snap.exists()) return null;
+      let foundClass: string | null = null;
+      snap.forEach((classSnap: any) => {
+        if (foundClass) return;
+        const data = classSnap.val();
+        const students: Record<string, string> = data.students || {};
+        const match = Object.values(students).find(
+          (name: string) => name.trim().toLowerCase() === nameLower
+        );
+        if (match) {
+          foundClass = data.className || classSnap.key;
+        }
+      });
+      return foundClass;
+    } catch (e) {
+      // RTDB failed, try localStorage
+      const rosters = this.getRosters();
+      for (const r of rosters) {
+        if (r.students.some(s => s.name.trim().toLowerCase() === nameLower)) {
+          return r.className;
+        }
+      }
+      return null;
+    }
+  },
+
+  // Teacher: subscribe to rosters from RTDB (for session grouping view)
+  subscribeToRosters(callback: (rosters: ClassRoster[]) => void): () => void {
+    const rostersRef = ref(rtdb, 'rosters');
+    const handler = (snap: any) => {
+      if (!snap.exists()) { callback(this.getRosters()); return; }
+      const list: ClassRoster[] = [];
+      snap.forEach((child: any) => {
+        const data = child.val();
+        const students: StudentEntry[] = Object.values(data.students || {}).map(
+          (name: any) => ({ name: String(name) })
+        );
+        list.push({
+          id: child.key,
+          className: data.className || child.key,
+          students,
+          updatedAt: data.updatedAt || '',
+        });
+      });
+      callback(list);
+    };
+    onValue(rostersRef, handler, () => callback(this.getRosters()));
+    return () => off(rostersRef, 'value', handler);
   },
 
   deleteRoster(id: string) {
     const updated = this.getRosters().filter(r => r.id !== id);
     localStorage.setItem(LS_KEY, JSON.stringify(updated));
+    // Also remove from RTDB
+    try { remove(ref(rtdb, `rosters/${id}`)); } catch {}
   },
 
   getClassNames(): string[] {
@@ -78,7 +160,6 @@ export const rosterService = {
           const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
           const names: StudentEntry[] = [];
           for (const row of rows) {
-            // Try common column patterns: col A (index 0), or look for a column containing "họ" / "tên"
             const cell = (row[0] || row[1] || '').toString().trim();
             if (cell && cell.length > 1 && !/^\d+$/.test(cell) && !/stt|số|họ tên|tên|name|lớp|class/i.test(cell)) {
               names.push({ name: cell });
@@ -103,7 +184,6 @@ export const rosterService = {
   },
 
   async parseWord(file: File): Promise<StudentEntry[]> {
-    // Dynamically import mammoth to avoid SSR issues
     const mammoth = await import('mammoth');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -124,9 +204,6 @@ export const rosterService = {
   },
 
   async parsePdf(file: File): Promise<StudentEntry[]> {
-    // For PDF, we use a simple approach - ask user to copy-paste or convert
-    // We can read with pdf.js dynamically, but it's complex
-    // For now, return helpful message by reading text from the file name
     throw new Error('PDF chưa được hỗ trợ trực tiếp. Vui lòng chuyển sang Excel (.xlsx), CSV, hoặc Word (.docx).');
   },
 };

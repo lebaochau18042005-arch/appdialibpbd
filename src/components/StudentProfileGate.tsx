@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, School, BookOpen, ArrowRight, MapPin, GraduationCap, ShieldCheck, Eye, EyeOff, Lock, Chrome, RefreshCw } from 'lucide-react';
+import { User, School, BookOpen, ArrowRight, MapPin, GraduationCap, ShieldCheck, Eye, EyeOff, Lock, Chrome, RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { rosterService } from '../services/rosterService';
 
 const LS_PROFILE_KEY = 'examGeoProfile';
 const LS_ROLE_KEY = 'examGeoRole'; // 'student' | 'teacher'
@@ -24,6 +25,27 @@ export default function StudentProfileGate({ children }: { children: React.React
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [autoClass, setAutoClass] = useState('');
+  const lookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-detect class from roster when student types their name (debounced)
+  useEffect(() => {
+    if (!name.trim() || name.trim().length < 2) { setAutoClass(''); return; }
+    if (lookupTimer.current) clearTimeout(lookupTimer.current);
+    lookupTimer.current = setTimeout(async () => {
+      setLookingUp(true);
+      const found = await rosterService.findClassForStudent(name.trim());
+      setLookingUp(false);
+      if (found) {
+        setAutoClass(found);
+        setClassName(found); // auto-fill
+      } else {
+        setAutoClass('');
+      }
+    }, 800);
+    return () => { if (lookupTimer.current) clearTimeout(lookupTimer.current); };
+  }, [name]);
 
   useEffect(() => {
     // Already authenticated as teacher → no gate needed
@@ -173,12 +195,23 @@ export default function StudentProfileGate({ children }: { children: React.React
                     placeholder="Họ và tên *" autoFocus
                     className="w-full pl-11 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/40 font-medium outline-none focus:border-emerald-400 focus:bg-white/15 transition-all" />
                 </div>
+                {/* Auto-class lookup spinner */}
+                {lookingUp && (
+                  <p className="text-white/50 text-xs flex items-center gap-2 -mt-2">
+                    <RefreshCw size={11} className="animate-spin" /> Đang tìm lớp của bạn...
+                  </p>
+                )}
+                {autoClass && !lookingUp && (
+                  <p className="text-emerald-400 text-xs font-bold flex items-center gap-1.5 -mt-2">
+                    ✅ Tìm thấy: <span className="bg-emerald-500/20 px-2 py-0.5 rounded-lg">Lớp {autoClass}</span> — đã tự điền
+                  </p>
+                )}
                 <div className="relative">
                   <BookOpen size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-                  <input type="text" value={className} onChange={e => { setClassName(e.target.value); setError(''); }}
+                  <input type="text" value={className} onChange={e => { setClassName(e.target.value); setAutoClass(''); setError(''); }}
                     onKeyDown={e => e.key === 'Enter' && handleStudentSubmit()}
                     placeholder="Lớp học *  (VD: 12A1, 12C1)"
-                    className="w-full pl-11 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/40 font-medium outline-none focus:border-emerald-400 focus:bg-white/15 transition-all" />
+                    className={`w-full pl-11 pr-4 py-4 bg-white/10 border rounded-2xl text-white placeholder-white/40 font-medium outline-none focus:bg-white/15 transition-all ${autoClass ? 'border-emerald-400/60' : 'border-white/20 focus:border-emerald-400'}`} />
                 </div>
                 <div className="relative">
                   <School size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
