@@ -5,8 +5,7 @@ import { cn } from '../../utils/cn';
 import { liveTrackingService, LiveStudent } from '../../services/liveTrackingService';
 import { sessionService, StudentSession } from '../../services/sessionService';
 import LiveExamMonitor from './LiveExamMonitor';
-import { db } from '../../firebase';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { assignmentService } from '../../services/assignmentService';
 
 interface ToastItem { id: string; message: string; studentName: string; timestamp: number; }
 
@@ -30,16 +29,10 @@ export default function LiveStudentTracker() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
   };
 
-  // Load assignment list for exam selector
+  // Load assignment list from RTDB for exam selector
   useEffect(() => {
-    const q = query(collection(db, 'exams'), where('type', '==', 'assignment'));
-    const unsub = onSnapshot(q, snap => {
-      setAssignments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, () => {
-      try {
-        const ls = JSON.parse(localStorage.getItem('geo_pro_assignments') || '[]');
-        setAssignments(ls);
-      } catch {}
+    const unsub = assignmentService.subscribeToAssignments((list) => {
+      setAssignments(list);
     });
     return () => unsub();
   }, []);
