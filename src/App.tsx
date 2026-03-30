@@ -18,6 +18,7 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import ExamSetup from './pages/ExamSetup';
 import ExamRoom from './pages/ExamRoom';
 import LearningPath from './pages/LearningPath';
+import LibraryPage from './pages/LibraryPage';
 
 function AppRoutes() {
   const { isTeacherMode } = useAuth();
@@ -31,6 +32,7 @@ function AppRoutes() {
       <Route path="/quiz" element={<Quiz />} />
       <Route path="/history" element={<History />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/library" element={<LibraryPage />} />
       <Route path="/teacher" element={<TeacherDashboard />} />
       <Route path="/learning-path" element={<LearningPath />} />
     </Routes>
