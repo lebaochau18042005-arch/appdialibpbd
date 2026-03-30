@@ -87,7 +87,7 @@ export const examService = {
             + Đông Nam Bộ: Công nghiệp, dịch vụ, nông nghiệp, kinh tế biển.
          - BÃI BỎ: Không ra đề về nội dung "Phát triển các vùng kinh tế trọng điểm".
       3. KHÔNG SỬ DỤNG ATLAT: Thay thế mọi yêu cầu sử dụng Atlat bằng việc sử dụng "Bản đồ" hoặc kiến thức đã học.
-      4. YÊU CẦU PHẦN II (ĐÚNG/SAI): Luôn có 1 câu về bảng số liệu/biểu đồ Đông Nam Á (Lớp 11).
+      4. YÊU CẦU PHẦN II (ĐÚNG/SAI): Luôn có 1 câu về GDP/xuất nhập khẩu/dân số Đông Nam Á (Lớp 11) với số liệu cụ thể nhúng trực tiếp (không dùng URL).
       5. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.
        6. ⚠️ CẤU TRÚC PHẦN III - TRẢ LỜI NGẮN (6 câu - TÍNH TOÁN):
           - TẤT CẢ 6 câu Phần III PHẢI là bài TÍNH TOÁN có số liệu đề bài cụ thể, yêu cầu tính một kết quả là CON SỐ (có đơn vị).
@@ -103,10 +103,12 @@ export const examService = {
             (h) Bình quân lương thực (kg/người) = Sản lượng / DS
             (i) Tỉ lệ đô thị hóa (%) = DS thành thị / Tổng DS x 100
        7. ⚠️ QUY TẮc NHÚNG SỐ LIỆU - BẮT BUỘC ÁP DỤNG CHO MỌI CÂU:
-          - TUYỆT ĐỐI KHÔNG ĐƯỢC viết: "Căn cứ vào bảng số liệu..." hay "Dựa vào biểu đồ..." mà KHÔNG kèm số liệu cụ thể ngay trong câu hỏi.
-          - Mọi câu hỏi phải tự đầy đủ: học sinh chỉ đọc trường "text" là đủ thông tin để tính toán, không cần bất kỳ tài liệu ngoài nào.
-          - Ví dụ ĐÚNG cho Phần III: "Năm 2024, dân số Việt Nam 98,2 triệu người, sản lượng lúa 43,5 triệu tấn. Năm 2010: dân số 86,9 triệu, sản lượng 40,0 triệu tấn. Tính bình quân lương thực năm 2024 (kg/người)?"
-          - Ví dụ SAI (CẤM): "Căn cứ vào bảng số liệu lượng mưa, hãy cho biết..." mà không có số liệu nào đi kèm.`;
+          - TUYỆT ĐỐI KHÔNG ĐƯỢC viết "Căn cứ vào bảng số liệu", "Dựa vào biểu đồ", "Cho biểu đồ:", "Xem hình:", "Quan sát bảng" mà KHÔNG kèm số liệu cụ thể.
+          - TUYỆT ĐỐI KHÔNG đưa URL/link nguồn (như https://..., ASEAN Stats, GSO...) thay cho số liệu. Học sinh không thể mở link khi làm bài thi.
+          - Mọi câu hỏi phải tự đầy đủ: chỉ đọc trường text là đủ để trả lời, không cần bất kỳ tài liệu ngoài nào.
+          - Ví dụ ĐÚNG Phần II (Đ/S ASEAN): "Cho bảng số liệu GDP các nước Đông Nam Á (tỷ USD): Việt Nam: 2015=193, 2020=271, 2024=430. Thái Lan: 2015=401, 2020=500, 2024=574. Indonesia: 2015=861, 2020=1058, 2024=1371. Nhận định nào sau đây ĐÚNG?"
+          - Ví dụ ĐÚNG Phần III (Tính toán): "Năm 2024, dân số Việt Nam 98,2 triệu người, sản lượng lúa 43,5 triệu tấn. Tính bình quân lương thực (kg/người)?"
+          - Ví dụ SAI (CẤM): "Cho biểu đồ: (Nguồn: Niên giám thống kê ASEAN 2025, https://www.aseanstats.org)" - ĐÂY LÀ LỖI NGHIÊM TRỌNG.`;
 
       const prompt = `Hãy tạo ngay một đề thi Địa lí chuẩn 2025 gồm 28 câu hỏi. 
       Đảm bảo cập nhật đầy đủ các sửa đổi mới nhất:
@@ -114,7 +116,7 @@ export const examService = {
       - Tập trung vào các hình thức tổ chức lãnh thổ nông nghiệp/công nghiệp mới.
       - Phân tích du lịch bền vững.
       - KHÔNG có câu hỏi Atlat, KHÔNG có vùng kinh tế trọng điểm.
-      - Phần II có câu bảng số liệu Đông Nam Á.
+      - Phần II CÓ câu bảng số liệu Đông Nam Á với SỐ LIỆU THỰC nhúng thẳng vào câu hỏi (tuyệt đối không dùng URL). Ví dụ nhúng: Indonesia GDP 2020=1058 tỷ USD, 2024=1371 tỷ USD.
       - Mỗi câu hỏi có giải thích, lời khuyên và mẹo ghi nhớ.`;
 
       const response = await generateContentWithFallback(prompt, {
