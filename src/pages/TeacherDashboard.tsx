@@ -16,6 +16,24 @@ import ExamAssignPanel from '../components/teacher/ExamAssignPanel';
 import RosterUploader from '../components/teacher/RosterUploader';
 import ExamEditor from '../components/teacher/ExamEditor';
 
+// ─── Inline chart/figure placeholder renderer for teacher previews ────────────
+function renderQText(text: string) {
+  const CHART_RE = /(\[((biểu ?\u0111ồ|hình|bảng số liệu|bảng|sơ \u0111ồ|lược \u0111ồ|ảnh|chart|figure)[^\]]{0,400})\])/gi;
+  const parts: React.ReactNode[] = [];
+  let last = 0; let m: RegExpExecArray | null; let i = 0;
+  while ((m = CHART_RE.exec(text)) !== null) {
+    if (m.index > last) parts.push(<span key={i++}>{text.slice(last, m.index)}</span>);
+    parts.push(
+      <span key={i++} className="inline-flex items-center gap-1 px-2 py-1 my-0.5 bg-amber-50 border border-amber-300 text-amber-800 rounded-xl text-sm font-semibold">
+        <span>📊</span><span className="italic">{m[0]}</span>
+      </span>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(<span key={i++}>{text.slice(last)}</span>);
+  return <span className="text-slate-800 font-bold text-base leading-relaxed">{parts}</span>;
+}
+
 type DashboardTab = 'overview' | 'exams' | 'history' | 'students' | 'assign' | 'roster';
 
 const TABS: { id: DashboardTab; label: string; icon: React.ReactNode }[] = [
@@ -673,7 +691,7 @@ export default function TeacherDashboard() {
                           <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">
                             {q.type === 'multiple_choice' ? 'Trắc nghiệm' : q.type === 'true_false' ? 'Đúng/Sai' : 'Trả lời ngắn'}
                           </div>
-                          <p className="text-slate-800 font-bold text-base leading-relaxed">{q.text}</p>
+                          <p className="text-slate-800 font-bold text-base leading-relaxed">{renderQText(q.text)}</p>
                         </div>
                       </div>
 
@@ -823,7 +841,7 @@ export default function TeacherDashboard() {
                         <div className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-2">
                           {q.type === 'multiple_choice' ? 'Trắc nghiệm' : q.type === 'true_false' ? 'Đúng/Sai' : 'Trả lời ngắn'}
                         </div>
-                        <p className="text-slate-800 font-bold text-lg leading-relaxed">{q.text}</p>
+                        <p className="text-slate-800 font-bold text-lg leading-relaxed">{renderQText(q.text)}</p>
                       </div>
                     </div>
                     
