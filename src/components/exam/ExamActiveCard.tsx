@@ -4,28 +4,46 @@ import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 
-// ─── Markdown Renderer (tables + bold/italic/code) ────────────────────────────
+// ─── Markdown Renderer (tables + bold/italic/code + chart placeholders) ─────
 function QuestionText({ text, size = 'large' }: { text: string; size?: 'large' | 'small' }) {
   const lines = text.split(/\r?\n/);
   const parts: React.ReactNode[] = [];
   let tableLines: string[] = [];
   let key = 0;
 
-  // Render inline markdown: **bold**, *italic*, `code`
+  // Detect [Biểu đồ...] / [Hình...] / [Bảng...] / [Sơ đồ...] style placeholders
+  const CHART_RE = /\[((biểu ?đồ|hình|bảng số liệu|bảng|sơ đồ|lược đồ|ảnh|hình ảnh|chart|figure)[^\]]{0,200})\]/gi;
+
+  // Render inline markdown: **bold**, *italic*, `code`, [Biểu đồ...]
   const renderInline = (raw: string): React.ReactNode => {
     const segments: React.ReactNode[] = [];
-    const re = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+    // Combined regex: chart placeholders + bold + italic + code
+    const re = /(\[((biểu ?đồ|hình|bảng số liệu|bảng|sơ đồ|lược đồ|ảnh|hình ảnh|chart|figure)[^\]]{0,300})\]|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/gi;
     let last = 0;
     let m: RegExpExecArray | null;
     while ((m = re.exec(raw)) !== null) {
       if (m.index > last) segments.push(raw.slice(last, m.index));
-      if (m[2] !== undefined) segments.push(<strong key={m.index}>{m[2]}</strong>);
-      else if (m[3] !== undefined) segments.push(<em key={m.index}>{m[3]}</em>);
-      else if (m[4] !== undefined) segments.push(<code key={m.index} className="bg-slate-100 px-1 rounded text-sm font-mono">{m[4]}</code>);
+      if (m[2] !== undefined) {
+        // Chart/figure placeholder
+        segments.push(
+          <span key={m.index} className="inline-flex items-center gap-1.5 px-3 py-1.5 my-1 bg-amber-50 border border-amber-300 text-amber-800 rounded-xl text-sm font-semibold">
+            <span>📊</span>
+            <span className="italic">{m[0]}</span>
+          </span>
+        );
+      } else if (m[4] !== undefined) segments.push(<strong key={m.index}>{m[4]}</strong>);
+      else if (m[5] !== undefined) segments.push(<em key={m.index}>{m[5]}</em>);
+      else if (m[6] !== undefined) segments.push(<code key={m.index} className="bg-slate-100 px-1 rounded text-sm font-mono">{m[6]}</code>);
       last = m.index + m[0].length;
     }
     if (last < raw.length) segments.push(raw.slice(last));
     return segments.length === 1 ? segments[0] : <>{segments}</>;
+  };
+
+  // Check if entire line is a chart placeholder block (long description on own line)
+  const isChartLine = (line: string) => {
+    const t = line.trim();
+    return /^\[((biểu ?đồ|hình|bảng số liệu|bảng|sơ đồ|lược đồ|ảnh|hình ảnh|chart|figure)[^\]]{0,500})\]$/i.test(t);
   };
 
   const flushTable = () => {
@@ -72,7 +90,20 @@ function QuestionText({ text, size = 'large' }: { text: string; size?: 'large' |
     } else {
       if (tableLines.length) flushTable();
       if (line.trim()) {
-        if (line.startsWith('### ')) {
+        // Chart placeholder on its own line → render as prominent block
+        if (isChartLine(line)) {
+          const label = line.trim().slice(1, -1); // strip [ ]
+          parts.push(
+            <div key={key++} className="my-3 p-4 bg-amber-50 border-2 border-dashed border-amber-300 rounded-2xl flex items-start gap-3">
+              <span className="text-2xl shrink-0">📊</span>
+              <div>
+                <p className="text-xs font-black text-amber-600 uppercase tracking-wider mb-1">Biểu đồ / Bảng số liệu</p>
+                <p className="text-sm text-amber-800 font-medium italic">{label}</p>
+                <p className="text-[10px] text-amber-500 mt-1">⚠️ Giáo viên cần upload ảnh biểu đồ thực tế qua tính năng Sửa đề thi (✏️)</p>
+              </div>
+            </div>
+          );
+        } else if (line.startsWith('### ')) {
           parts.push(<p key={key++} className="font-black text-slate-700 text-base mt-3 mb-1">{renderInline(line.slice(4))}</p>);
         } else if (line.startsWith('## ')) {
           parts.push(<p key={key++} className="font-black text-slate-800 text-lg mt-3 mb-1">{renderInline(line.slice(3))}</p>);
