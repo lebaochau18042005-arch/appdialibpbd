@@ -276,6 +276,28 @@ export const examService = {
         }
       }
     }
+    // IMPORTANT: Also sync questions into RTDB assignment bundles so students
+    // on other devices see the updated context/imageUrl added via ExamEditor
+    if (exam.questions?.length) {
+      try {
+        const { get: rtdbGet } = await import('firebase/database');
+        const snap = await rtdbGet(rtdbRef(rtdb, 'assignments'));
+        if (snap.exists()) {
+          const updates: Record<string, any> = {};
+          snap.forEach((child: any) => {
+            if (child.val()?.examId === exam.id) {
+              updates[`assignments/${child.key}/questions`] = exam.questions;
+            }
+          });
+          if (Object.keys(updates).length > 0) {
+            await rtdbUpdate(rtdbRef(rtdb, '/'), updates);
+            console.log(`updateExam: synced questions to ${Object.keys(updates).length} RTDB assignment(s)`);
+          }
+        }
+      } catch (e) {
+        console.warn('updateExam: could not sync to RTDB assignments', e);
+      }
+    }
   },
 
   async getExamsByCreator(creatorId: string): Promise<Exam[]> {

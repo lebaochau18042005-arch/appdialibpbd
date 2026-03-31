@@ -67,30 +67,31 @@ export default function ExamRoom() {
 
   const loadQuestions = useCallback(async () => {
     if (examId) {
-      // ── Try 1: RTDB assignment bundle ── fastest, works on all devices
       let loaded = false;
-      const rtdbExam = await assignmentService.getExamQuestionsFromRTDB(examId);
-      if (rtdbExam && rtdbExam.questions.length > 0) {
-        setExamQuestions(rtdbExam.questions);
-        setExamTitle(rtdbExam.title);
-        loaded = true;
-      }
+
+      // ── Try 1: Firestore + localStorage (most up-to-date, has ExamEditor edits) ──
+      try {
+        const allExams = await examService.getAllExams();
+        const found = allExams.find(e => e.id === examId);
+        if (found && found.questions && found.questions.length > 0) {
+          setExamQuestions(found.questions);
+          setExamTitle(found.title);
+          loaded = true;
+        } else if (found && found.type === 'upload') {
+          alert('Đây là đề thi tải lên (file). Bạn có thể tải xuống để xem nội dung.');
+          navigate('/exam');
+          return;
+        }
+      } catch { /* Firestore failed, try RTDB bundle */ }
 
       if (!loaded) {
-        // ── Try 2: Firestore + localStorage ──
-        try {
-          const allExams = await examService.getAllExams();
-          const found = allExams.find(e => e.id === examId);
-          if (found && found.questions && found.questions.length > 0) {
-            setExamQuestions(found.questions);
-            setExamTitle(found.title);
-            loaded = true;
-          } else if (found && found.type === 'upload') {
-            alert('Đây là đề thi tải lên (file). Bạn có thể tải xuống để xem nội dung.');
-            navigate('/exam');
-            return;
-          }
-        } catch { /* Firestore failed, continue */ }
+        // ── Try 2: RTDB assignment bundle (fallback for cross-device access) ──
+        const rtdbExam = await assignmentService.getExamQuestionsFromRTDB(examId);
+        if (rtdbExam && rtdbExam.questions.length > 0) {
+          setExamQuestions(rtdbExam.questions);
+          setExamTitle(rtdbExam.title);
+          loaded = true;
+        }
       }
 
       if (!loaded) {
@@ -98,6 +99,7 @@ export default function ExamRoom() {
         navigate('/exam');
         return;
       }
+
     } else {
       generateRandomExam();
       if (mode === 'mock') {
