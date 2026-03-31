@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import { User, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { UserProfile } from '../types';
@@ -41,59 +41,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(timeout);
       setUser(firebaseUser);
 
-      if (firebaseUser && !firebaseUser.isAnonymous) {
-        // ── Signed in with Google ──────────────────────────────────────────
-        try {
-          const profileSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (profileSnap.exists()) {
-            const existing = profileSnap.data() as UserProfile;
+      if (firebaseUser) {
+        if (!firebaseUser.isAnonymous) {
+          // ── Signed in with Google ──────────────────────────────────────────
+          try {
+            const profileSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
+            if (profileSnap.exists()) {
+              const existing = profileSnap.data() as UserProfile;
 
-            // Auto-sync Firestore profile → localStorage (cross-device magic)
-            if (existing.name && existing.className) {
-              localStorage.setItem(LS_PROFILE_KEY, JSON.stringify({
-                name: existing.name,
-                className: existing.className,
-                school: existing.school || '',
-                targetScore: (existing as any).targetScore || '',
-              }));
-              localStorage.setItem(LS_ROLE_KEY, 'student');
+              // Auto-sync Firestore profile → localStorage (cross-device magic)
+              if (existing.name && existing.className) {
+                localStorage.setItem(LS_PROFILE_KEY, JSON.stringify({
+                  name: existing.name,
+                  className: existing.className,
+                  school: existing.school || '',
+                  targetScore: (existing as any).targetScore || '',
+                }));
+                localStorage.setItem(LS_ROLE_KEY, 'student');
+              }
+
+              // ── Auto-enable teacher mode if Firestore says so ────────────
+              if (existing.role === 'teacher') {
+                localStorage.setItem(LS_TEACHER_KEY, 'true');
+                setIsTeacherMode(true);
+                localStorage.setItem(LS_ROLE_KEY, 'teacher');
+              }
+
+              setProfile(existing);
+            } else {
+              // New Google user — check if they have a local profile to migrate
+              const localProfile = (() => {
+                try { return JSON.parse(localStorage.getItem(LS_PROFILE_KEY) || '{}'); } catch { return {}; }
+              })();
+              const newProfile: UserProfile = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                name: localProfile.name || firebaseUser.displayName || 'Học sinh',
+                role: 'student',
+                className: localProfile.className || '',
+                school: localProfile.school || '',
+              };
+              await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
+              setProfile(newProfile);
+
+              // Migrate all local attempts to Firestore in background
+              syncService.migrateLocalToCloud(firebaseUser.uid).catch(() => {});
             }
-
-            // ── Auto-enable teacher mode if Firestore says so ────────────
-            if (existing.role === 'teacher') {
-              localStorage.setItem(LS_TEACHER_KEY, 'true');
-              setIsTeacherMode(true);
-              localStorage.setItem(LS_ROLE_KEY, 'teacher');
-            }
-
-            setProfile(existing);
-          } else {
-            // New Google user — check if they have a local profile to migrate
-            const localProfile = (() => {
-              try { return JSON.parse(localStorage.getItem(LS_PROFILE_KEY) || '{}'); } catch { return {}; }
-            })();
-            const newProfile: UserProfile = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              name: localProfile.name || firebaseUser.displayName || 'Học sinh',
-              role: 'student',
-              className: localProfile.className || '',
-              school: localProfile.school || '',
-            };
-            await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
-            setProfile(newProfile);
-
-            // Migrate all local attempts to Firestore in background
-            syncService.migrateLocalToCloud(firebaseUser.uid).catch(() => {});
+          } catch (e) {
+            console.warn('Could not sync from Firestore:', e);
+            const lp = (() => { try { return JSON.parse(localStorage.getItem(LS_PROFILE_KEY) || '{}'); } catch { return {}; } })();
+            setProfile({ name: lp.name || firebaseUser.displayName || 'Học sinh', className: lp.className || '' } as UserProfile);
           }
-        } catch (e) {
-          console.warn('Could not sync from Firestore:', e);
-          // Fallback to localhost profile
+        } else {
+          // ── Anonymous User ─────────────────────────────────────────────────
           const lp = (() => { try { return JSON.parse(localStorage.getItem(LS_PROFILE_KEY) || '{}'); } catch { return {}; } })();
-          setProfile({ name: lp.name || firebaseUser.displayName || 'Học sinh', className: lp.className || '' });
+          setProfile({ name: lp.name || 'Học sinh', className: lp.className || '' } as UserProfile);
         }
       } else {
         setProfile(null);
+        // Automatically sign in anonymously to satisfy Firebase Storage/Firestore rules for guests
+        signInAnonymously(auth).catch(e => console.error("Anonymous auth failed", e));
       }
       setLoading(false);
     });

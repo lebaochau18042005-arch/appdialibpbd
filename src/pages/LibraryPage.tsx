@@ -49,9 +49,15 @@ function AddVideoModal({ onClose }: { onClose: () => void }) {
   const handleSave = async () => {
     if (!title.trim() || !url.trim()) return;
     setSaving(true);
-    await libraryService.addVideo(title.trim(), url.trim(), desc.trim(), tags.trim());
-    setDone(true);
-    setTimeout(onClose, 900);
+    try {
+      await libraryService.addVideo(title.trim(), url.trim(), desc.trim(), tags.trim());
+      setDone(true);
+      setTimeout(onClose, 900);
+    } catch (e: any) {
+      console.error('Save error:', e);
+      alert('Lưu thất bại! (Lỗi: ' + (e.message || 'Chưa xác định') + ')');
+      setSaving(false);
+    }
   };
 
   return (
@@ -121,9 +127,15 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
-    await libraryService.uploadFile(file, title || file.name, setProgress);
-    setDone(true);
-    setTimeout(onClose, 1000);
+    try {
+      await libraryService.uploadFile(file, title || file.name, setProgress);
+      setDone(true);
+      setTimeout(onClose, 1000);
+    } catch (e: any) {
+      console.error('Upload error:', e);
+      alert('Tải lên thất bại! (Lỗi: ' + (e.message || 'Chưa xác định') + ')');
+      setUploading(false);
+    }
   };
 
   return (
@@ -216,15 +228,27 @@ export default function LibraryPage() {
   const handleDeleteVideo = async (id: string) => {
     if (!window.confirm('Xóa video này?')) return;
     setDeleting(id);
-    await libraryService.deleteVideo(id);
-    setDeleting(null);
+    try {
+      await libraryService.deleteVideo(id);
+    } catch (e: any) {
+      console.error('Delete error:', e);
+      alert('Xóa thất bại! (Lỗi: ' + (e.message || 'Chưa xác định') + ')');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const handleDeleteFile = async (item: LibraryFile) => {
     if (!window.confirm('Xóa file này?')) return;
     setDeleting(item.id);
-    await libraryService.deleteFile(item);
-    setDeleting(null);
+    try {
+      await libraryService.deleteFile(item);
+    } catch (e: any) {
+      console.error('Delete error:', e);
+      alert('Xóa thất bại! (Lỗi: ' + (e.message || 'Chưa xác định') + ')');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const TAB_BTN = [
