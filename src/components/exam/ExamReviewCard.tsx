@@ -5,6 +5,61 @@ import { NavigateFunction } from 'react-router-dom';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 
+// ─── Shared: render inline bold/italic markdown ───────────────────────────────
+function renderInline(raw: string): React.ReactNode {
+  const segments: React.ReactNode[] = [];
+  const re = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+  let last = 0; let m: RegExpExecArray | null;
+  while ((m = re.exec(raw)) !== null) {
+    if (m.index > last) segments.push(raw.slice(last, m.index));
+    if (m[2] !== undefined) segments.push(<strong key={m.index}>{m[2]}</strong>);
+    else if (m[3] !== undefined) segments.push(<em key={m.index}>{m[3]}</em>);
+    else if (m[4] !== undefined) segments.push(<code key={m.index} className="bg-slate-100 px-1 rounded text-sm font-mono">{m[4]}</code>);
+    last = m.index + m[0].length;
+  }
+  if (last < raw.length) segments.push(raw.slice(last));
+  return segments.length === 1 ? segments[0] : <>{segments}</>;
+}
+
+function QuestionTextBlock({ text }: { text: string }) {
+  const lines = text.split(/\r?\n/);
+  const parts: React.ReactNode[] = [];
+  let tableLines: string[] = [];
+  let key = 0;
+  const flushTable = () => {
+    if (tableLines.length < 2) { tableLines.forEach(l => parts.push(<span key={key++} className="block">{l}</span>)); tableLines = []; return; }
+    const rows = tableLines.filter(l => l.trim().startsWith('|')).filter(l => l.replace(/[|\s\-:]/g, '').length > 0);
+    parts.push(
+      <div key={key++} className="my-3 overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
+        <table className="text-sm text-slate-700 w-full border-collapse">
+          <tbody>
+            {rows.map((row, ri) => {
+              const cells = row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1);
+              return (
+                <tr key={ri} className={ri === 0 ? 'bg-indigo-600 text-white font-bold' : ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'}>
+                  {cells.map((cell, ci) => ri === 0
+                    ? <th key={ci} className="px-3 py-2 border border-indigo-500 text-center whitespace-nowrap text-xs">{renderInline(cell.trim())}</th>
+                    : <td key={ci} className={cn("px-3 py-2 border border-indigo-100 whitespace-nowrap text-xs", ci === 0 ? "font-medium" : "text-center")}>{renderInline(cell.trim())}</td>)}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+    tableLines = [];
+  };
+  for (const line of lines) {
+    if (line.trim().startsWith('|')) { tableLines.push(line); }
+    else {
+      if (tableLines.length) flushTable();
+      if (line.trim()) parts.push(<span key={key++} className="block mb-0.5">{renderInline(line)}</span>);
+    }
+  }
+  if (tableLines.length) flushTable();
+  return <div className="text-base font-medium text-slate-800 leading-relaxed">{parts}</div>;
+}
+
 interface ExamReviewCardProps {
   examQuestions: Question[];
   answers: Record<number, any>;
@@ -83,7 +138,22 @@ export default function ExamReviewCard({
                   </span>
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-800 mb-6">{q.text}</h3>
+                <div className="mb-4">
+                  <QuestionTextBlock text={q.text} />
+                </div>
+
+                {q.imageUrl && (
+                  <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
+                    <img src={q.imageUrl} alt="Hình minh họa" className="max-w-full max-h-72 object-contain" />
+                  </div>
+                )}
+
+                {q.context && (
+                  <div className="mb-6 p-4 bg-blue-50/60 rounded-2xl border border-blue-200">
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">📊 Bảng số liệu / Biểu đồ</p>
+                    <QuestionTextBlock text={q.context} />
+                  </div>
+                )}
 
                 <div className="space-y-3 mb-8">
                   {q.type === 'multiple_choice' && q.options.map((opt, oIdx) => (

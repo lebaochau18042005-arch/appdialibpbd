@@ -105,27 +105,34 @@ export const assignmentService = {
     return () => off(assignRef, 'value', handler);
   },
 
-  // Student: subscribe to assignments for their class (realtime)
+  // Student: subscribe to assignments for their class or by individual name (realtime)
   subscribeToStudentAssignments(
     className: string,
-    callback: (assignments: ExamAssignment[]) => void
+    callback: (assignments: ExamAssignment[]) => void,
+    studentName?: string
   ): () => void {
     const assignRef = ref(rtdb, 'assignments');
-    const cls = className.trim().toLowerCase();
-    const handler = (snap: any) => {
-      if (!snap.exists()) {
-        const ls = lsGet().filter(a => {
-          const tc = (a.targetClass || '').trim().toLowerCase();
-          return tc === cls || tc === 'all';
-        });
-        callback(ls);
-        return;
+    // Normalize: lowercase + remove all spaces for robust matching
+    const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, '');
+    const cls = normalize(className);
+    const sName = normalize(studentName || '');
+
+    function matchesStudent(d: any): boolean {
+      const tc = normalize(d.targetClass || '');
+      // Class-wide or "all" match
+      if (tc === cls || tc === 'all') return true;
+      // Individual student targeting: check targetStudents array
+      if (sName && Array.isArray(d.targetStudents)) {
+        return d.targetStudents.some((n: string) => normalize(n) === sName);
       }
+      return false;
+    }
+
+    function parseSnap(snap: any): ExamAssignment[] {
       const list: ExamAssignment[] = [];
       snap.forEach((child: any) => {
         const d = child.val();
-        const tc = (d.targetClass || '').trim().toLowerCase();
-        if (tc !== cls && tc !== 'all') return;
+        if (!matchesStudent(d)) return;
         list.push({
           id: child.key,
           examId: d.examId || child.key,
@@ -137,15 +144,36 @@ export const assignmentService = {
         });
       });
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      callback(list);
+      return list;
+    }
+
+    const handler = (snap: any) => {
+      if (!snap.exists()) { callback([]); return; }
+      callback(parseSnap(snap));
     };
-    onValue(assignRef, handler, () => {
-      const ls = lsGet().filter(a => {
-        const tc = (a.targetClass || '').trim().toLowerCase();
-        return tc === cls || tc === 'all';
-      });
-      callback(ls);
-    });
+
+    // Fallback: when onValue fails (permission denied / network issues), try one-time get()
+    const errorHandler = async () => {
+      console.warn('assignmentService: onValue failed, trying get() fallback...');
+      try {
+        const snap = await get(assignRef);
+        if (snap.exists()) {
+          callback(parseSnap(snap));
+        } else {
+          callback([]);
+        }
+      } catch (e2) {
+        console.error('assignmentService: both onValue and get() failed', e2);
+        // Last resort: localStorage on THIS device (only works if teacher used same device)
+        const ls = lsGet().filter(a => {
+          const tc = normalize(a.targetClass || '');
+          return tc === cls || tc === 'all';
+        });
+        callback(ls);
+      }
+    };
+
+    onValue(assignRef, handler, errorHandler);
     return () => off(assignRef, 'value', handler);
   },
 

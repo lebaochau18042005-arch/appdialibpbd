@@ -102,13 +102,13 @@ export const examService = {
             (g) Năng suất (tạ/ha) = Sản lượng / Diện tích
             (h) Bình quân lương thực (kg/người) = Sản lượng / DS
             (i) Tỉ lệ đô thị hóa (%) = DS thành thị / Tổng DS x 100
-       7. ⚠️ QUY TẮc NHÚNG SỐ LIỆU - BẮT BUỘC ÁP DỤNG CHO MỌI CÂU:
-          - TUYỆT ĐỐI KHÔNG ĐƯỢC viết "Căn cứ vào bảng số liệu", "Dựa vào biểu đồ", "Cho biểu đồ:", "Xem hình:", "Quan sát bảng" mà KHÔNG kèm số liệu cụ thể.
-          - TUYỆT ĐỐI KHÔNG đưa URL/link nguồn (như https://..., ASEAN Stats, GSO...) thay cho số liệu. Học sinh không thể mở link khi làm bài thi.
-          - Mọi câu hỏi phải tự đầy đủ: chỉ đọc trường text là đủ để trả lời, không cần bất kỳ tài liệu ngoài nào.
-          - Ví dụ ĐÚNG Phần II (Đ/S ASEAN): "Cho bảng số liệu GDP các nước Đông Nam Á (tỷ USD): Việt Nam: 2015=193, 2020=271, 2024=430. Thái Lan: 2015=401, 2020=500, 2024=574. Indonesia: 2015=861, 2020=1058, 2024=1371. Nhận định nào sau đây ĐÚNG?"
-          - Ví dụ ĐÚNG Phần III (Tính toán): "Năm 2024, dân số Việt Nam 98,2 triệu người, sản lượng lúa 43,5 triệu tấn. Tính bình quân lương thực (kg/người)?"
-          - Ví dụ SAI (CẤM): "Cho biểu đồ: (Nguồn: Niên giám thống kê ASEAN 2025, https://www.aseanstats.org)" - ĐÂY LÀ LỖI NGHIÊM TRỌNG.`;
+       7. ⚠️ QUY TẮC NHÚNG SỐ LIỆU VÀO TRƯỜNG CONTEXT - BẮT BUỘC:
+          - Khi câu hỏi cần bảng số liệu: đặt bảng vào trường "context" dưới dạng MARKDOWN TABLE. Trường "text" chỉ chứa câu hỏi.
+          - TUYỆT ĐỐI KHÔNG đưa URL/link nguồn. TUYỆT ĐỐI KHÔNG viết "Xem biểu đồ" mà không kèm số liệu.
+          - Ví dụ ĐÚNG (Phần II):
+            text: "Cho bảng số liệu tổng dự trữ quốc tế một số nước ASEAN. Nhận định nào SAI?"
+            context: "**TỔNG DỰ TRỮ QUỐC TẾ (tỷ USD)**\n| Quốc gia | 2015 | 2019 | 2023 |\n|---|---|---|---|\n| Thái Lan | 156,5 | 224,3 | 278,2 |\n| Việt Nam | 28,6 | 79,5 | 103,4 |\n| Phi-líp-pin | 80,7 | 87,8 | 101,2 |"
+          - Ví dụ ĐÚNG (Phần III - tính toán): số liệu nhúng trực tiếp vào text vì câu tự đủ.`;
 
       const prompt = `Hãy tạo ngay một đề thi Địa lí chuẩn 2025 gồm 28 câu hỏi. 
       Đảm bảo cập nhật đầy đủ các sửa đổi mới nhất:
@@ -130,6 +130,7 @@ export const examService = {
               id: { type: Type.STRING },
               type: { type: Type.STRING, enum: ["multiple_choice", "true_false", "short_answer"] },
               text: { type: Type.STRING },
+              context: { type: Type.STRING },
               topic: { type: Type.STRING },
               lesson: { type: Type.STRING },
               options: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -256,6 +257,24 @@ export const examService = {
       }
       handleFirestoreError(error, OperationType.CREATE, 'exams');
       return '';
+    }
+  },
+
+  // Update an existing exam (questions, images, tables, etc.)
+  async updateExam(exam: Exam): Promise<void> {
+    // Always update localStorage immediately
+    lsSaveExam(exam);
+    // Try Firestore if it's a real (non-local) ID
+    if (!exam.id.startsWith('local_')) {
+      try {
+        const docRef = doc(db, 'exams', exam.id);
+        const { id, ...data } = exam;
+        await updateDoc(docRef, data as any);
+      } catch (error) {
+        if (!isPermissionError(error)) {
+          console.warn('updateExam Firestore failed, kept in localStorage:', error);
+        }
+      }
     }
   },
 

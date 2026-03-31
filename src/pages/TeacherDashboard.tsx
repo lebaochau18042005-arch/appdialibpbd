@@ -14,6 +14,7 @@ import StudentManagement from '../components/teacher/StudentManagement';
 import LiveStudentTracker from '../components/teacher/LiveStudentTracker';
 import ExamAssignPanel from '../components/teacher/ExamAssignPanel';
 import RosterUploader from '../components/teacher/RosterUploader';
+import ExamEditor from '../components/teacher/ExamEditor';
 
 type DashboardTab = 'overview' | 'exams' | 'history' | 'students' | 'assign' | 'roster';
 
@@ -60,6 +61,17 @@ export default function TeacherDashboard() {
   const [extractingExam, setExtractingExam] = useState<Exam | null>(null);
   const [extractText, setExtractText] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
+
+  // Exam Editor state
+  const [editingExam, setEditingExam] = useState<Exam | null>(null);
+
+  const handleEditExam = (exam: Exam) => setEditingExam(exam);
+
+  const handleSaveEditedExam = async (updated: Exam) => {
+    await examService.updateExam(updated);
+    setExams(prev => prev.map(e => e.id === updated.id ? updated : e));
+    setEditingExam(null);
+  };
 
   // Update imageUrl for a specific question in generatedQuestions
   const handleQuestionImageUrl = (qIdx: number, url: string) => {
@@ -443,6 +455,7 @@ export default function TeacherDashboard() {
           handleDeleteExam={handleDeleteExam}
           setViewingExam={setViewingExam}
           onExtractQuestions={handleExtractQuestions}
+          onEditExam={handleEditExam}
         />
       )}
 
@@ -961,6 +974,17 @@ export default function TeacherDashboard() {
           </motion.div>
         </div>
       )}
+
+      {/* Exam Editor Modal */}
+      <AnimatePresence>
+        {editingExam && (
+          <ExamEditor
+            exam={editingExam}
+            onSave={handleSaveEditedExam}
+            onClose={() => setEditingExam(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

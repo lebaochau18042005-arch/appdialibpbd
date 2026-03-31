@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Search, Download, Trash2, Sparkles, Presentation, Brain } from 'lucide-react';
+import { FileText, Search, Download, Trash2, Sparkles, Presentation, Brain, PencilLine } from 'lucide-react';
 import { Exam } from '../../types';
 import { cn } from '../../utils/cn';
 import { exportExamToWord } from '../../utils/exportDocs';
@@ -13,6 +13,7 @@ interface ExamManagerProps {
   handleDeleteExam: (id: string) => void;
   setViewingExam: (exam: Exam) => void;
   onExtractQuestions?: (exam: Exam) => void;
+  onEditExam?: (exam: Exam) => void;
 }
 
 export default function ExamManager({
@@ -23,6 +24,7 @@ export default function ExamManager({
   handleDeleteExam,
   setViewingExam,
   onExtractQuestions,
+  onEditExam,
 }: ExamManagerProps) {
   const filteredExams = exams.filter(e => 
     e.title.toLowerCase().includes(examSearchTerm.toLowerCase())
@@ -83,6 +85,16 @@ export default function ExamManager({
                         title="Trích xuất câu hỏi bằng AI"
                       >
                         <Brain size={20} />
+                      </button>
+                    )}
+                    {/* Edit button: opens ExamEditor for all exams with questions */}
+                    {onEditExam && (exam.questions?.length ?? 0) > 0 && (
+                      <button
+                        onClick={() => onEditExam(exam)}
+                        className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                        title="Sửa đề thi (thêm ảnh, bảng số liệu)"
+                      >
+                        <PencilLine size={20} />
                       </button>
                     )}
                     <button 

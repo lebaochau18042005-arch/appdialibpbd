@@ -4,12 +4,29 @@ import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 
-// ─── Markdown Table Renderer ───────────────────────────────────────────────────
-function QuestionText({ text }: { text: string }) {
+// ─── Markdown Renderer (tables + bold/italic/code) ────────────────────────────
+function QuestionText({ text, size = 'large' }: { text: string; size?: 'large' | 'small' }) {
   const lines = text.split(/\r?\n/);
   const parts: React.ReactNode[] = [];
   let tableLines: string[] = [];
   let key = 0;
+
+  // Render inline markdown: **bold**, *italic*, `code`
+  const renderInline = (raw: string): React.ReactNode => {
+    const segments: React.ReactNode[] = [];
+    const re = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(raw)) !== null) {
+      if (m.index > last) segments.push(raw.slice(last, m.index));
+      if (m[2] !== undefined) segments.push(<strong key={m.index}>{m[2]}</strong>);
+      else if (m[3] !== undefined) segments.push(<em key={m.index}>{m[3]}</em>);
+      else if (m[4] !== undefined) segments.push(<code key={m.index} className="bg-slate-100 px-1 rounded text-sm font-mono">{m[4]}</code>);
+      last = m.index + m[0].length;
+    }
+    if (last < raw.length) segments.push(raw.slice(last));
+    return segments.length === 1 ? segments[0] : <>{segments}</>;
+  };
 
   const flushTable = () => {
     if (tableLines.length < 2) {
@@ -18,18 +35,26 @@ function QuestionText({ text }: { text: string }) {
       return;
     }
     const rows = tableLines
-      .filter(l => l.trim().startsWith('|') && !l.replace(/[|\s-]/g, '') === false)
-      .filter(l => !/^[\s|:-]+$/.test(l)); // skip separator rows like |---|---|
+      .filter(l => l.trim().startsWith('|'))
+      // FIX: skip separator rows (rows that only contain |, -, :, spaces)
+      .filter(l => l.replace(/[|\s\-:]/g, '').length > 0);
+
     parts.push(
       <div key={key++} className="my-4 overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
-        <table className="text-sm text-slate-700 w-full">
+        <table className="text-sm text-slate-700 w-full border-collapse">
           <tbody>
             {rows.map((row, ri) => {
               const cells = row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1);
               return (
-                <tr key={ri} className={ri === 0 ? 'bg-indigo-50 font-bold text-indigo-800' : ri % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <tr key={ri} className={
+                  ri === 0
+                    ? 'bg-indigo-600 text-white font-bold'
+                    : ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'
+                }>
                   {cells.map((cell, ci) => (
-                    <td key={ci} className="px-3 py-2 border border-indigo-100 whitespace-nowrap">{cell.trim()}</td>
+                    ri === 0
+                      ? <th key={ci} className="px-4 py-2.5 border border-indigo-500 text-center whitespace-nowrap text-sm">{renderInline(cell.trim())}</th>
+                      : <td key={ci} className={cn("px-4 py-2 border border-indigo-100 whitespace-nowrap", ci === 0 ? "font-medium text-slate-700" : "text-center text-slate-600")}>{renderInline(cell.trim())}</td>
                   ))}
                 </tr>
               );
@@ -46,12 +71,29 @@ function QuestionText({ text }: { text: string }) {
       tableLines.push(line);
     } else {
       if (tableLines.length) flushTable();
-      if (line.trim()) parts.push(<span key={key++} className="block mb-1">{line}</span>);
+      if (line.trim()) {
+        if (line.startsWith('### ')) {
+          parts.push(<p key={key++} className="font-black text-slate-700 text-base mt-3 mb-1">{renderInline(line.slice(4))}</p>);
+        } else if (line.startsWith('## ')) {
+          parts.push(<p key={key++} className="font-black text-slate-800 text-lg mt-3 mb-1">{renderInline(line.slice(3))}</p>);
+        } else {
+          parts.push(<span key={key++} className="block mb-1">{renderInline(line)}</span>);
+        }
+      } else {
+        parts.push(<span key={key++} className="block h-2" />);
+      }
     }
   }
   if (tableLines.length) flushTable();
 
-  return <div className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-6">{parts}</div>;
+  return (
+    <div className={size === 'large'
+      ? "text-xl md:text-2xl font-medium text-slate-800 leading-relaxed mb-6"
+      : "text-base font-medium text-slate-800 leading-relaxed mb-4"
+    }>
+      {parts}
+    </div>
+  );
 }
 
 interface ExamActiveCardProps {
@@ -103,14 +145,15 @@ export default function ExamActiveCard({
             <img
               src={currentQuestion.imageUrl}
               alt="Hình minh họa câu hỏi"
-              className="max-w-full max-h-80 object-contain"
+              className="max-w-full max-h-96 object-contain"
             />
           </div>
         )}
 
         {currentQuestion.context && (
-          <div className="mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-200 text-slate-700 italic">
-            {currentQuestion.context}
+          <div className="mb-6 p-5 bg-blue-50/60 rounded-2xl border border-blue-200">
+            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">📊 Bảng số liệu / Biểu đồ</p>
+            <QuestionText text={currentQuestion.context} size="small" />
           </div>
         )}
 

@@ -27,21 +27,23 @@ interface AssigmentItem {
 export default function AssignedExamsPage() {
   const [items, setItems] = useState<AssigmentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDebug, setShowDebug] = useState(false);
+  const [classNameOverride, setClassNameOverride] = useState('');
+  const [editingClass, setEditingClass] = useState(false);
   const profile = getProfile();
-  const className = (profile.className || '').trim().toLowerCase();
+  const className = (classNameOverride || profile.className || '').trim();
+  const studentName = (profile.name || '').trim();
+  const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, '');
 
   useEffect(() => {
     if (!className) { setLoading(false); return; }
 
-    // Subscribe to RTDB assignments (where teacher actually stores them)
-    const unsub = assignmentService.subscribeToAssignments((all) => {
-      const doneIds = getDoneIds();
-      const parsed: AssigmentItem[] = all
-        .filter((e: any) => {
-          const tc = (e.targetClass || '').trim().toLowerCase();
-          return tc === className || tc === 'all';
-        })
-        .map((e: any) => ({
+    // Use subscribeToStudentAssignments which filters by class AND individual name
+    const unsub = assignmentService.subscribeToStudentAssignments(
+      className,
+      (all) => {
+        const doneIds = getDoneIds();
+        const parsed: AssigmentItem[] = all.map((e: any) => ({
           id: e.id,
           examId: e.examId || e.id,
           examTitle: e.examTitle || e.title || 'Đề thi',
@@ -51,20 +53,22 @@ export default function AssignedExamsPage() {
           createdAt: e.createdAt,
           done: doneIds.has(e.examId || e.id),
         }));
-      // Sort: undone first, then by dueDate
-      parsed.sort((a, b) => {
-        if (a.done !== b.done) return a.done ? 1 : -1;
-        if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        if (a.dueDate) return -1; if (b.dueDate) return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-      setItems(parsed);
-      setLoading(false);
-    });
+        // Sort: undone first, then by dueDate
+        parsed.sort((a, b) => {
+          if (a.done !== b.done) return a.done ? 1 : -1;
+          if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          if (a.dueDate) return -1; if (b.dueDate) return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        setItems(parsed);
+        setLoading(false);
+      },
+      studentName
+    );
 
     return () => unsub();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [className]);
+  }, [className, studentName]);
 
   const undone = items.filter(i => !i.done);
   const done = items.filter(i => i.done);
@@ -87,13 +91,64 @@ export default function AssignedExamsPage() {
           <div className="w-10 h-10 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="flex flex-col items-center justify-center py-16 text-center">
           <Inbox size={48} className="text-slate-200 mb-4" />
           <p className="text-slate-400 font-bold text-lg">Chưa có đề được giao</p>
-          <p className="text-slate-300 text-sm mt-1">Giáo viên chưa giao đề cho lớp {profile.className}</p>
+          <p className="text-slate-300 text-sm mt-1">Giáo viên chưa giao đề cho lớp {className || '?'}</p>
           <Link to="/" className="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-700 transition-colors">
             Về trang chủ
           </Link>
+
+          {/* Diagnostic panel for debugging */}
+          <div className="mt-6 w-full max-w-xs">
+            <button
+              onClick={() => setShowDebug(v => !v)}
+              className="text-xs text-slate-400 underline underline-offset-2"
+            >
+              {showDebug ? 'Ẩn thông tin debug' : '🔍 Kiểm tra thông tin lớp'}
+            </button>
+            {showDebug && (
+              <div className="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-left space-y-3">
+                <p className="text-xs font-black text-amber-700 uppercase tracking-wide">Thông tin lớp học</p>
+                <div className="space-y-1 text-xs text-slate-600">
+                  <p>📋 Tên lớp đã lưu: <strong className="text-indigo-700">"{profile.className || '(trống)'}"</strong></p>
+                  <p>🔤 Sau chuẩn hóa: <strong className="text-indigo-700">"{normalize(className)}"</strong></p>
+                  <p>👤 Tên HS: <strong>{studentName || '(chưa đặt)'}</strong></p>
+                </div>
+                <p className="text-[11px] text-amber-600">
+                  Nếu tên lớp sai (ví dụ "12D1" thay vì "12 D1"), sửa ở đây:
+                </p>
+                {editingClass ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      defaultValue={profile.className || ''}
+                      id="classfix-input"
+                      className="flex-1 px-2 py-1 text-xs border border-amber-300 rounded-lg outline-none focus:ring-1 focus:ring-amber-400"
+                      placeholder="VD: 12D1"
+                    />
+                    <button
+                      onClick={() => {
+                        const val = (document.getElementById('classfix-input') as HTMLInputElement)?.value;
+                        if (val) {
+                          const p = getProfile();
+                          localStorage.setItem('examGeoProfile', JSON.stringify({ ...p, className: val }));
+                          setClassNameOverride(val);
+                          setEditingClass(false);
+                        }
+                      }}
+                      className="px-3 py-1 bg-amber-600 text-white rounded-lg text-xs font-bold"
+                    >Lưu</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingClass(true)}
+                    className="text-xs font-bold text-amber-700 underline"
+                  >Sửa tên lớp</button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
