@@ -30,6 +30,7 @@ function formatSize(bytes: number) {
 type Tab = 'video' | 'file' | 'game';
 
 const GAMES = [
+  { id: 'g0', title: '🔔 Rung Chuông Vàng Địa Lí', desc: 'Trò chơi Rung Chuông Vàng chủ đề Địa lí — dành cho cả lớp, màn hình lớn.', url: 'https://rungchuongvangcothaibbd-p9xo.vercel.app/', tags: ['Rung Chuông', 'Cả lớp'], isNew: true },
   { id: 'g1', title: 'Kahoot — Ôn tập Địa lí', desc: 'Trò chơi trắc nghiệm tương tác theo nhóm.', url: 'https://kahoot.com/schools-u/', tags: ['Nhóm', 'Online'] },
   { id: 'g2', title: 'Quizizz — Địa lí 12', desc: 'Câu hỏi Địa lí lớp 12 dạng game, bảng xếp hạng.', url: 'https://quizizz.com/topic/geography', tags: ['Game', 'Online'] },
   { id: 'g3', title: 'Padlet — Bản đồ tư duy', desc: 'Tạo bản đồ tư duy và sơ đồ kiến thức trực tuyến.', url: 'https://padlet.com', tags: ['Tư duy'] },
