@@ -1,11 +1,14 @@
 /**
  * libraryService — manages Library items:
  *   - Video links stored in RTDB at /library_videos
- *   - Files (PDF/Word/PPT) uploaded to Firebase Storage, metadata in RTDB at /library_files
+ *   - Files (PDF/Word/PPT) uploaded to Cloudinary, metadata in RTDB at /library_files
  */
-import { rtdb, storage } from '../firebase';
-import { ref as rtdbRef, push, onValue, remove, set } from 'firebase/database';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { rtdb } from '../firebase';
+import { ref as rtdbRef, push, onValue, remove } from 'firebase/database';
+
+// ── Cloudinary config ─────────────────────────────────────────────────────────
+const CLOUDINARY_CLOUD_NAME = 'dahaer5kb';
+const CLOUDINARY_UPLOAD_PRESET = 'geo_uploads'; // unsigned preset
 
 export interface LibraryVideo {
   id: string;
@@ -71,53 +74,61 @@ export const libraryService = {
     return () => unsub();
   },
 
-  // Teacher: upload file to Storage + save metadata to RTDB
+  // Teacher: upload file to Cloudinary + save metadata to RTDB
   async uploadFile(
     file: File,
     title: string,
     onProgress?: (pct: number) => void
   ): Promise<void> {
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
-    const ts = Date.now();
-    const storagePath = `library_files/${ts}_${file.name}`;
-    const sRef = storageRef(storage, storagePath);
+    const fileType = ['pdf'].includes(ext) ? 'pdf'
+      : ['doc', 'docx'].includes(ext) ? 'word'
+      : ['ppt', 'pptx'].includes(ext) ? 'ppt'
+      : 'other';
 
-    await new Promise<void>((resolve, reject) => {
-      const task = uploadBytesResumable(sRef, file);
-      task.on('state_changed',
-        (snapshot) => {
-          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('resource_type', 'raw'); // for non-image files (PDF, Word, PPT)
+
+    const fileUrl = await new Promise<string>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
           onProgress?.(pct);
-        },
-        reject,
-        async () => {
-          const fileUrl = await getDownloadURL(task.snapshot.ref);
-          const fileType = ['pdf'].includes(ext) ? 'pdf'
-            : ['doc', 'docx'].includes(ext) ? 'word'
-            : ['ppt', 'pptx'].includes(ext) ? 'ppt'
-            : 'other';
-          await push(rtdbRef(rtdb, 'library_files'), {
-            title: title || file.name,
-            fileUrl,
-            fileName: file.name,
-            fileType,
-            fileSize: file.size,
-            storagePath,
-            createdAt: new Date().toISOString(),
-          });
-          resolve();
         }
-      );
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const res = JSON.parse(xhr.responseText);
+          resolve(res.secure_url);
+        } else {
+          reject(new Error(`Cloudinary upload failed: ${xhr.status} ${xhr.responseText}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.send(formData);
+    });
+
+    await push(rtdbRef(rtdb, 'library_files'), {
+      title: title || file.name,
+      fileUrl,
+      fileName: file.name,
+      fileType,
+      fileSize: file.size,
+      storagePath: fileUrl, // store URL as storagePath for compatibility
+      createdAt: new Date().toISOString(),
     });
   },
 
-  // Teacher: delete file from Storage + RTDB
+  // Teacher: delete file metadata from RTDB (Cloudinary file remains but won't be shown)
   async deleteFile(item: LibraryFile): Promise<void> {
-    try {
-      await deleteObject(storageRef(storage, item.storagePath));
-    } catch (_) {
-      // May already be deleted
-    }
     await remove(rtdbRef(rtdb, `library_files/${item.id}`));
   },
 };
+

@@ -8,7 +8,7 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const storage = getStorage(app);
+export const storage = getStorage(app); // kept for legacy compatibility
 export const rtdb = getDatabase(app);
 
 // Error handling helper
