@@ -104,13 +104,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      // Use popup instead of redirect — works better on mobile + avoids redirect loop
       await signInWithPopup(auth, provider);
     } catch (e: any) {
-      if (e?.code === 'auth/unauthorized-domain') {
-        alert('Đăng nhập Google chưa được kích hoạt cho domain này.\n\nVào Firebase Console → Authentication → Settings → Authorized domains → thêm "appdialibpbd.vercel.app"');
-      } else if (e?.code !== 'auth/popup-closed-by-user') {
-        console.warn('Google login error:', e);
+      if (e?.code !== 'auth/popup-closed-by-user') {
+        console.warn('Google login error:', e?.code);
       }
     }
   };
