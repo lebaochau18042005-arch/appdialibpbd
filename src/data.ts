@@ -4616,9 +4616,203 @@ export const questions: Question[] = [
       { id: 'tf_p2_10_c', text: 'c) Tỉ trọng vốn FDI giảm có nghĩa là giá trị đầu tư FDI vào Việt Nam đã giảm.', isTrue: false },
       { id: 'tf_p2_10_d', text: 'd) Sự thay đổi cơ cấu vốn đầu tư phản ánh sự phát triển của nền kinh tế thị trường tại Việt Nam.', isTrue: true }
     ]
+  },
+
+  // ===== PHẦN II - LUYỆN TẬP ĐÚNG/SAI: DẠNG BIỂU ĐỒ (chuẩn cấu trúc BGD 2025) =====
+  // Câu hỏi phân tích biểu đồ: nhận dạng loại biểu đồ + đọc số liệu + rút ra nhận xét
+
+  {
+    id: 'bieu_do_1',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện sản lượng lúa phân theo vùng của Việt Nam năm 2023. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ TRÒN – Cơ cấu sản lượng lúa phân theo vùng năm 2023 (%)**\n*(Số liệu để vẽ biểu đồ – thí sinh đọc và phân tích)*\n\n| Vùng | Tỉ trọng (%) |\n|---|---|\n| Đồng bằng sông Cửu Long | 54,5 |\n| Đồng bằng sông Hồng | 15,0 |\n| Bắc Trung Bộ | 8,2 |\n| Duyên hải Nam Trung Bộ | 6,1 |\n| Trung du và MN phía Bắc | 8,7 |\n| Tây Nguyên | 3,2 |\n| Đông Nam Bộ | 4,3 |\n\n> **Gợi ý:** Tổng = 100%. Vẽ biểu đồ tròn thể hiện cơ cấu (tỉ lệ %).',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Vấn đề phát triển nông nghiệp, lâm nghiệp và thuỷ sản',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'ĐBSCL chiếm 54,5% — trên 50% → đây là vùng sản xuất lúa lớn nhất cả nước (hơn 50%). Biểu đồ thích hợp để thể hiện CƠ CẤU (%) là biểu đồ TRÒN hoặc miền. ĐBSH đứng thứ 2 (15%). Tây Nguyên có tỉ trọng thấp nhất (3,2%). Không thể dùng biểu đồ đường để thể hiện cơ cấu tại MỘT thời điểm.',
+    tips: 'Cơ cấu tại một thời điểm → biểu đồ TRÒN. Cơ cấu nhiều thời điểm → biểu đồ MIỀN.',
+    mnemonics: 'Một thời điểm = Tròn; Nhiều thời điểm = Miền; Số lượng qua nhiều năm = Cột hoặc Đường',
+    statements: [
+      { id: 'bieu_do_1_a', text: 'a) Đồng bằng sông Cửu Long chiếm trên 50% sản lượng lúa cả nước năm 2023.', isTrue: true },
+      { id: 'bieu_do_1_b', text: 'b) Biểu đồ tròn là dạng biểu đồ thích hợp nhất để thể hiện cơ cấu sản lượng lúa phân theo vùng năm 2023.', isTrue: true },
+      { id: 'bieu_do_1_c', text: 'c) Đồng bằng sông Hồng đứng vị trí thứ hai về tỉ trọng sản lượng lúa.', isTrue: true },
+      { id: 'bieu_do_1_d', text: 'd) Biểu đồ đường là dạng biểu đồ phù hợp nhất để thể hiện số liệu cơ cấu trên.', isTrue: false }
+    ]
+  },
+
+  {
+    id: 'bieu_do_2',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện sự thay đổi dân số và tỉ lệ gia tăng dân số tự nhiên của Việt Nam giai đoạn 2000–2023. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ KẾT HỢP – Dân số và Tỉ lệ TGTN Việt Nam**\n*(Cột: Dân số (triệu người) — Đường: Tỉ lệ TGTN (‰))*\n\n| Năm | Dân số (triệu người) | Tỉ lệ TGTN (‰) |\n|---|---|---|\n| 2000 | 77,6 | 14,3 |\n| 2005 | 82,4 | 12,5 |\n| 2010 | 86,9 | 10,1 |\n| 2015 | 91,7 | 9,8 |\n| 2020 | 97,3 | 9,4 |\n| 2023 | 100,3 | 8,9 |\n\n> **Gợi ý:** Biểu đồ kết hợp = cột (dân số) + đường (tỉ lệ TGTN).',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Dân số, lao động và việc làm',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Biểu đồ kết hợp (cột + đường) phù hợp khi có 2 đại lượng khác đơn vị (triệu người và ‰). Dân số tăng liên tục; TGTN giảm liên tục nhưng vẫn dương. Năm 2023 DS = 100,3 ≈ hơn 100 triệu người. Dân số tăng VÀ tỉ lệ TGTN giảm = xu hướng song song, KHÔNG mâu thuẫn.',
+    tips: 'Khi số liệu có 2 đại lượng khác đơn vị → BIỂU ĐỒ KẾT HỢP (cột+đường)',
+    mnemonics: '2 đại lượng ≠ đơn vị → Kết hợp; 1 đại lượng qua nhiều năm → Đường hoặc Cột đơn',
+    statements: [
+      { id: 'bieu_do_2_a', text: 'a) Biểu đồ kết hợp (cột và đường) là dạng phù hợp nhất để thể hiện số liệu trên.', isTrue: true },
+      { id: 'bieu_do_2_b', text: 'b) Trong giai đoạn 2000–2023, dân số Việt Nam tăng liên tục trong khi tỉ lệ gia tăng tự nhiên giảm liên tục.', isTrue: true },
+      { id: 'bieu_do_2_c', text: 'c) Năm 2023, dân số Việt Nam đã vượt mốc 100 triệu người.', isTrue: true },
+      { id: 'bieu_do_2_d', text: 'd) Tỉ lệ gia tăng tự nhiên giảm chứng tỏ dân số Việt Nam đang giảm.', isTrue: false }
+    ]
+  },
+
+  {
+    id: 'bieu_do_3',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện cơ cấu sử dụng đất của Việt Nam năm 2023. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ TRÒN – Cơ cấu sử dụng đất Việt Nam năm 2023 (%)**\n\n| Loại đất | Diện tích (triệu ha) | Tỉ trọng (%) |\n|---|---|---|\n| Đất nông nghiệp | 27,9 | 84,3 |\n| Đất phi nông nghiệp | 4,8 | 14,5 |\n| Đất chưa sử dụng | 0,4 | 1,2 |\n| **Tổng diện tích tự nhiên** | **33,1** | **100** |\n\n> **Gợi ý:** Đất nông nghiệp = đất SX nông nghiệp + đất lâm nghiệp + đất nuôi trồng thủy sản.',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Sự phân hoá đa dạng của thiên nhiên',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Đất nông nghiệp chiếm tỉ trọng lớn nhất (84,3%), bao gồm cả đất lâm nghiệp. Đất chưa sử dụng rất thấp (1,2%) phản ánh khai thác đất khá triệt để. Biểu đồ tròn phù hợp thể hiện cơ cấu tại một thời điểm. Diện tích tự nhiên ~33,1 triệu ha → mật độ dân số cao.',
+    tips: 'Đất nông nghiệp > 80% = tiết kiệm đất, đất chưa SX còn ít → áp lực đất đai lớn',
+    mnemonics: 'Tỉ trọng lớn nhất: Nông nghiệp > Phi NN > Chưa SX',
+    statements: [
+      { id: 'bieu_do_3_a', text: 'a) Đất nông nghiệp chiếm tỉ trọng lớn nhất trong cơ cấu sử dụng đất của Việt Nam năm 2023.', isTrue: true },
+      { id: 'bieu_do_3_b', text: 'b) Đất chưa sử dụng chiếm tỉ trọng nhỏ nhất, phản ánh quỹ đất tự nhiên đang được khai thác triệt để.', isTrue: true },
+      { id: 'bieu_do_3_c', text: 'c) Biểu đồ miền là dạng phù hợp nhất để thể hiện cơ cấu sử dụng đất tại năm 2023.', isTrue: false },
+      { id: 'bieu_do_3_d', text: 'd) Diện tích tự nhiên của Việt Nam theo bảng trên là hơn 33 triệu ha.', isTrue: true }
+    ]
+  },
+
+  {
+    id: 'bieu_do_4',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện sự thay đổi cơ cấu lao động theo khu vực kinh tế của Việt Nam giai đoạn 2010–2023. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ MIỀN – Cơ cấu lao động theo ngành kinh tế Việt Nam (%)**\n*(Thích hợp thể hiện cơ cấu qua nhiều năm)*\n\n| Năm | Nông-lâm-TS (%) | Công nghiệp-XD (%) | Dịch vụ (%) |\n|---|---|---|---|\n| 2010 | 48,7 | 21,7 | 29,6 |\n| 2015 | 44,0 | 23,6 | 32,4 |\n| 2020 | 33,1 | 30,3 | 36,6 |\n| 2023 | 28,1 | 33,1 | 38,8 |\n\n> **Gợi ý:** Tổng mỗi năm = 100%. Biểu đồ miền có 3 phần chồng nhau.',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Dân số, lao động và việc làm',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Biểu đồ miền phù hợp khi thể hiện cơ cấu QUA NHIỀU NĂM (≥3 năm, ≥2 thành phần). Năm 2023: DV(38,8%)>CN(33,1%)>NN(28,1%). NN giảm mạnh từ 48,7% → 28,1%. Tổng mỗi cột = 100%. DV luôn cao hơn CN trong bảng.',
+    tips: 'Cơ cấu nhiều năm → BIỂU ĐỒ MIỀN (không phải tròn). Từ 3 cột: mỗi cột tổng = 100%',
+    mnemonics: 'MIỀN = nhiều Thời điểm; TRÒN = một Thời điểm',
+    statements: [
+      { id: 'bieu_do_4_a', text: 'a) Biểu đồ miền là dạng phù hợp nhất để thể hiện sự thay đổi cơ cấu lao động qua các năm.', isTrue: true },
+      { id: 'bieu_do_4_b', text: 'b) Năm 2023, ngành dịch vụ thu hút tỉ lệ lao động cao nhất trong 3 nhóm ngành.', isTrue: true },
+      { id: 'bieu_do_4_c', text: 'c) Tỉ trọng lao động ngành nông-lâm-thủy sản tăng liên tục trong giai đoạn 2010–2023.', isTrue: false },
+      { id: 'bieu_do_4_d', text: 'd) Tổng tỉ trọng của 3 nhóm ngành trong mỗi năm luôn bằng 100%.', isTrue: true }
+    ]
+  },
+
+  {
+    id: 'bieu_do_5',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện sản lượng khai thác và nuôi trồng thủy sản của Việt Nam giai đoạn 2000–2023. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ CỘT GHÉP – Sản lượng thủy sản Việt Nam (nghìn tấn)**\n*(Cột ghép: so sánh 2 giá trị cùng năm)*\n\n| Năm | Khai thác | Nuôi trồng |\n|---|---|---|\n| 2000 | 1 280,6 | 589,5 |\n| 2010 | 2 414,4 | 2 706,8 |\n| 2020 | 3 851,5 | 4 563,9 |\n| 2023 | 3 898,5 | 5 223,0 |\n\n> **Gợi ý:** Biểu đồ cột ghép thể hiện 2 đại lượng cùng đơn vị qua nhiều năm để so sánh.',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Vấn đề phát triển nông nghiệp, lâm nghiệp và thuỷ sản',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Biểu đồ cột ghép phù hợp khi so sánh 2 đại lượng CÙNG đơn vị qua nhiều năm. Năm 2000 khai thác > nuôi trồng; từ 2010 nuôi trồng > khai thác. Tốc độ tăng nuôi trồng nhanh hơn khai thác. Năm 2023: nuôi trồng (5223) > khai thác (3898,5). Biểu đồ đường cũng có thể dùng nhưng cột ghép là TỐT NHẤT để so sánh.',
+    tips: '2 đại lượng CÙNG đơn vị → Cột ghép HOẶC đường. KHÁC đơn vị → Kết hợp',
+    mnemonics: 'Cùng đơn vị + so sánh → Cột ghép; Cùng đơn vị + thể hiện xu hướng → Đường',
+    statements: [
+      { id: 'bieu_do_5_a', text: 'a) Biểu đồ cột ghép là dạng phù hợp để so sánh sản lượng khai thác và nuôi trồng thủy sản qua các năm.', isTrue: true },
+      { id: 'bieu_do_5_b', text: 'b) Năm 2000, sản lượng khai thác thủy sản lớn hơn sản lượng nuôi trồng.', isTrue: true },
+      { id: 'bieu_do_5_c', text: 'c) Từ năm 2010, sản lượng nuôi trồng đã vượt sản lượng khai thác và tiếp tục tăng.', isTrue: true },
+      { id: 'bieu_do_5_d', text: 'd) Biểu đồ miền là dạng duy nhất có thể dùng để thể hiện số liệu trên.', isTrue: false }
+    ]
+  },
+
+  {
+    id: 'bieu_do_6',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện nhiệt độ trung bình và lượng mưa trung bình tháng tại Hà Nội. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ KHÍ HẬU – Nhiệt độ (°C) và Lượng mưa (mm) tháng tại Hà Nội**\n*(Cột: Lượng mưa — Đường: Nhiệt độ)*\n\n| Tháng | 1 | 4 | 7 | 10 |\n|---|---|---|---|---|\n| Nhiệt độ (°C) | 16,4 | 23,7 | 28,9 | 24,1 |\n| Lượng mưa (mm) | 18,6 | 81,0 | 288,2 | 130,7 |\n\n> **Gợi ý:** Biểu đồ khí hậu = cột (lượng mưa) + đường (nhiệt độ). Đây là dạng kết hợp đặc biệt.',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Thiên nhiên nhiệt đới ẩm gió mùa',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Biểu đồ khí hậu là biểu đồ KẾT HỢP đặc biệt: cột = lượng mưa (mm), đường = nhiệt độ (°C). Tháng 7 nóng nhất (28,9°C) và mưa nhiều nhất (288,2mm) → mùa hạ. Tháng 1 lạnh nhất (16,4°C) và ít mưa nhất (18,6mm) → mùa đông. Biên độ nhiệt: tháng 7 - tháng 1 = 28,9 - 16,4 = 12,5°C.',
+    tips: 'Biểu đồ khí hậu LUÔN là: cột (mưa) + đường (nhiệt độ). Đây là DẠNG RIÊNG của biểu đồ kết hợp.',
+    mnemonics: 'Mưa = Cột (cao thấp như mưa rơi); Nhiệt độ = Đường (lên xuống như thủy ngân)',
+    statements: [
+      { id: 'bieu_do_6_a', text: 'a) Biểu đồ khí hậu tại Hà Nội là dạng biểu đồ kết hợp giữa cột (lượng mưa) và đường (nhiệt độ).', isTrue: true },
+      { id: 'bieu_do_6_b', text: 'b) Tháng 7 là tháng nóng nhất và có lượng mưa lớn nhất trong bảng số liệu.', isTrue: true },
+      { id: 'bieu_do_6_c', text: 'c) Biên độ nhiệt giữa tháng nóng nhất và lạnh nhất trong bảng là 12,5°C.', isTrue: true },
+      { id: 'bieu_do_6_d', text: 'd) Tháng 4 có lượng mưa lớn hơn tháng 10.', isTrue: false }
+    ]
+  },
+
+  {
+    id: 'bieu_do_7',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện cơ cấu xuất khẩu hàng hóa của Việt Nam năm 2023 phân theo nhóm hàng. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ TRÒN – Cơ cấu xuất khẩu hàng hóa Việt Nam 2023 (%)**\n\n| Nhóm hàng | Tỉ trọng (%) |\n|---|---|\n| Điện tử, máy tính và linh kiện | 32,4 |\n| Điện thoại và linh kiện | 15,7 |\n| Máy móc, thiết bị, dụng cụ | 10,1 |\n| Hàng dệt may | 10,6 |\n| Giày dép | 7,2 |\n| Nông-lâm-thủy sản | 10,3 |\n| Các mặt hàng khác | 13,7 |\n\n> **Gợi ý:** Tổng = 100%. Nhóm điện tử chiếm tỉ trọng lớn nhất.',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Dịch vụ: Thương mại và du lịch',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Cơ cấu XK thay đổi rõ rệt: điện tử-máy tính chiếm tỉ trọng lớn nhất (32,4%) → VN là nước XK điện tử lớn. Nông-lâm-thủy sản chỉ còn 10,3% → cơ cấu XK không còn phụ thuộc nông nghiệp. Hàng công nghiệp (điện tử + điện thoại + máy móc + dệt may + giày) chiếm ~76%.',
+    tips: 'Cơ cấu XK VN: Điện tử đứng đầu → phản ánh FDI công nghệ cao (Samsung, Intel...)',
+    mnemonics: 'Điện tử 32% = Lớn nhất; Nông sản chỉ còn 10% = XK đã CNH-HĐH',
+    statements: [
+      { id: 'bieu_do_7_a', text: 'a) Nhóm hàng điện tử, máy tính và linh kiện chiếm tỉ trọng lớn nhất trong cơ cấu xuất khẩu năm 2023.', isTrue: true },
+      { id: 'bieu_do_7_b', text: 'b) Hàng nông-lâm-thủy sản chiếm tỉ trọng lớn nhất trong cơ cấu xuất khẩu của Việt Nam.', isTrue: false },
+      { id: 'bieu_do_7_c', text: 'c) Sự thay đổi cơ cấu xuất khẩu phản ánh quá trình công nghiệp hóa, phát triển công nghiệp chế biến, chế tạo.', isTrue: true },
+      { id: 'bieu_do_7_d', text: 'd) Cơ cấu xuất khẩu năm 2023 cho thấy kinh tế Việt Nam vẫn phụ thuộc chủ yếu vào nông nghiệp.', isTrue: false }
+    ]
+  },
+
+  {
+    id: 'bieu_do_8',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện tốc độ tăng trưởng GDP của Việt Nam và một số nước Đông Nam Á giai đoạn 2019–2023. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ ĐƯỜNG – Tốc độ tăng trưởng GDP (%/năm)**\n*(So sánh Việt Nam với các nước ĐNÁ)*\n\n| Năm | Việt Nam | In-đô-nê-xi-a | Thái Lan | Phi-líp-pin |\n|---|---|---|---|---|\n| 2019 | 7,0 | 5,0 | 2,4 | 6,0 |\n| 2020 | 2,9 | -2,1 | -6,2 | -9,5 |\n| 2021 | 2,6 | 3,7 | 1,5 | 5,7 |\n| 2022 | 8,0 | 5,3 | 2,6 | 7,6 |\n| 2023 | 5,0 | 5,1 | 1,9 | 5,5 |\n\n> **Gợi ý:** Biểu đồ đường thể hiện sự thay đổi theo thời gian của nhiều chỉ tiêu cùng đơn vị (%).',
+    topic: 'Địa lí Đông Nam Á (Lớp 11)',
+    lesson: 'Khu vực Đông Nam Á',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Biểu đồ đường phù hợp khi: so sánh nhiều đường cùng đơn vị (%). Năm 2020 tất cả đều giảm do COVID-19. VN tăng trưởng dương cả 2020 và 2021 (2,9% và 2,6%) trong khi các nước khác âm hoặc rất thấp. Năm 2022 VN tăng cao nhất (8,0%) — phục hồi hậu COVID mạnh nhất.',
+    tips: 'Nhiều chỉ tiêu cùng đơn vị qua nhiều năm → ĐƯỜNG (dễ so sánh xu hướng)',
+    mnemonics: '2020 = COVID tất cả xuống; VN vẫn dương = Kinh tế bền vững',
+    statements: [
+      { id: 'bieu_do_8_a', text: 'a) Biểu đồ đường là dạng phù hợp nhất để thể hiện và so sánh tốc độ tăng trưởng GDP của nhiều quốc gia qua các năm.', isTrue: true },
+      { id: 'bieu_do_8_b', text: 'b) Năm 2020, tất cả các quốc gia trong bảng đều có tốc độ tăng trưởng GDP giảm so với năm 2019 do tác động của đại dịch COVID-19.', isTrue: true },
+      { id: 'bieu_do_8_c', text: 'c) Việt Nam có tốc độ tăng trưởng GDP âm trong năm 2020 và 2021.', isTrue: false },
+      { id: 'bieu_do_8_d', text: 'd) Năm 2022, Việt Nam có tốc độ tăng trưởng GDP cao nhất trong số 4 quốc gia được thể hiện.', isTrue: true }
+    ]
+  },
+
+  {
+    id: 'bieu_do_9',
+    type: 'true_false',
+    text: 'Cho biểu đồ hình tròn thể hiện cơ cấu diện tích gieo trồng phân theo nhóm cây của Việt Nam năm 2023. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ TRÒN – Cơ cấu diện tích gieo trồng phân theo nhóm cây năm 2023 (%)**\n\n| Nhóm cây | Tỉ trọng (%) |\n|---|---|\n| Cây lương thực (lúa + hoa màu) | 57,2 |\n| Cây công nghiệp | 14,1 |\n| Cây ăn quả | 12,8 |\n| Cây rau-đậu | 11,5 |\n| Cây khác | 4,4 |\n\n> **Gợi ý:** Cây lương thực chiếm tỉ trọng lớn nhất → Lúa vẫn là cây trồng chủ lực.',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Vấn đề phát triển nông nghiệp, lâm nghiệp và thuỷ sản',
+    cognitiveLevel: 'Thông hiểu',
+    explanation: 'Cây lương thực chiếm 57,2% (hơn 1/2 diện tích gieo trồng) → VN vẫn là nước nông nghiệp lúa nước. Cây công nghiệp 14,1% (cà phê, cao su, điều...) đứng thứ 2. Cây ăn quả tăng do nhu cầu xuất khẩu. Tổng = 100%.',
+    tips: 'Cây lương thực > 50% = đặc trưng nước đang phát triển với lúa là chủ lực',
+    mnemonics: 'Lương thực 57% → Việt Nam vẫn là nước nông nghiệp lúa nước',
+    statements: [
+      { id: 'bieu_do_9_a', text: 'a) Cây lương thực chiếm tỉ trọng lớn nhất trong cơ cấu diện tích gieo trồng năm 2023.', isTrue: true },
+      { id: 'bieu_do_9_b', text: 'b) Cây công nghiệp đứng vị trí thứ hai về tỉ trọng diện tích gieo trồng.', isTrue: true },
+      { id: 'bieu_do_9_c', text: 'c) Tổng diện tích gieo trồng của cây ăn quả và cây rau-đậu lớn hơn cây công nghiệp.', isTrue: true },
+      { id: 'bieu_do_9_d', text: 'd) Biểu đồ đường là dạng phù hợp nhất để thể hiện cơ cấu diện tích gieo trồng tại năm 2023.', isTrue: false }
+    ]
+  },
+
+  {
+    id: 'bieu_do_10',
+    type: 'true_false',
+    text: 'Cho biểu đồ thể hiện sản lượng điện sản xuất của Việt Nam phân theo nguồn năm 2015 và năm 2023. Hãy xem xét các nhận định sau:',
+    context: '**BIỂU ĐỒ CỘT NHÓM – Sản lượng điện phân theo nguồn (tỉ kWh)**\n*(So sánh giữa 2 năm 2015 và 2023)*\n\n| Nguồn điện | 2015 | 2023 | Tăng (lần) |\n|---|---|---|---|\n| Thủy điện | 65,2 | 98,3 | 1,5 |\n| Nhiệt điện than | 51,3 | 131,8 | 2,6 |\n| Điện khí & dầu | 37,4 | 19,4 | giảm |\n| Năng lượng tái tạo | 0,1 | 89,4 | ~894 |\n| **Tổng** | **161,1** | **340,5** | **2,1** |\n\n> **Gợi ý:** Biểu đồ cột nhóm (kép) so sánh 2 thời điểm → thấy rõ thay đổi từng nguồn.',
+    topic: 'Thực hành kĩ năng địa lí',
+    lesson: 'Vấn đề phát triển công nghiệp',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Biểu đồ cột nhóm/kép phù hợp khi so sánh nhiều chỉ tiêu cùng đơn vị tại 2 thời điểm. Tổng điện tăng 2,1 lần. NLTT tăng đột biến (~894 lần). Nhiệt điện than vẫn là nguồn có SL lớn nhất 2023. Điện khí & dầu là nguồn DUY NHẤT giảm SL. Năm 2023 SL thủy điện < nhiệt điện than < NLTT → Sai! Thủy 98,3 < NLTT 89,4 → Thủy > NLTT. À, Thủy (98,3) > NLTT (89,4).',
+    tips: '2 thời điểm, nhiều chỉ tiêu cùng đơn vị → BIỂU ĐỒ CỘT NHÓM (kép)',
+    mnemonics: 'Kép = 2 cột sát nhau cho từng chỉ tiêu; Ghép = cột chồng nhau (cộng lại = tổng)',
+    statements: [
+      { id: 'bieu_do_10_a', text: 'a) Biểu đồ cột nhóm (cột kép) là dạng phù hợp để so sánh sản lượng từng nguồn điện giữa năm 2015 và 2023.', isTrue: true },
+      { id: 'bieu_do_10_b', text: 'b) Năng lượng tái tạo là nguồn có tốc độ tăng sản lượng nhanh nhất giai đoạn 2015–2023.', isTrue: true },
+      { id: 'bieu_do_10_c', text: 'c) Điện khí và dầu là nguồn điện duy nhất có sản lượng giảm trong giai đoạn 2015–2023.', isTrue: true },
+      { id: 'bieu_do_10_d', text: 'd) Năm 2023, sản lượng điện từ năng lượng tái tạo đã vượt sản lượng thủy điện.', isTrue: false }
+    ]
   }
 ];
 
 export const topics = Array.from(new Set(questions.map(q => q.topic)));
 export const lessons = Array.from(new Set(questions.map(q => q.lesson).filter(Boolean))) as string[];
+
 
