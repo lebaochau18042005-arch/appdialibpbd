@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   Bell, BookOpen, BarChart2, Map, History, Clock,
-  ChevronRight, Flame, Trophy, Target, ArrowRight, Sparkles, AlertTriangle, X
+  ChevronRight, Trophy, Target, ArrowRight, Sparkles, AlertTriangle, X, Compass, Library, Globe2
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { sessionService, LiveAlert } from '../services/sessionService';
@@ -27,51 +27,59 @@ function getDoneIds(): Set<string> {
 
 const FEATURES = [
   {
-    id: 'assigned', label: 'Đề Được Giao', icon: Bell, color: 'from-rose-500 to-rose-600',
-    bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-700',
+    id: 'assigned', label: 'Đề Được Giao', icon: Bell,
+    gradient: 'linear-gradient(135deg, #ef4444, #f97316)',
+    glow: 'rgba(239,68,68,0.3)',
+    border: 'rgba(239,68,68,0.25)',
     desc: 'Xem đề giáo viên giao', href: '/assigned', badge: true,
   },
   {
-    id: 'exam', label: 'Thi Thử', icon: BookOpen, color: 'from-indigo-500 to-indigo-700',
-    bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-700',
+    id: 'exam', label: 'Thi Thử', icon: BookOpen,
+    gradient: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    glow: 'rgba(99,102,241,0.3)',
+    border: 'rgba(99,102,241,0.25)',
     desc: 'Thi thử đề hoàn chỉnh', href: '/exam',
   },
   {
-    id: 'practice', label: 'Luyện Tập', icon: Target, color: 'from-emerald-500 to-emerald-700',
-    bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700',
+    id: 'practice', label: 'Luyện Tập', icon: Target,
+    gradient: 'linear-gradient(135deg, #0ea5e9, #14b8a6)',
+    glow: 'rgba(14,165,233,0.3)',
+    border: 'rgba(0,191,255,0.25)',
     desc: 'Luyện từng chủ đề', href: '/practice',
   },
   {
-    id: 'learning-path', label: 'Lộ Trình', icon: Map, color: 'from-amber-500 to-orange-600',
-    bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-700',
+    id: 'learning-path', label: 'Lộ Trình', icon: Map,
+    gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+    glow: 'rgba(245,158,11,0.3)',
+    border: 'rgba(245,158,11,0.25)',
     desc: 'Học có hệ thống', href: '/learning-path',
   },
   {
-    id: 'history', label: 'Lịch Sử', icon: History, color: 'from-slate-500 to-slate-700',
-    bg: 'bg-slate-50', border: 'border-slate-100', text: 'text-slate-700',
+    id: 'history', label: 'Lịch Sử', icon: History,
+    gradient: 'linear-gradient(135deg, #64748b, #475569)',
+    glow: 'rgba(100,116,139,0.3)',
+    border: 'rgba(100,116,139,0.25)',
     desc: 'Kết quả đã làm', href: '/history',
   },
   {
-    id: 'stats', label: 'Thống Kê', icon: BarChart2, color: 'from-purple-500 to-purple-700',
-    bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-700',
-    desc: 'Tiến trình học tập', href: '/history',
+    id: 'library', label: 'Thư Viện', icon: Library,
+    gradient: 'linear-gradient(135deg, #a855f7, #6366f1)',
+    glow: 'rgba(168,85,247,0.3)',
+    border: 'rgba(168,85,247,0.25)',
+    desc: 'Tài liệu học tập', href: '/library',
   },
 ];
 
 export default function StudentHome() {
-  const navigate = useNavigate();
   const profile = getProfile();
   const [pendingAssignments, setPendingAssignments] = useState<AssignedExam[]>([]);
   const [recentAttempts, setRecentAttempts] = useState<any[]>([]);
   const [liveAlert, setLiveAlert] = useState<LiveAlert | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
-  // Send heartbeat when student opens the app
   useEffect(() => {
     if (!profile.name || !profile.className) return;
-    // Send immediately
     sessionService.heartbeat({ name: profile.name, className: profile.className, school: profile.school });
-    // Then every 2 minutes
     const interval = setInterval(() => {
       sessionService.heartbeat({ name: profile.name, className: profile.className, school: profile.school });
     }, 2 * 60 * 1000);
@@ -79,18 +87,16 @@ export default function StudentHome() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to live alerts from teacher
   useEffect(() => {
     if (!profile.className) return;
     const unsub = sessionService.subscribeToAlerts(profile.className, (alert) => {
       setLiveAlert(alert);
-      if (alert) setAlertDismissed(false); // Re-show when new alert arrives
+      if (alert) setAlertDismissed(false);
     });
     return () => unsub();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to pending assignments via RTDB (cross-device sync)
   useEffect(() => {
     if (!profile.className) return;
     const doneIds = getDoneIds();
@@ -101,7 +107,6 @@ export default function StudentHome() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load recent attempts from localStorage
   useEffect(() => {
     const attempts = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]');
     setRecentAttempts(attempts.slice(0, 3));
@@ -115,95 +120,182 @@ export default function StudentHome() {
   })();
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-24 md:pb-6">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 pb-28 md:pb-8">
 
-      {/* ── Hero greeting ── */}
-      <section className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-indigo-800 text-white rounded-3xl p-6 md:p-8 shadow-2xl shadow-emerald-900/20 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full" />
-          <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-white/5 rounded-full" />
+      {/* ── HERO GREETING ── */}
+      <section
+        className="relative rounded-3xl p-6 md:p-8 overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(14,165,233,0.18) 0%, rgba(20,184,166,0.12) 50%, rgba(99,102,241,0.15) 100%)',
+          border: '1px solid rgba(0,191,255,0.25)',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.4), 0 0 60px rgba(0,191,255,0.06) inset',
+        }}
+      >
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full" style={{ background: 'radial-gradient(circle, rgba(0,191,255,0.12) 0%, transparent 70%)' }} />
+          <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full" style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.1) 0%, transparent 70%)' }} />
+          {/* Coordinate lines decoration */}
+          <div className="absolute top-4 right-4 text-[9px] font-mono" style={{ color: 'rgba(0,191,255,0.25)' }}>
+            {profile.className ? `CLASS·${profile.className.toUpperCase()}` : '10°N · 108°E'}
+          </div>
+          <Globe2 className="absolute bottom-4 right-6 opacity-5" size={80} style={{ color: '#00bfff' }} />
         </div>
+
         <div className="relative z-10 max-w-xl">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles size={16} className="text-emerald-300" />
-            <p className="text-emerald-200 text-sm font-bold uppercase tracking-widest">Chào mừng trở lại</p>
+            <Sparkles size={13} style={{ color: '#00ffcc' }} />
+            <span className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: 'rgba(0,255,204,0.7)' }}>
+              Chào mừng trở lại
+            </span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black mb-1">
+          <h1 className="text-2xl md:text-3xl font-black mb-1" style={{ color: '#f1f5f9', letterSpacing: '-0.02em' }}>
             {profile.name || 'Học sinh'} 👋
           </h1>
-          <p className="text-emerald-200 text-sm font-medium">Lớp {profile.className || '?'}{profile.school ? ` • ${profile.school}` : ''}</p>
+          <p className="text-sm font-medium" style={{ color: 'rgba(148,163,184,0.7)' }}>
+            Lớp {profile.className || '?'}{profile.school ? ` · ${profile.school}` : ''}
+          </p>
 
-          <div className="mt-5 flex flex-wrap gap-4">
-            <div className="bg-white/10 rounded-2xl px-4 py-2.5 text-center">
-              <p className="text-xl font-black">{totalAttempts}</p>
-              <p className="text-emerald-200 text-[10px] font-bold uppercase tracking-wider">Đề đã làm</p>
-            </div>
-            <div className="bg-white/10 rounded-2xl px-4 py-2.5 text-center">
-              <p className="text-xl font-black">{avgScore}</p>
-              <p className="text-emerald-200 text-[10px] font-bold uppercase tracking-wider">Điểm TB</p>
-            </div>
-            {pendingAssignments.length > 0 && (
-              <div className="bg-rose-500/80 rounded-2xl px-4 py-2.5 text-center animate-pulse">
-                <p className="text-xl font-black">{pendingAssignments.length}</p>
-                <p className="text-rose-100 text-[10px] font-bold uppercase tracking-wider">Chưa làm</p>
+          {/* Stats row */}
+          <div className="mt-5 flex flex-wrap gap-3">
+            {[
+              { label: 'Đề đã làm', value: totalAttempts, color: '#00bfff' },
+              { label: 'Điểm TB', value: avgScore, color: '#00ffcc' },
+              ...(pendingAssignments.length > 0 ? [{ label: 'Chưa làm', value: pendingAssignments.length, color: '#ef4444', pulse: true }] : []),
+            ].map(stat => (
+              <div
+                key={stat.label}
+                className="px-4 py-2.5 rounded-2xl text-center"
+                style={{
+                  background: 'rgba(0,0,0,0.25)',
+                  border: `1px solid ${stat.color}30`,
+                  animation: (stat as any).pulse ? 'geoPulse 2s ease-in-out infinite' : undefined
+                }}
+              >
+                <p className="text-xl font-black" style={{ color: stat.color }}>{stat.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'rgba(148,163,184,0.6)' }}>{stat.label}</p>
               </div>
-            )}
+            ))}
+          </div>
+
+          {/* Quick action buttons */}
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              to="/practice"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #0ea5e9, #14b8a6)',
+                color: 'white',
+                boxShadow: '0 4px 16px rgba(14,165,233,0.4)',
+              }}
+            >
+              <Compass size={15} /> Bắt đầu luyện tập
+            </Link>
+            <Link
+              to="/exam"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: 'rgba(226,232,240,0.9)',
+              }}
+            >
+              <BookOpen size={15} /> Thi thử ngay
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── Live Alert Banner from Teacher ── */}
+      {/* ── LIVE ALERT FROM TEACHER ── */}
       {liveAlert && !alertDismissed && (
         <motion.section
           initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-3xl p-4 shadow-2xl shadow-red-500/30 flex items-center gap-4"
+          className="rounded-3xl p-4 flex items-center gap-4"
+          style={{
+            background: 'linear-gradient(135deg, rgba(220,38,38,0.2), rgba(234,88,12,0.2))',
+            border: '1px solid rgba(239,68,68,0.5)',
+            boxShadow: '0 0 30px rgba(239,68,68,0.2)',
+          }}
         >
-          <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center shrink-0 animate-pulse">
-            <AlertTriangle size={20} />
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 animate-pulse"
+            style={{ background: 'rgba(239,68,68,0.25)', border: '1px solid rgba(239,68,68,0.5)' }}>
+            <AlertTriangle size={18} style={{ color: '#fca5a5' }} />
           </div>
           <div className="flex-1">
-            <p className="font-black text-sm">⚠️ Thông báo từ Giáo viên</p>
-            <p className="text-white/90 text-xs mt-0.5">{liveAlert.message || 'Giáo viên đang theo dõi — Vào thi ngay!'}</p>
+            <p className="font-black text-sm" style={{ color: '#fca5a5' }}>⚠️ Thông báo từ Giáo viên</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(252,165,165,0.7)' }}>{liveAlert.message || 'Giáo viên đang theo dõi — Vào thi ngay!'}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Link to="/assigned" className="px-3 py-1.5 bg-white text-red-600 rounded-xl font-black text-xs hover:bg-red-50 transition-colors">Vào thi</Link>
-            <button onClick={() => setAlertDismissed(true)} className="text-white/60 hover:text-white"><X size={16}/></button>
+            <Link to="/assigned"
+              className="px-3 py-1.5 rounded-xl font-black text-xs"
+              style={{ background: '#ef4444', color: 'white' }}
+            >Vào thi</Link>
+            <button onClick={() => setAlertDismissed(true)} style={{ color: 'rgba(252,165,165,0.5)' }}>
+              <X size={16} />
+            </button>
           </div>
         </motion.section>
       )}
 
-      {/* ── Pending Assignment Banner ── */}
+      {/* ── PENDING ASSIGNMENT BANNER ── */}
       {pendingAssignments.length > 0 && (
-        <section className="bg-white border-2 border-rose-200 rounded-3xl overflow-hidden shadow-sm">
-          <div className="px-5 py-4 bg-rose-50 border-b border-rose-100 flex items-center gap-3">
-            <div className="w-8 h-8 bg-rose-500 text-white rounded-xl flex items-center justify-center animate-pulse shrink-0">
-              <Bell size={16} />
+        <section
+          className="rounded-3xl overflow-hidden"
+          style={{
+            background: 'rgba(11,22,40,0.8)',
+            border: '1px solid rgba(239,68,68,0.3)',
+            boxShadow: '0 4px 20px rgba(239,68,68,0.1)',
+          }}
+        >
+          <div className="px-5 py-3.5 flex items-center gap-3"
+            style={{ background: 'rgba(239,68,68,0.08)', borderBottom: '1px solid rgba(239,68,68,0.15)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center animate-pulse shrink-0"
+              style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)' }}>
+              <Bell size={14} style={{ color: '#fca5a5' }} />
             </div>
-            <div className="flex-1">
-              <p className="font-black text-rose-700 text-sm">Giáo viên đã giao {pendingAssignments.length} đề — hãy làm ngay!</p>
-            </div>
-            <Link to="/assigned" className="text-rose-600 text-xs font-black hover:text-rose-800 whitespace-nowrap">Xem tất cả →</Link>
+            <p className="font-black text-sm flex-1" style={{ color: '#fca5a5' }}>
+              Giáo viên đã giao {pendingAssignments.length} đề — hãy làm ngay!
+            </p>
+            <Link to="/assigned" className="text-xs font-black whitespace-nowrap" style={{ color: '#f87171' }}>
+              Xem tất cả →
+            </Link>
           </div>
-          <div className="p-4 space-y-2">
+          <div className="p-3 space-y-2">
             {pendingAssignments.slice(0, 2).map((a: any) => (
-              <Link key={a.id} to={`/exam-room?examId=${a.examId || a.id}`}
-                className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-rose-50 rounded-2xl border border-slate-100 hover:border-rose-200 transition-all group">
-                <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0">
-                  <BookOpen size={16} />
+              <Link
+                key={a.id}
+                to={`/exam-room?examId=${a.examId || a.id}`}
+                className="flex items-center gap-3 p-3 rounded-2xl transition-all group"
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                  <BookOpen size={15} className="text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-slate-800 text-sm truncate">{a.examTitle || a.title}</p>
-                  <p className="text-xs text-slate-500">GV: {a.assignedBy || 'Giáo viên'}
-                    {a.dueDate && <span className="ml-2 text-rose-500 font-bold flex-inline items-center gap-0.5">
-                      <Clock size={9} className="inline mr-0.5" />Hạn: {new Date(a.dueDate).toLocaleDateString('vi-VN')}
-                    </span>}
+                  <p className="font-bold text-sm truncate" style={{ color: '#e2e8f0' }}>{a.examTitle || a.title}</p>
+                  <p className="text-xs" style={{ color: 'rgba(148,163,184,0.6)' }}>
+                    GV: {a.assignedBy || 'Giáo viên'}
+                    {a.dueDate && (
+                      <span className="ml-2" style={{ color: '#f87171' }}>
+                        <Clock size={9} className="inline mr-0.5" />
+                        Hạn: {new Date(a.dueDate).toLocaleDateString('vi-VN')}
+                      </span>
+                    )}
                   </p>
                 </div>
-                <span className="px-3 py-1.5 text-[11px] font-black bg-indigo-600 text-white rounded-xl group-hover:bg-indigo-700 transition-colors shrink-0">Làm ngay</span>
+                <span className="px-3 py-1.5 text-[11px] font-black rounded-xl shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white' }}>
+                  Làm ngay
+                </span>
               </Link>
             ))}
             {pendingAssignments.length > 2 && (
-              <Link to="/assigned" className="flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-rose-600 hover:text-rose-800 transition-colors">
+              <Link to="/assigned" className="flex items-center justify-center gap-2 py-2 text-sm font-bold"
+                style={{ color: '#f87171' }}>
                 Xem thêm {pendingAssignments.length - 2} đề khác <ChevronRight size={14} />
               </Link>
             )}
@@ -211,26 +303,50 @@ export default function StudentHome() {
         </section>
       )}
 
-      {/* ── Feature Grid ── */}
+      {/* ── FEATURE GRID ── */}
       <section>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tính năng</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.15em] mb-3" style={{ color: 'rgba(0,191,255,0.45)' }}>
+          ◈ Tính năng
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {FEATURES.map((feat, i) => {
             const Icon = feat.icon;
             const badge = feat.badge && pendingAssignments.length > 0 ? pendingAssignments.length : 0;
             return (
-              <motion.div key={feat.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Link to={feat.href}
-                  className={cn('relative flex flex-col items-start p-4 rounded-2xl border transition-all hover:scale-[1.02] hover:shadow-md bg-white', feat.border)}
+              <motion.div key={feat.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+                <Link
+                  to={feat.href}
+                  className="relative flex flex-col items-start p-4 rounded-2xl transition-all group block"
+                  style={{
+                    background: 'rgba(11,22,40,0.8)',
+                    border: `1px solid ${feat.border}`,
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.3)`,
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 32px rgba(0,0,0,0.4), 0 0 20px ${feat.glow}`;
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                    (e.currentTarget as HTMLElement).style.borderColor = feat.border.replace('0.25)', '0.5)');
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 20px rgba(0,0,0,0.3)`;
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                    (e.currentTarget as HTMLElement).style.borderColor = feat.border;
+                  }}
                 >
                   {badge > 0 && (
-                    <span className="absolute top-3 right-3 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{badge}</span>
+                    <span
+                      className="absolute top-3 right-3 w-5 h-5 text-white text-[10px] font-black rounded-full flex items-center justify-center"
+                      style={{ background: '#ef4444', boxShadow: '0 0 8px rgba(239,68,68,0.6)' }}
+                    >{badge}</span>
                   )}
-                  <div className={cn('w-11 h-11 rounded-xl bg-gradient-to-br flex items-center justify-center mb-3 shadow-md', feat.color)}>
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
+                    style={{ background: feat.gradient, boxShadow: `0 4px 16px ${feat.glow}` }}
+                  >
                     <Icon size={20} className="text-white" />
                   </div>
-                  <p className={cn('font-black text-sm', feat.text)}>{feat.label}</p>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">{feat.desc}</p>
+                  <p className="font-black text-sm" style={{ color: '#e2e8f0' }}>{feat.label}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'rgba(148,163,184,0.55)' }}>{feat.desc}</p>
                 </Link>
               </motion.div>
             );
@@ -238,29 +354,53 @@ export default function StudentHome() {
         </div>
       </section>
 
-      {/* ── Recent activity ── */}
+      {/* ── RECENT ACTIVITY ── */}
       {recentAttempts.length > 0 && (
-        <section className="bg-white border border-slate-100 rounded-3xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <section
+          className="rounded-3xl overflow-hidden"
+          style={{
+            background: 'rgba(11,22,40,0.8)',
+            border: '1px solid rgba(0,191,255,0.12)',
+          }}
+        >
+          <div className="px-5 py-4 flex items-center justify-between"
+            style={{ borderBottom: '1px solid rgba(0,191,255,0.08)' }}>
             <div className="flex items-center gap-2">
-              <History size={16} className="text-slate-500" />
-              <span className="font-black text-slate-800 text-sm">Bài đã làm gần đây</span>
+              <History size={15} style={{ color: 'rgba(0,191,255,0.6)' }} />
+              <span className="font-black text-sm" style={{ color: '#e2e8f0' }}>Bài đã làm gần đây</span>
             </div>
-            <Link to="/history" className="text-xs font-bold text-indigo-600 hover:text-indigo-800">Xem tất cả →</Link>
+            <Link to="/history" className="text-xs font-bold transition-colors"
+              style={{ color: 'rgba(0,191,255,0.6)' }}>
+              Xem tất cả →
+            </Link>
           </div>
-          <div className="divide-y divide-slate-50">
-            {recentAttempts.map((a: any, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0',
-                  a.score >= 8 ? 'bg-emerald-100 text-emerald-700' : a.score >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
-                )}>{a.score?.toFixed(1) || '—'}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-800 truncate">{a.examTitle || 'Bài tập'}</p>
-                  <p className="text-[11px] text-slate-400">{new Date(a.date || a.createdAt).toLocaleDateString('vi-VN')}</p>
+          <div>
+            {recentAttempts.map((a: any, i) => {
+              const scoreColor = a.score >= 8 ? '#00ffcc' : a.score >= 5 ? '#fbbf24' : '#f87171';
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-5 py-3.5"
+                  style={{ borderBottom: i < recentAttempts.length - 1 ? '1px solid rgba(0,191,255,0.06)' : 'none' }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0"
+                    style={{
+                      background: `${scoreColor}18`,
+                      border: `1px solid ${scoreColor}35`,
+                      color: scoreColor
+                    }}
+                  >{a.score?.toFixed(1) || '—'}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate" style={{ color: '#e2e8f0' }}>{a.examTitle || 'Bài tập'}</p>
+                    <p className="text-[11px]" style={{ color: 'rgba(148,163,184,0.5)' }}>
+                      {new Date(a.date || a.createdAt).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
+                  <Trophy size={14} style={{ color: a.score >= 8 ? '#fbbf24' : 'rgba(100,116,139,0.3)' }} />
                 </div>
-                <Trophy size={14} className={a.score >= 8 ? 'text-amber-500' : 'text-slate-300'} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

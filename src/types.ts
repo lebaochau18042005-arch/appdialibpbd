@@ -83,7 +83,7 @@ export interface QuizAttempt {
   examId: string;
   examTitle: string;
   date: string;
-  mode: 'lesson' | 'topic' | 'exam';
+  mode: 'lesson' | 'topic' | 'exam' | 'format';
   score: number;
   totalQuestions: number;
   timeSpent: number;

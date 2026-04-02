@@ -12,6 +12,61 @@ const FALLBACK_MODELS = [
 
 const DEFAULT_MODEL = 'gemini-2.5-flash-preview-04-17';
 
+// ===== KIẾN THỨC HÀNH CHÍNH SAU SÁP NHẬP 1/7/2025 (NQ 202/2025/QH15) =====
+// Được nhúng vào TẤT CẢ các prompt AI để mọi giải thích đều dùng thông tin hành chính MỚI NHẤT
+const KIEN_THUC_HANH_CHINH_2025 = `
+## KIẾN THỨC BẮT BUỘC VỀ ĐƠN VỊ HÀNH CHÍNH VIỆT NAM SAU SÁP NHẬP (HIỆU LỰC 1/7/2025)
+
+Nghị quyết 202/2025/QH15 của Quốc hội (hiệu lực 1/7/2025) sắp xếp lại đơn vị hành chính cấp tỉnh:
+- Từ 63 tỉnh/thành → còn 34 đơn vị hành chính cấp tỉnh (6 thành phố TW + 28 tỉnh), giảm 29 đơn vị.
+- Chuyển từ mô hình 3 cấp sang MÔ HÌNH 2 CẤP chính quyền địa phương (bỏ cấp huyện, giữ cấp tỉnh và cấp xã/phường).
+
+### 6 Thành phố trực thuộc Trung ương (sau sáp nhập):
+1. Hà Nội (giữ nguyên)
+2. TP Huế (giữ nguyên)
+3. Hải Phòng = Hải Phòng cũ + Hải Dương
+4. Đà Nẵng = Đà Nẵng cũ + Quảng Nam
+5. TP Hồ Chí Minh = HCM cũ + Bình Dương + Bà Rịa – Vũng Tàu
+6. Cần Thơ = Cần Thơ cũ + Hậu Giang + Sóc Trăng
+
+### 28 tỉnh (sau sáp nhập):
+- Quảng Ninh (giữ nguyên), Cao Bằng (giữ nguyên), Lạng Sơn (giữ nguyên)
+- Lai Châu (giữ nguyên), Điện Biên (giữ nguyên), Sơn La (giữ nguyên)
+- Thanh Hóa (giữ nguyên), Nghệ An (giữ nguyên), Hà Tĩnh (giữ nguyên)
+- Đắk Lắk (giữ nguyên), Đồng Nai (giữ nguyên), Tây Ninh (giữ nguyên)
+- Vĩnh Long (giữ nguyên), Đồng Tháp (giữ nguyên)
+- Tuyên Quang = Tuyên Quang cũ + Hà Giang
+- Lào Cai = Lào Cai cũ + Yên Bái
+- Thái Nguyên = Thái Nguyên cũ + Bắc Kạn
+- Phú Thọ = Phú Thọ cũ + Hòa Bình + Vĩnh Phúc
+- Bắc Ninh = Bắc Ninh cũ + Bắc Giang
+- Hưng Yên = Hưng Yên cũ + Thái Bình
+- Ninh Bình = Ninh Bình cũ + Hà Nam + Nam Định
+- Quảng Trị = Quảng Trị cũ + Quảng Bình
+- Quảng Ngãi = Quảng Ngãi cũ + Kon Tum
+- Gia Lai = Gia Lai cũ + Bình Định
+- Khánh Hòa = Khánh Hòa cũ + Ninh Thuận
+- Lâm Đồng = Lâm Đồng cũ + Đắk Nông + Bình Thuận
+- Cà Mau = Cà Mau cũ + Bạc Liêu
+- An Giang = An Giang cũ + Kiên Giang
+
+### Thay đổi vùng kinh tế - xã hội (theo TT 17/2025/TT-BGDĐT):
+- Vùng Đông Nam Bộ: TP HCM (đã gồm Bình Dương + BRVT), Đồng Nai, Tây Ninh
+- Vùng Đồng bằng sông Hồng: Hà Nội, Hải Phòng (đã gồm Hải Dương), Quảng Ninh, Bắc Ninh (đã gồm Bắc Giang), Hưng Yên (đã gồm Thái Bình), Ninh Bình (đã gồm Hà Nam + Nam Định)
+- Vùng Đồng bằng sông Cửu Long: Cần Thơ (đã gồm Hậu Giang + Sóc Trăng), Vĩnh Long, Đồng Tháp, An Giang (đã gồm Kiên Giang), Cà Mau (đã gồm Bạc Liêu)
+- Vùng Trung du và miền núi phía Bắc: Tuyên Quang (đã gồm Hà Giang), Lào Cai (đã gồm Yên Bái), Thái Nguyên (đã gồm Bắc Kạn), Phú Thọ (đã gồm Hòa Bình + Vĩnh Phúc), Cao Bằng, Lạng Sơn, Lai Châu, Điện Biên, Sơn La
+- Vùng Bắc Trung Bộ: Thanh Hóa, Nghệ An, Hà Tĩnh, Quảng Trị (đã gồm Quảng Bình), TP Huế
+- Vùng Nam Trung Bộ: Đà Nẵng (đã gồm Quảng Nam), Quảng Ngãi (đã gồm Kon Tum), Gia Lai (đã gồm Bình Định), Khánh Hòa (đã gồm Ninh Thuận)
+- Vùng Tây Nguyên: Đắk Lắk, Lâm Đồng (đã gồm Đắk Nông + Bình Thuận)
+
+### Thông tư 17/2025/TT-BGDĐT (Bộ GDĐT, hiệu lực 12/9/2025):
+- Sửa đổi Chương trình GDPT 2018, yêu cầu cập nhật nội dung Địa lý 12 theo 34 đơn vị hành chính mới.
+- Cập nhật: ranh giới vùng kinh tế, tên tỉnh/thành, số liệu diện tích, dân số, phân bố kinh tế.
+- Giáo viên tiếp tục dùng SGK hiện hành nhưng phải chủ động điều chỉnh ngữ liệu cho phù hợp.
+
+LƯU Ý: Khi giải thích bất kỳ câu hỏi nào về tỉnh thành, vùng kinh tế, dân cư, kinh tế địa phương — PHẢI dùng tên và dữ liệu THEO ĐƠN VỊ HÀNH CHÍNH MỚI SAU 1/7/2025. Không dùng tên tỉnh cũ đã sáp nhập như một đơn vị độc lập (ví dụ: không nói "tỉnh Hải Dương" mà nói "khu vực Hải Dương thuộc TP Hải Phòng").
+`;
+
 export async function generateContentWithFallback(prompt: string, config: any = {}) {
   // @ts-ignore
   const apiKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -88,10 +143,12 @@ export async function getExplanation(question: Question, userAnswer: any, isCorr
     const prompt = `Học sinh đang ôn thi THPT Quốc gia môn Địa lí (theo cấu trúc đề tham khảo 2025 mới nhất và bám sát Thông tư 17/2025/TT-BGDĐT sửa đổi, bổ sung Chương trình GDPT môn Địa lí cấp THPT) và vừa ${performanceStatus} câu hỏi sau:
 ${questionContext}
 
+${KIEN_THUC_HANH_CHINH_2025}
+
 Hãy đóng vai một giáo viên Địa lí nhiệt tình. Bắt đầu bằng "${greeting}".
 YÊU CẦU BẮT BUỘC (Trình bày bằng Markdown, SỬ DỤNG GẠCH ĐẦU DÒNG (bullet points) cho TẤT CẢ các phần để dễ đọc):
 ${isCorrect ? '- **Lời khen:** Khen ngợi học sinh vì đã trả lời đúng.' : '- **Phân tích lỗi sai của em:** Giải thích thật chi tiết TẠI SAO đáp án em chọn lại sai. Em đang bị nhầm lẫn ở khái niệm hay hiện tượng địa lí nào?'}
-- **Giải thích chi tiết kiến thức:** Phân tích cặn kẽ TẠI SAO đáp án đúng lại là đáp án chính xác. Trích dẫn kiến thức Địa lí 12 (hoặc 11) liên quan.
+- **Giải thích chi tiết kiến thức:** Phân tích cặn kẽ TẠI SAO đáp án đúng lại là đáp án chính xác. Trích dẫn kiến thức Địa lí 12 (hoặc 11) liên quan. Nếu câu hỏi liên quan đến tỉnh/thành, vùng kinh tế — sử dụng đúng tên và cấu trúc hành chính MỚI sau 1/7/2025.
 - **💡 Mẹo ghi nhớ / Lưu ý:** Cung cấp mẹo ghi nhớ ngắn gọn, dễ hiểu hoặc từ khóa quan trọng để lần sau không sai nữa.
 - **Lời khuyên:** Dành một lời khuyên ngắn gọn và kết thúc bằng câu: "${encouragement}"
 
@@ -109,8 +166,10 @@ Trình bày bằng tiếng Việt, thân thiện, dễ hiểu và khích lệ.`;
 export async function chatWithTutor(message: string, history: {role: 'user' | 'model', text: string}[]) {
   try {
     const formattedHistory = history.map(h => `${h.role === 'user' ? 'Học sinh' : 'Gia sư AI'}: ${h.text}`).join('\n');
-    const prompt = `Bạn là một gia sư môn Địa lý cấp THPT nhiệt tình, am hiểu sâu sắc về kiến thức hướng tới kỳ thi tốt nghiệp THPT 2025. 
+    const prompt = `Bạn là một gia sư môn Địa lý cấp THPT nhiệt tình, am hiểu sâu sắc về kiến thức hướng tới kỳ thi tốt nghiệp THPT 2025, đặc biệt nắm vững các thay đổi theo Thông tư 17/2025/TT-BGDĐT.
 Hãy trả lời câu hỏi của học sinh một cách dễ hiểu, có căn cứ khoa học, sử dụng Markdown để làm nổi bật ý chính và ĐẶC BIỆT chú trọng vào mẹo giải nhanh hoặc cách nhớ lâu. Ngôn ngữ thân thiện, khích lệ.
+
+${KIEN_THUC_HANH_CHINH_2025}
 
 ${formattedHistory ? `Lịch sử trò chuyện:\n${formattedHistory}\n` : ''}Học sinh: ${message}
 Gia sư AI:`;
@@ -150,14 +209,16 @@ Hãy đóng vai một chuyên gia giáo dục phân tích dữ liệu trên và 
 }
 
 export async function generateExamFromContext(context: string): Promise<Question[]> {
-  const prompt = `Bạn là một chuyên gia phân tích đề thi môn Địa lý THPT. Nhiệm vụ của bạn là TRÍCH XUẤT TOÀN BỘ câu hỏi từ ĐỀ THI được cung cấp bên dưới.
+  const prompt = `Bạn là một chuyên gia phân tích đề thi môn Địa lý THPT, nắm vững cấu trúc đề 2025 và các thay đổi theo TT 17/2025/TT-BGDĐT. Nhiệm vụ của bạn là TRÍCH XUẤT TOÀN BỘ câu hỏi từ ĐỀ THI được cung cấp bên dưới.
+
+${KIEN_THUC_HANH_CHINH_2025}
 
 QUY TẮC BẮT BUỘC:
 1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong đề - KHÔNG BỎ SÓT câu nào.
 2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice".
 3. Với câu Đúng/Sai (có các ý a, b, c, d): dùng type "true_false" với 4 statements.
 4. Với câu tự luận/điền số/tính toán ngắn: dùng type "short_answer".
-5. Phải xác định đáp án đúng dựa trên kiến thức Địa lý hoặc ghi chú trong đề.
+5. Phải xác định đáp án đúng dựa trên kiến thức Địa lý hoặc ghi chú trong đề. Nếu đề thi đề cập đến tỉnh/thành đã sáp nhập, hãy ghi chú trong explanation về tên mới sau 1/7/2025.
 6. id phải là "q1", "q2", "q3",... theo thứ tự câu trong đề.
 7. KHÔNG thêm câu mới - chỉ chuyển đổi câu có sẵn sang JSON.
 

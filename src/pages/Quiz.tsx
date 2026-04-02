@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { ref, get } from 'firebase/database';
+import { rtdb } from '../firebase';
+import { extractTextFromUrl } from '../utils/fileExtractor';
 import { examService } from '../services/examService';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle2, XCircle, AlertCircle, ArrowRight, Loader2, RefreshCcw, Home, Clock } from 'lucide-react';
@@ -19,11 +22,12 @@ export default function Quiz() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const mode = searchParams.get('mode') as 'lesson' | 'topic' | 'exam' || 'exam';
+  const mode = searchParams.get('mode') as 'lesson' | 'topic' | 'exam' | 'format' || 'exam';
   const filter = searchParams.get('filter');
   const examId = searchParams.get('examId');
   const countParam = searchParams.get('count');
   const useAI = searchParams.get('useAI') === 'true';
+  const libraryFileId = searchParams.get('libraryFileId');
 
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -83,15 +87,26 @@ export default function Quiz() {
           navigate('/exam');
           return;
         }
-      } else if (useAI && filter && (mode === 'lesson' || mode === 'topic')) {
+      } else if (useAI && filter && (mode === 'lesson' || mode === 'topic' || mode === 'format')) {
         setIsGenerating(true);
         try {
           const count = countParam === 'all' ? 20 : parseInt(countParam || '10', 10);
-          const aiQuestions = await examService.generatePracticeQuestions(filter, mode, count);
+          
+          let fileContext = undefined;
+          if (libraryFileId) {
+            const fileSnap = await get(ref(rtdb, `library_files/${libraryFileId}`));
+            if (fileSnap.exists()) {
+              const fileData = fileSnap.val();
+              const fileUrl = fileData.storagePath || fileData.fileUrl;
+              fileContext = await extractTextFromUrl(fileUrl, fileData.fileType);
+            }
+          }
+
+          const aiQuestions = await examService.generatePracticeQuestions(filter, mode, count, fileContext);
           setQuizQuestions(aiQuestions);
         } catch (err) {
           console.error('Lỗi khi tạo câu hỏi AI:', err);
-          alert('Không thể tạo câu hỏi AI lúc này. Hệ thống sẽ sử dụng ngân hàng câu hỏi có sẵn.');
+          alert('Không thể tạo câu hỏi AI lúc này (hoặc lỗi đọc tài liệu). Hệ thống sẽ dùng ngân hàng câu hỏi có sẵn.');
           // Fallback to static questions
           loadStaticQuestions();
         } finally {
@@ -111,6 +126,8 @@ export default function Quiz() {
         preferredPool = questions.filter(q => q.lesson === filter);
       } else if (mode === 'topic' && filter) {
         preferredPool = questions.filter(q => q.topic === filter);
+      } else if (mode === 'format' && filter) {
+        preferredPool = questions.filter(q => q.type === filter);
       }
 
       const getQuestions = (type: QuestionType, count: number) => {
@@ -149,7 +166,7 @@ export default function Quiz() {
     };
 
     loadQuestions();
-  }, [mode, filter, examId, navigate, useAI, countParam]);
+  }, [mode, filter, examId, navigate, useAI, countParam, libraryFileId]);
 
   useEffect(() => {
     if (mode === 'exam' && studentName && !hasJoined) {

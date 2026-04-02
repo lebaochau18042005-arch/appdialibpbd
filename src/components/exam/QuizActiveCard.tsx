@@ -1,10 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
+import RichContent from './RichContent';
 
 interface QuizActiveCardProps {
   currentQuestion: Question;
@@ -55,12 +54,19 @@ export default function QuizActiveCard({
                 </span>
               )}
             </div>
-            <div className="text-lg md:text-xl font-medium text-slate-800 leading-relaxed prose prose-slate max-w-none prose-table:w-auto prose-th:bg-slate-100 prose-th:p-2 prose-td:p-2 prose-table:border-collapse prose-table:border prose-th:border prose-td:border">
-              <Markdown remarkPlugins={[remarkGfm]}>{currentQuestion.text}</Markdown>
+            <div className="text-lg md:text-xl font-medium text-slate-800 leading-relaxed">
+              <RichContent content={currentQuestion.text} />
             </div>
+            {currentQuestion.imageUrl && (
+              <div className="mt-4 mb-2 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
+                <img src={currentQuestion.imageUrl} alt="Hình minh họa"
+                  className="max-w-full max-h-72 object-contain" />
+              </div>
+            )}
             {currentQuestion.context && (
-              <div className="mt-4 p-4 bg-slate-50 rounded-xl text-sm text-slate-700 border border-slate-200">
-                {currentQuestion.context}
+              <div className="mt-4 p-4 bg-blue-50/80 rounded-xl border border-blue-200">
+                <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">📊 Bảng số liệu / Dữ liệu tham khảo</p>
+                <RichContent content={currentQuestion.context} />
               </div>
             )}
           </div>
@@ -229,10 +235,10 @@ export default function QuizActiveCard({
                   </div>
                 ) : (
                   <div className={cn(
-                    "markdown-body leading-relaxed",
+                    "leading-relaxed",
                     isAnswerCorrect ? "text-emerald-900" : "text-rose-900"
                   )}>
-                    <Markdown>{aiExplanation}</Markdown>
+                    <RichContent content={aiExplanation!} />
                   </div>
                 )}
               </div>

@@ -87,6 +87,14 @@ function QuestionEditor({
         </div>
       </button>
 
+      {/* Context table preview strip — always visible if context exists and NOT expanded */}
+      {!expanded && question.context && (
+        <div className="mx-4 mb-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+          <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1.5">📊 Dữ liệu bảng số liệu (người dùng sẽ nhìn thấy)</p>
+          <TablePreview markdown={question.context} />
+        </div>
+      )}
+
       <AnimatePresence>
         {expanded && (
           <motion.div

@@ -62,62 +62,143 @@ export const examService = {
 
 
   // Generate AI Exam based on 2025 structure using Gemini
-  async generateAIExam(): Promise<Question[]> {
+  async generateAIExam(fileContext?: string): Promise<Question[]> {
     try {
       const model = "gemini-2.0-flash";
-      const systemInstruction = `Bạn là một chuyên gia biên soạn đề thi Địa lí THPT Quốc gia hàng đầu Việt Nam. 
-      Nhiệm vụ của bạn là tạo ra một bộ đề thi TRỌN VẸN gồm ĐÚNG 28 CÂU HỎI theo cấu trúc mới 2025 và cập nhật mới nhất từ các văn bản sửa đổi chương trình.
-      
-      QUY TẮC BẮT BUỘC:
-      1. SỐ LƯỢNG CÂU HỎI: Phải tạo đủ 28 câu hỏi (18 Phần I, 4 Phần II, 6 Phần III).
-      2. CẬP NHẬT NỘI DUNG CHI TIẾT (Theo văn bản mới):
-         - THUẬT NGỮ: Sử dụng "Địa lí các vùng kinh tế - xã hội" thay cho "Địa lí các vùng kinh tế".
-         - VỊ TRÍ & LÃNH THỔ: Tập trung xác định đặc điểm trên bản đồ.
-         - LAO ĐỘNG: Phân tích tình hình sử dụng lao động theo ngành và thành phần kinh tế.
-         - ĐÔ THỊ HÓA: Trình bày đặc điểm đô thị hóa tại Việt Nam.
-         - CHUYỂN DỊCH CƠ CẤU KINH TẾ: Theo ngành, theo thành phần kinh tế và theo lãnh thổ.
-         - NÔNG NGHIỆP: Phân tích các hình thức tổ chức lãnh thổ (trang trại, khu nông nghiệp công nghệ cao, vùng chuyên canh).
-         - CÔNG NGHIỆP: Tập trung vào khu công nghiệp, khu công nghệ cao.
-         - DU LỊCH: Phân tích sự phân hóa lãnh thổ du lịch và phát triển bền vững.
-         - CÁC VÙNG:
-            + Trung du và miền núi phía Bắc: Khoáng sản, thủy điện, cây trồng cận nhiệt/ôn đới, chăn nuôi gia súc lớn.
-            + Đồng bằng sông Hồng: Công nghiệp, dịch vụ, kinh tế biển.
-            + Bắc Trung Bộ: Thế mạnh và phát triển du lịch.
-            + Nam Trung Bộ: Kinh tế biển, thủy điện, khoáng sản (bôxit), cây công nghiệp lâu năm, lâm nghiệp, du lịch.
-            + Đông Nam Bộ: Công nghiệp, dịch vụ, nông nghiệp, kinh tế biển.
-         - BÃI BỎ: Không ra đề về nội dung "Phát triển các vùng kinh tế trọng điểm".
-      3. KHÔNG SỬ DỤNG ATLAT: Thay thế mọi yêu cầu sử dụng Atlat bằng việc sử dụng "Bản đồ" hoặc kiến thức đã học.
-      4. YÊU CẦU PHẦN II (ĐÚNG/SAI): Luôn có 1 câu về GDP/xuất nhập khẩu/dân số Đông Nam Á (Lớp 11) với số liệu cụ thể nhúng trực tiếp (không dùng URL).
-      5. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.
-       6. ⚠️ CẤU TRÚC PHẦN III - TRẢ LỜI NGẮN (6 câu - TÍNH TOÁN):
-          - TẤT CẢ 6 câu Phần III PHẢI là bài TÍNH TOÁN có số liệu đề bài cụ thể, yêu cầu tính một kết quả là CON SỐ (có đơn vị).
-          - KHÔNG RA câu kiến thức thuần túy cho Phần III. correctAnswer phải là số.
-          - Các dạng công thức bắt buộc:
-            (a) Tỉ suất sinh thô (‰) = (số sinh / tổng DS) x 1000
-            (b) Tỉ suất tử thô (‰) = (số chết / tổng DS) x 1000
-            (c) Tỉ lệ tăng tự nhiên (‰) = CBR - CDR
-            (d) Mật độ dân số (ng/km2) = DS / Diện tích
-            (e) Tốc độ tăng trưởng GDP (%) = [(GDP_n - GDP_0) / GDP_0] x 100
-            (f) Cơ cấu ngành (%) = (GDP ngành / Tổng GDP) x 100
-            (g) Năng suất (tạ/ha) = Sản lượng / Diện tích
-            (h) Bình quân lương thực (kg/người) = Sản lượng / DS
-            (i) Tỉ lệ đô thị hóa (%) = DS thành thị / Tổng DS x 100
-       7. ⚠️ QUY TẮC NHÚNG SỐ LIỆU VÀO TRƯỜNG CONTEXT - BẮT BUỘC:
-          - Khi câu hỏi cần bảng số liệu: đặt bảng vào trường "context" dưới dạng MARKDOWN TABLE. Trường "text" chỉ chứa câu hỏi.
-          - TUYỆT ĐỐI KHÔNG đưa URL/link nguồn. TUYỆT ĐỐI KHÔNG viết "Xem biểu đồ" mà không kèm số liệu.
-          - Ví dụ ĐÚNG (Phần II):
-            text: "Cho bảng số liệu tổng dự trữ quốc tế một số nước ASEAN. Nhận định nào SAI?"
-            context: "**TỔNG DỰ TRỮ QUỐC TẾ (tỷ USD)**\n| Quốc gia | 2015 | 2019 | 2023 |\n|---|---|---|---|\n| Thái Lan | 156,5 | 224,3 | 278,2 |\n| Việt Nam | 28,6 | 79,5 | 103,4 |\n| Phi-líp-pin | 80,7 | 87,8 | 101,2 |"
-          - Ví dụ ĐÚNG (Phần III - tính toán): số liệu nhúng trực tiếp vào text vì câu tự đủ.`;
 
-      const prompt = `Hãy tạo ngay một đề thi Địa lí chuẩn 2025 gồm 28 câu hỏi. 
-      Đảm bảo cập nhật đầy đủ các sửa đổi mới nhất:
-      - Thuật ngữ "vùng kinh tế - xã hội".
-      - Tập trung vào các hình thức tổ chức lãnh thổ nông nghiệp/công nghiệp mới.
-      - Phân tích du lịch bền vững.
-      - KHÔNG có câu hỏi Atlat, KHÔNG có vùng kinh tế trọng điểm.
-      - Phần II CÓ câu bảng số liệu Đông Nam Á với SỐ LIỆU THỰC nhúng thẳng vào câu hỏi (tuyệt đối không dùng URL). Ví dụ nhúng: Indonesia GDP 2020=1058 tỷ USD, 2024=1371 tỷ USD.
-      - Mỗi câu hỏi có giải thích, lời khuyên và mẹo ghi nhớ.`;
+      // ===== KHỐI KIẾN THỨC HÀNH CHÍNH BẮT BUỘC (sau sáp nhập 1/7/2025) =====
+      const HANH_CHINH_2025 = `
+=== DANH SÁCH 34 ĐƠN VỊ HÀNH CHÍNH CẤP TỈNH HIỆN HÀNH (sau NQ202/2025/QH15 có hiệu lực 1/7/2025) ===
+BỎ HOÀN TOÀN 29 tỉnh cũ đã sáp nhập. KHÔNG BAO GIỜ dùng tên "Hà Giang", "Hải Dương", "Bắc Kạn", "Yên Bái",
+"Vĩnh Phúc", "Hòa Bình", "Bắc Giang", "Hà Nam", "Nam Định", "Thái Bình", "Quảng Bình", "Quảng Nam",
+"Kon Tum", "Bình Định", "Ninh Thuận", "Đắk Nông", "Bình Thuận", "Bình Dương", "Bà Rịa-Vũng Tàu",
+"Hậu Giang", "Sóc Trăng", "Kiên Giang", "Bạc Liêu" là một tỉnh độc lập.
+
+6 THÀNH PHỐ TRỰC THUỘC TW:
+1. Hà Nội | 2. TP Huế | 3. Hải Phòng (= HP cũ + Hải Dương)
+4. Đà Nẵng (= ĐN cũ + Quảng Nam) | 5. TP Hồ Chí Minh (= HCM + Bình Dương + Bà Rịa-Vũng Tàu)
+6. Cần Thơ (= CT cũ + Hậu Giang + Sóc Trăng)
+
+28 TỈNH:
+Tuyên Quang (= TQ+Hà Giang), Lào Cai (= LC+Yên Bái), Cao Bằng, Lạng Sơn, Lai Châu, Điện Biên, Sơn La
+Thái Nguyên (= TN+Bắc Kạn), Phú Thọ (= PT+Hòa Bình+Vĩnh Phúc), Bắc Ninh (= BN+Bắc Giang)
+Hưng Yên (= HY+Thái Bình), Quảng Ninh, Ninh Bình (= NB+Hà Nam+Nam Định)
+Thanh Hóa, Nghệ An, Hà Tĩnh, Quảng Trị (= QT+Quảng Bình)
+Quảng Ngãi (= QN+Kon Tum), Gia Lai (= GL+Bình Định), Khánh Hòa (= KH+Ninh Thuận)
+Đắk Lắk, Lâm Đồng (= LĐ+Đắk Nông+Bình Thuận), Đồng Nai, Tây Ninh, Vĩnh Long, Đồng Tháp
+An Giang (= AG+Kiên Giang), Cà Mau (= CM+Bạc Liêu)
+
+VÍ DỤ ĐÚNG về điểm cực Bắc: "Điểm cực Bắc nằm tại tỉnh Cao Bằng hoặc Lũng Cú, Tuyên Quang" (Lũng Cú nay thuộc Tuyên Quang vì Hà Giang đã sáp nhập)
+`;
+
+      // ===== MA TRẬN ĐỀ THI CHUẨN BỘ GDĐT 2025 =====
+      const MA_TRAN_DE_THI = `
+=== MA TRẬN ĐỀ THI ĐỊA LÍ THPT CHUẨN BỘ GDĐT 2025 ===
+Tổng: 28 câu = 10 điểm. Thời gian: 50 phút.
+
+PHẦN I – TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN (18 câu × 0,25đ = 4,5đ):
+  • Nhận biết: 8 câu (về khái niệm, định nghĩa, số liệu cơ bản)
+  • Thông hiểu: 6 câu (về nguyên nhân, đặc điểm, so sánh)
+  • Vận dụng: 4 câu (phân tích, đánh giá, liên hệ thực tế)
+  NỘI DUNG PHẦN I (phân bổ theo bài học Địa 12 + Địa 11):
+  - Địa lí tự nhiên VN: 3–4 câu (vị trí, địa hình, khí hậu, sông ngòi, đất, sinh vật, biển)
+  - Dân cư & lao động: 2–3 câu
+  - Kinh tế VN theo ngành (nông-lâm-thủy sản, CN, DV, du lịch): 4–5 câu
+  - Địa lí các vùng kinh tế-xã hội: 3–4 câu (KHÔNG ra vùng kinh tế trọng điểm)
+  - Địa lí Đông Nam Á (lớp 11): 2–3 câu
+
+PHẦN II – TRẮC NGHIỆM ĐÚNG/SAI (4 câu × 1đ = 4đ):
+  Mỗi câu có 4 ý a/b/c/d: 1 ý đúng = 0,1đ | 2 ý đúng = 0,25đ | 3 ý đúng = 0,5đ | 4 ý đúng = 1đ
+  NỘI DUNG PHẦN II: 4 câu phải có MỞ ĐẦU bằng bảng số liệu/biểu đồ (số liệu nhúng trực tiếp):
+  - Câu 1: Số liệu dân cư/lao động VN, 4 nhận định phân tích
+  - Câu 2: Số liệu cơ cấu kinh tế/ngành, 4 nhận định phân tích
+  - Câu 3: Số liệu nông nghiệp/xuất khẩu, 4 nhận định phân tích
+  - Câu 4 (BẮT BUỘC về ĐNÁ): Bảng GDP/dân số/xuất nhập khẩu ĐÔNG NAM Á (lớp 11), với ít nhất 3 quốc gia và 3 mốc năm
+
+PHẦN III – TRẢ LỜI NGẮN / ĐIỀN SỐ (6 câu × 0,25đ = 1,5đ):
+  TẤT CẢ câu Phần III PHẢI là bài tính toán cho kết quả là CON SỐ (không hỏi khái niệm).
+  Các dạng tính bắt buộc:
+  - Tỉ suất sinh thô (‰): (số_sinh / DS) × 1000
+  - Tỉ suất tử thô (‰): (số_chết / DS) × 1000
+  - Tỉ lệ tăng tự nhiên (‰): CBR - CDR
+  - Mật độ dân số (người/km²): DS / diện_tích
+  - Tăng trưởng GDP (%): (GDP_sau - GDP_trước) / GDP_trước × 100
+  - Cơ cấu ngành (%): GDP_ngành / Tổng_GDP × 100
+  - Năng suất (tạ/ha): sản_lượng / diện_tích
+  - Bình quân lương thực (kg/người): sản_lượng / DS
+`;
+
+      // ===== NỘI DUNG CHƯƠNG TRÌNH PHẢI BÁM SÁT (TT 17/2025/TT-BGDĐT) =====
+      const CHUONG_TRINH_TT17 = `
+=== NỘI DUNG CHƯƠNG TRÌNH ĐỊA LÍ 12 (THEO TT 17/2025/TT-BGDĐT) ===
+KHÔNG ra đề về: Atlat Địa lí (bị bãi bỏ), vùng kinh tế trọng điểm.
+SỬ DỤNG đúng thuật ngữ: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
+
+Các chủ đề PHẢI được đề cập trong đề:
+1. VỊ TRÍ & LÃNH THỔ: Xác định đặc điểm địa lí theo bản đồ (điểm cực Bắc ở Tuyên Quang, cực Nam ở Cà Mau)
+2. ĐỊA HÌNH: Lãnh thổ phần đất liền đồi núi chiếm 3/4, đồng bằng chiếm 1/4 diện tích
+3. KHÍ HẬU: Mưa mùa, gió mùa, phân hóa Bắc-Nam, Đông-Tây
+4. SÔNG NGÒI: Mạng dày, chảy ra biển phía đông
+5. ĐẤT & SINH VẬT: Phân hóa theo địa hình
+6. BIỂN ĐÔNG: Vùng biển 1 triệu km², quần đảo Hoàng Sa (ĐN) và Trường Sa (Khánh Hòa)
+7. DÂN CƯ: 100+ triệu người, Kinh chiếm 85%, dân số trẻ, lao động đông
+8. ĐÔ THỊ HÓA: Tỉ lệ đô thị hóa ~40%, hệ thống đô thị theo tầng
+9. CHUYỂN DỊCH CƠ CẤU KT: Theo ngành, thành phần, lãnh thổ
+10. NÔNG NGHIỆP: Vùng chuyên canh, trang trại, khu NNCNC
+11. LÂM NGHIỆP: Phát triển bền vững, rừng phòng hộ, đặc dụng
+12. THỦY SẢN: Nuôi trồng + khai thác, xuất khẩu
+13. CÔNG NGHIỆP: Khu công nghiệp, khu công nghệ cao (Hòa Lạc, Đà Nẵng, HCM)
+14. DỊCH VỤ & DU LỊCH: Du lịch bền vững, phân hóa lãnh thổ
+15. CÁC VÙNG:
+   - TRUNG DU & MIỀN NÚI PHÍA BẮC: khoáng sản, thủy điện (Hòa Bình, Sơn La, Lai Châu), cây cận nhiệt/ôn đới, chăn nuôi gia súc lớn
+   - ĐỒNG BẰNG SÔNG HỒNG: CN nặng, dịch vụ, kinh tế biển (Hải Phòng, Quảng Ninh)
+   - BẮC TRUNG BỘ: Du lịch, cảng biển, khai khoáng
+   - NAM TRUNG BỘ: Bô-xít (Gia Lai, Lâm Đồng), thủy điện, kinh tế biển, du lịch
+   - TÂY NGUYÊN: Cà phê, cao su, bô-xít, thủy điện
+   - ĐÔNG NAM BỘ: Kinh tế số 1 VN, CN-DV, cảng biển
+   - ĐỒNG BẰNG SÔNG CỬU LONG: lúa gạo, thủy sản, trái cây xuất khẩu
+
+ĐỊA LÍ ĐÔNG NAM Á (Lớp 11 - bắt buộc có trong đề):
+- Đặc điểm tự nhiên, dân cư, kinh tế ĐNÁ
+- ASEAN và hợp tác khu vực
+- So sánh GDP, dân số, cơ cấu kinh tế các nước ĐNÁ
+`;
+
+      const systemInstruction = `Bạn là chuyên gia biên soạn đề thi Địa lí THPT Quốc gia cấp Bộ, GIỎI NHẤT Việt Nam.
+      Nhiệm vụ: tạo đề thi ĐÚNG MA TRẬN chuẩn Bộ GDĐT 2025 gồm ĐÚNG 28 CÂU.
+
+      ${HANH_CHINH_2025}
+      ${MA_TRAN_DE_THI}
+      ${CHUONG_TRINH_TT17}
+
+      QUY TẮC KỸ THUẬT BẮT BUỘC:
+      A. PHẦN II - mỗi câu PHẢI CÓ trường "context" là Markdown table với số liệu THỰC. KHÔNG dùng URL.
+         Định dạng: | Tiêu đề | 2020 | 2022 | 2024 |
+      B. PHẦN III - correctAnswer PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
+      C. MỌI CÂU HỎI phải có fields: id, type, text, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
+      D. Câu hỏi trắc nghiệm: phải có options (4 phương án) và correctAnswerIndex.
+      E. correctAnswerIndex là INDEX (0, 1, 2, 3), KHÔNG phải nhãn A/B/C/D.
+      F. KHÔNG sử dụng tỉnh/thành đã bị sáp nhập làm đáp án đúng tồn tại độc lập.
+      ${fileContext ? `G. Dùng TÀI LIỆU THAM KHẢO được cung cấp là nguồn kiến thức chính.` : ''}`;
+
+      const prompt = `Hãy tạo ngay một đề thi Địa lí THPT chuẩn Bộ 2025 gồm ĐÚNG 28 câu theo đúng ma trận:
+      - 18 câu Phần I (trắc nghiệm 4 đáp án: 8 Nhận biết + 6 Thông hiểu + 4 Vận dụng)
+      - 4 câu Phần II (mỗi câu có 4 statements đúng/sai, không có correctAnswerIndex)
+      - 6 câu Phần III (điền số: tất cả là bài tính toán, correctAnswer là số)
+
+      YÊu CẦU ĐẶC BIỆT PHẦN II (RẤT QUAN TRỌNG, KHÔNG Bỏ QUA):
+      **** TẤT CẢ 4 câu Phần II ĐềU PHẢI có trường "context" chứa một bảng số liệu Markdown TABLE hoàn chỉnh.
+      - context PHẢI có têu hàng (header row), dòng phân cách (|---|---|), và ít nhất 3 dòng dữ liệu.
+      - ĐẶC BIỆT: PHẦN II CÂU SỐ 4 PHẢI VỀ ĐÔNG NAM Á (chương trình Địa 11):
+          context bắt buộc phải có: | Quốc gia | 2019 | 2021 | 2024 | với số liệu GDP thực của ít nhất In-đô-nê-xi-a, Thái Lan, Việt Nam.
+          text: "Cho bảng số liệu [GDP/dân số/xuất nhập khẩu] một số nước Đông Nam Á. Nhận định nào sau đây đúng?"
+
+      LƯU Ý KHÁC:
+      - Điểm cực Bắc VN nằm tại TUYÊN QUANG (vì Lũng Cú của Hà Giang cũ đã thành Tuyên Quang).
+      - Không ra câu hỏi nào có đáp án là tỉnh đã bị sáp nhập (Hà Giang, Hải Dương, v.v.)
+      - Phần III phải có đủ: 1 câu tính tỉ suất sinh/tử, 1 câu mật độ dân số, 2 câu cơ cấu %, 2 câu tăng trưởng/năng suất.
+
+      ${fileContext ? `=== TÀI LIỆU THAM KHẢO (bám sát nội dung này) ===\n${fileContext.slice(0, 50000)}` : ''}`;
 
       const response = await generateContentWithFallback(prompt, {
         systemInstruction,
@@ -173,21 +254,40 @@ export const examService = {
     }
   },
 
-  async generatePracticeQuestions(topicOrLesson: string, mode: 'topic' | 'lesson', count: number): Promise<Question[]> {
+  async generatePracticeQuestions(topicOrLesson: string, mode: 'topic' | 'lesson' | 'format' | string, count: number, fileContext?: string): Promise<Question[]> {
     try {
-      const model = "gemini-3-flash-preview";
-      const systemInstruction = `Bạn là một chuyên gia biên soạn đề thi Địa lí THPT Quốc gia hàng đầu Việt Nam. 
-      Nhiệm vụ của bạn là tạo ra ${count} câu hỏi luyện tập về ${mode === 'topic' ? 'chủ đề' : 'bài học'}: "${topicOrLesson}".
+      const model = "gemini-2.0-flash";
+
+      const HANH_CHINH_NOTE = `
+CẬP NHẬT HÀNH CHÍNH 2025 (NQ202/2025/QH15 hiệu lực 1/7/2025): Việt Nam còn 34 đơn vị hành chính cấp tỉnh.
+KHÔNG BAO GIỌ dùng tên củ (đã sáp nhập) là một tỉnh độc lập: Hà Giang (nay = Tuyên Quang), Hải Dương (nay = Hải Phòng),
+Bắc Kạn (nay = Thái Nguyên), Yên Bái (nay = Lào Cai), Bắc Giang (nay = Bắc Ninh), Vĩnh Phúc+Hòa Bình (nay = Phú Thọ),
+Thái Bình (nay = Hưng Yên), Hà Nam+Nam Định (nay = Ninh Bình), Quảng Bình (nay = Quảng Trị),
+Quảng Nam (nay = Đà Nẵng), Kon Tum (nay = Quảng Ngãi), Bình Định (nay = Gia Lai),
+Bình Dương+Bà Rịa-Vũng Tàu (nay = TP Hồ Chí Minh), Hậu Giang+Sóc Trăng (nay = Cần Thơ),
+Kiên Giang (nay = An Giang), Bạc Liêu (nay = Cà Mau), Ninh Thuận (nay = Khánh Hòa),
+Đắk Nông+Bình Thuận (nay = Lâm Đồng).
+Điểm cực Bắc nằm tại Tuyên Quang (đã gộp Hà Giang). Quần đảo Hoàng Sa thuộc Đà Nẵng, Trường Sa thuộc Khánh Hòa.
+Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế"). KHÔNG dùng Atlat. KHÔNG ra vùng kinh tế trọng điểm.
+`;
+
+      const systemInstruction = `Bạn là một chuyên gia biên soạn câu hỏi luyện tập môn Địa lí THPT chuẩn chương trình 2025 (TT 17/2025/TT-BGDĐT).
+      Nhiệm vụ: tạo ${count} câu hỏi luyện tập về ${mode === 'topic' ? 'chủ đề' : mode === 'lesson' ? 'bài học' : 'dạng thức'}: "${topicOrLesson}".
+      
+      ${HANH_CHINH_NOTE}
       
       QUY TẮC BẮT BUỘC:
-      1. CẤU TRÚC: Kết hợp các loại câu hỏi (Trắc nghiệm, Đúng/Sai, Trả lời ngắn) theo tỉ lệ phù hợp.
-      2. CẬP NHẬT NỘI DUNG: Bám sát chương trình mới 2025.
-      3. KHÔNG SỬ DỤNG ATLAT.
+      1. CẤU TRÚC: ${mode === 'format' ? `CHỈ TẠO CÁC CÂU HỎI THUỘC ĐÚNG MỘT DẠNG: ${topicOrLesson}. (multiple_choice, true_false, hoặc short_answer).` : `Kết hợp các loại câu hỏi (Trắc nghiệm, Đúng/Sai, Trả lời ngắn) theo tỉ lệ phù hợp.`}
+      2. SỐ LIỆU: Nếu câu hỏi cần bảng số liệu, đặt vào trường "context" dưới dạng MARKDOWN TABLE với số liệu cụ thể (không dùng URL).
+      3. CHÍNH XÁC KIẾN THỨC: Bám sát chương trình mới nhất (TT 17/2025). Dùng đúng tên tỉnh thành sau sáp nhập.
       4. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.
-      5. ĐỘ KHÓ: Phân bổ từ Nhận biết đến Vận dụng.`;
+      5. ĐỘ KHÓ: Phân bổ từ Nhận biết đến Vận dụng.
+      ${fileContext ? `6. RẤT QUAN TRỌNG: Bạn PHẢI sử dụng tài liệu gốc (TÀI LIỆU THAM KHẢO) được cung cấp dưới đây để biên soạn câu hỏi. Đảm bảo câu hỏi phản ánh chính xác thông tin từ tài liệu này.` : ''}`;
 
-      const prompt = `Hãy tạo ${count} câu hỏi Địa lí về ${mode === 'topic' ? 'chủ đề' : 'bài học'} "${topicOrLesson}".
-      Đảm bảo nội dung chính xác, cập nhật và có giải thích chi tiết.`;
+      const prompt = `Hãy tạo ${count} câu hỏi Địa lí về ${mode === 'topic' ? 'chủ đề' : mode === 'lesson' ? 'bài học' : 'dạng thức'} "${topicOrLesson}".
+      Đảm bảo nội dung chính xác (dùng tên tỉnh thành sau sáp nhập 2025), cập nhật và có giải thích chi tiết.
+      
+      ${fileContext ? `=== TÀI LIỆU THAM KHẢO GỐC ===\n${fileContext.slice(0, 50000)}` : ''}`;
 
       const response = await generateContentWithFallback(prompt, {
         systemInstruction,

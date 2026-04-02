@@ -8,6 +8,7 @@ import { db } from '../firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { Exam } from '../types';
+import { libraryService, LibraryFile } from '../services/libraryService';
 
 export default function ExamSetup() {
   const navigate = useNavigate();
@@ -16,6 +17,15 @@ export default function ExamSetup() {
   const [searchTerm, setSearchTerm] = useState('');
   const [exams, setExams] = useState<Exam[]>([]);
   const [loadingExams, setLoadingExams] = useState(true);
+  
+  const [libraryFiles, setLibraryFiles] = useState<LibraryFile[]>([]);
+  const [selectedLibraryFileId, setSelectedLibraryFileId] = useState<string>('');
+
+  useEffect(() => {
+    // Fetch files for AI reference
+    const unsubFiles = libraryService.subscribeToFiles(setLibraryFiles);
+    return () => unsubFiles();
+  }, []);
 
   useEffect(() => {
     setLoadingExams(true);
@@ -48,7 +58,8 @@ export default function ExamSetup() {
   const handleStartAI = async () => {
     setIsCreating(true);
     try {
-      navigate('/exam-room?mode=mock');
+      const url = `/exam-room?mode=mock${selectedLibraryFileId ? `&libraryFileId=${selectedLibraryFileId}` : ''}`;
+      navigate(url);
     } catch (error) {
       console.error("AI Generation Error:", error);
       alert('Có lỗi xảy ra khi tạo đề AI. Hệ thống đang bận, vui lòng thử lại sau.');
@@ -96,9 +107,26 @@ export default function ExamSetup() {
           </div>
           
           <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">ĐỀ THI THỬ (AI)</h2>
-          <p className="text-slate-500 mb-10 flex-1 leading-relaxed font-medium">
+          <p className="text-slate-500 mb-6 flex-1 leading-relaxed font-medium">
             Hệ thống AI tự động tổng hợp 28 câu hỏi (18 trắc nghiệm, 4 đúng/sai, 6 trả lời ngắn) bám sát ma trận đề thi 2025.
           </p>
+
+          <div className="mb-8 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+            <label className="block text-xs font-bold text-indigo-800 mb-2 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5" />
+              Dựa trên tài liệu Thư viện (Tùy chọn)
+            </label>
+            <select
+              value={selectedLibraryFileId}
+              onChange={(e) => setSelectedLibraryFileId(e.target.value)}
+              className="w-full text-sm p-3 rounded-xl border border-indigo-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-slate-700"
+            >
+              <option value="">-- Tạo đề thi ngẫu nhiên theo cấu trúc --</option>
+              {libraryFiles.filter(f => f.fileType === 'word' || f.fileName.endsWith('.docx') || f.fileName.endsWith('.doc')).map(f => (
+                <option key={f.id} value={f.id}>{f.title}</option>
+              ))}
+            </select>
+          </div>
           
           <button
             onClick={handleStartAI}

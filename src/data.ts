@@ -4434,6 +4434,188 @@ export const questions: Question[] = [
     correctAnswer: '987',
     unit: 'km',
     cognitiveLevel: 'Vận dụng'
+  },
+
+  // ===== PHẦN II - LUYỆN TẬP ĐÚNG/SAI CHUẨN MA TRẬN 2025 (có bảng số liệu context) =====
+  {
+    id: 'tf_p2_1',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về dân số và tỉ lệ gia tăng tự nhiên của Việt Nam qua các năm. Hãy xem xét các nhận định sau:',
+    context: '**DÂN SỐ VÀ TỈ LỆ TĂNG TỰ NHIÊN VIỆT NAM**\n| Năm | Dân số (triệu người) | Tỉ lệ tăng TN (‰) |\n|---|---|---|\n| 2000 | 77,6 | 14,3 |\n| 2010 | 86,9 | 10,1 |\n| 2020 | 97,3 | 9,4 |\n| 2023 | 100,3 | 8,9 |',
+    topic: 'Địa lí dân cư',
+    lesson: 'Dân số, lao động và việc làm',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Dân số VN tăng liên tục nhờ tỉ lệ TGTN còn dương. Tỉ lệ TGTN giảm từ 14,3‰ (2000) xuống 8,9‰ (2023). TGTN giảm ≠ dân số giảm. VN vẫn trong trạng thái "dân số vàng" — lao động chiếm tỉ trọng cao.',
+    tips: 'Tỉ lệ TGTN giảm = tốc độ tăng chậm lại, KHÔNG phải dân số giảm!',
+    mnemonics: 'TN‰↓ nhưng vẫn dương → DS vẫn tăng, chỉ tăng chậm hơn',
+    statements: [
+      { id: 'tf_p2_1_a', text: 'a) Dân số Việt Nam tăng liên tục trong giai đoạn 2000–2023.', isTrue: true },
+      { id: 'tf_p2_1_b', text: 'b) Tỉ lệ gia tăng tự nhiên giảm có nghĩa là dân số Việt Nam đang giảm.', isTrue: false },
+      { id: 'tf_p2_1_c', text: 'c) So với năm 2000, tốc độ tăng dân số năm 2023 đã chậm lại đáng kể.', isTrue: true },
+      { id: 'tf_p2_1_d', text: 'd) Năm 2023, trung bình mỗi năm dân số Việt Nam tăng thêm khoảng 1 triệu người.', isTrue: true }
+    ]
+  },
+  {
+    id: 'tf_p2_2',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về cơ cấu kinh tế theo ngành của Việt Nam (% trong GDP). Hãy xem xét các nhận định sau:',
+    context: '**CƠ CẤU GDP THEO NGÀNH KINH TẾ VIỆT NAM (%)**\n| Ngành | 2010 | 2015 | 2020 | 2023 |\n|---|---|---|---|---|\n| Nông-lâm-thủy sản | 18,4 | 17,0 | 14,8 | 11,9 |\n| Công nghiệp-Xây dựng | 32,1 | 33,3 | 33,7 | 37,1 |\n| Dịch vụ | 38,8 | 39,7 | 41,6 | 42,5 |\n| Thuế sản phẩm | 10,7 | 10,0 | 9,9 | 8,5 |',
+    topic: 'Địa lí kinh tế - xã hội',
+    lesson: 'Chuyển dịch cơ cấu kinh tế',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Cơ cấu GDP chuyển dịch theo hướng CNH-HĐH: NN giảm (18,4→11,9%), CN+DV tăng. Dịch vụ luôn chiếm tỉ trọng cao nhất. CN-XD vẫn chưa vượt dịch vụ khi tính riêng.',
+    tips: 'Xu hướng: NN↓ + CN↑ + DV↑ = Công nghiệp hóa, Hiện đại hóa',
+    mnemonics: 'NN – CN – DV theo thứ tự tăng dần tỉ trọng',
+    statements: [
+      { id: 'tf_p2_2_a', text: 'a) Tỉ trọng ngành nông-lâm-thủy sản trong GDP có xu hướng giảm liên tục giai đoạn 2010–2023.', isTrue: true },
+      { id: 'tf_p2_2_b', text: 'b) Ngành dịch vụ luôn chiếm tỉ trọng cao nhất trong GDP (tính riêng 3 nhóm ngành chính) qua các năm.', isTrue: true },
+      { id: 'tf_p2_2_c', text: 'c) Tỉ trọng ngành công nghiệp-xây dựng đã vượt ngành dịch vụ vào năm 2023.', isTrue: false },
+      { id: 'tf_p2_2_d', text: 'd) Sự chuyển dịch cơ cấu kinh tế trên phản ánh quá trình công nghiệp hóa, hiện đại hóa của Việt Nam.', isTrue: true }
+    ]
+  },
+  {
+    id: 'tf_p2_3',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về sản xuất lúa gạo của Việt Nam. Hãy xem xét các nhận định sau:',
+    context: '**SẢN XUẤT LÚA GẠO VIỆT NAM**\n| Năm | Diện tích (nghìn ha) | Sản lượng (nghìn tấn) | Năng suất (tạ/ha) |\n|---|---|---|---|\n| 2000 | 7 666,3 | 32 529,5 | 42,4 |\n| 2010 | 7 513,7 | 40 005,6 | 53,2 |\n| 2020 | 7 280,4 | 42 688,7 | 58,7 |\n| 2023 | 7 119,4 | 43 493,0 | 61,1 |',
+    topic: 'Địa lí các ngành kinh tế',
+    lesson: 'Vấn đề phát triển nông nghiệp, lâm nghiệp và thuỷ sản',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Diện tích lúa giảm nhưng năng suất và sản lượng TĂNG liên tục nhờ khoa học kỹ thuật. Vùng SX lúa chủ lực: ĐBSCL (50% diện tích, ~55% sản lượng).',
+    tips: 'S↓ + NS↑ → Q tăng: ứng dụng KHKT vào sản xuất lúa',
+    mnemonics: 'Diện tích nhỏ nhưng sản lượng lớn = Nông nghiệp tiên tiến',
+    statements: [
+      { id: 'tf_p2_3_a', text: 'a) Trong giai đoạn 2000–2023, diện tích trồng lúa của Việt Nam có xu hướng giảm.', isTrue: true },
+      { id: 'tf_p2_3_b', text: 'b) Sản lượng lúa giảm do diện tích trồng lúa bị thu hẹp trong giai đoạn 2000–2023.', isTrue: false },
+      { id: 'tf_p2_3_c', text: 'c) Năng suất lúa tăng liên tục phản ánh việc áp dụng khoa học - kỹ thuật vào sản xuất.', isTrue: true },
+      { id: 'tf_p2_3_d', text: 'd) Việt Nam là một trong những quốc gia xuất khẩu gạo hàng đầu thế giới.', isTrue: true }
+    ]
+  },
+  {
+    id: 'tf_p2_4',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về GDP và dân số một số nước Đông Nam Á năm 2023. Hãy xem xét các nhận định sau:',
+    context: '**GDP VÀ DÂN SỐ MỘT SỐ NƯỚC ĐÔNG NAM Á (2023)**\n| Quốc gia | Dân số (triệu người) | GDP (tỉ USD) | GDP/người (USD) |\n|---|---|---|---|\n| In-đô-nê-xi-a | 277,5 | 1 371,2 | 4 942 |\n| Thái Lan | 71,8 | 574,3 | 7 997 |\n| Phi-líp-pin | 116,7 | 435,7 | 3 731 |\n| Việt Nam | 100,3 | 430,0 | 4 287 |\n| Ma-lai-xi-a | 33,6 | 399,6 | 11 897 |',
+    topic: 'Địa lí Đông Nam Á (Lớp 11)',
+    lesson: 'Khu vực Đông Nam Á',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'In-đô-nê-xi-a có GDP lớn nhất (1 371,2 tỉ USD). Ma-lai-xi-a có GDP/người cao nhất (11 897 USD). VN có GDP gần Phi-líp-pin nhưng GDP/người của VN cao hơn Phi-líp-pin vì VN ít dân hơn.',
+    tips: 'GDP/người = GDP ÷ DS. GDP lớn ≠ GDP/người cao!',
+    mnemonics: 'Indonesia = Tổng GDP số 1; Malaysia = GDP/người số 1',
+    statements: [
+      { id: 'tf_p2_4_a', text: 'a) In-đô-nê-xi-a có quy mô GDP lớn nhất trong số các quốc gia trong bảng.', isTrue: true },
+      { id: 'tf_p2_4_b', text: 'b) Ma-lai-xi-a có GDP/người cao nhất mặc dù có quy mô dân số nhỏ nhất.', isTrue: true },
+      { id: 'tf_p2_4_c', text: 'c) Việt Nam có GDP/người thấp hơn Phi-líp-pin vì GDP tổng thấp hơn một chút.', isTrue: false },
+      { id: 'tf_p2_4_d', text: 'd) Thái Lan có GDP tổng đứng thứ hai nhưng GDP/người thấp hơn Ma-lai-xi-a.', isTrue: true }
+    ]
+  },
+  {
+    id: 'tf_p2_5',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về xuất nhập khẩu hàng hóa của Việt Nam. Hãy xem xét các nhận định sau:',
+    context: '**XUẤT NHẬP KHẨU HÀNG HÓA VIỆT NAM (tỉ USD)**\n| Năm | Xuất khẩu | Nhập khẩu | Cán cân TM |\n|---|---|---|---|\n| 2015 | 162,4 | 165,6 | -3,2 |\n| 2018 | 243,5 | 236,7 | +6,8 |\n| 2020 | 282,7 | 262,4 | +20,3 |\n| 2022 | 371,9 | 360,7 | +11,2 |\n| 2023 | 355,5 | 327,5 | +28,0 |',
+    topic: 'Địa lí các ngành kinh tế',
+    lesson: 'Dịch vụ: Thương mại và du lịch',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'VN nhập siêu 2015, xuất siêu từ 2018. XK và NK đều tăng mạnh. 2023 XK giảm nhẹ so với 2022 nhưng cán cân thương mại vẫn dương (+28 tỉ USD) vì NK giảm nhiều hơn.',
+    tips: 'Cán cân TM > 0 = xuất siêu. Cán cân < 0 = nhập siêu.',
+    mnemonics: 'Dương = Dư = Xuất siêu; Âm = Âm u = Nhập siêu',
+    statements: [
+      { id: 'tf_p2_5_a', text: 'a) Giai đoạn 2015–2023, kim ngạch xuất khẩu của Việt Nam có xu hướng tăng.', isTrue: true },
+      { id: 'tf_p2_5_b', text: 'b) Năm 2015, Việt Nam ở tình trạng nhập siêu.', isTrue: true },
+      { id: 'tf_p2_5_c', text: 'c) Từ năm 2018 đến 2023, Việt Nam liên tục xuất siêu.', isTrue: true },
+      { id: 'tf_p2_5_d', text: 'd) Kim ngạch xuất khẩu năm 2023 tăng so với năm 2022.', isTrue: false }
+    ]
+  },
+  {
+    id: 'tf_p2_6',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về sản lượng thủy sản Việt Nam qua các năm. Hãy xem xét các nhận định sau:',
+    context: '**SẢN LƯỢNG THỦY SẢN VIỆT NAM (nghìn tấn)**\n| Năm | Khai thác | Nuôi trồng | Tổng số |\n|---|---|---|---|\n| 2000 | 1 280,6 | 589,5 | 1 870,1 |\n| 2010 | 2 414,4 | 2 706,8 | 5 121,2 |\n| 2020 | 3 851,5 | 4 563,9 | 8 415,4 |\n| 2023 | 3 898,5 | 5 223,0 | 9 121,5 |',
+    topic: 'Địa lí các ngành kinh tế',
+    lesson: 'Vấn đề phát triển nông nghiệp, lâm nghiệp và thuỷ sản',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Tổng SL thủy sản tăng ~4,9 lần (2000-2023). Từ 2010 nuôi trồng vượt khai thác và tiếp tục tăng — thể hiện phát triển bền vững hơn. Sản lượng khai thác năm 2023 ≈ 3 lần năm 2000 (3898/1281 ≈ 3,04 lần).',
+    tips: 'Năm 2000: khai thác > nuôi trồng. Từ 2010: nuôi trồng > khai thác',
+    mnemonics: 'KT < NT từ 2010 → Nuôi trồng chiếm ưu thế',
+    statements: [
+      { id: 'tf_p2_6_a', text: 'a) Tổng sản lượng thủy sản Việt Nam tăng liên tục trong giai đoạn 2000–2023.', isTrue: true },
+      { id: 'tf_p2_6_b', text: 'b) Năm 2000, sản lượng khai thác thủy sản lớn hơn sản lượng nuôi trồng.', isTrue: true },
+      { id: 'tf_p2_6_c', text: 'c) Từ năm 2010, sản lượng nuôi trồng thủy sản đã vượt sản lượng khai thác.', isTrue: true },
+      { id: 'tf_p2_6_d', text: 'd) Sản lượng khai thác thủy sản năm 2023 gấp hơn 3 lần so với năm 2000.', isTrue: true }
+    ]
+  },
+  {
+    id: 'tf_p2_7',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về lượng khách du lịch và doanh thu du lịch của Việt Nam. Hãy xem xét các nhận định sau:',
+    context: '**DU LỊCH VIỆT NAM**\n| Năm | Khách QT (triệu lượt) | Khách NĐ (triệu lượt) | Doanh thu (nghìn tỉ đồng) |\n|---|---|---|---|\n| 2015 | 7,9 | 57,0 | 337,9 |\n| 2019 | 18,0 | 85,6 | 755,0 |\n| 2020 | 3,8 | 56,2 | 312,2 |\n| 2022 | 3,5 | 101,3 | 495,0 |\n| 2023 | 12,6 | 108,0 | 678,0 |',
+    topic: 'Địa lí các ngành kinh tế',
+    lesson: 'Dịch vụ: Thương mại và du lịch',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Du lịch 2020-2021 bị COVID-19 ảnh hưởng nặng. Khách QT giảm mạnh (18→3,8 triệu); khách NĐ duy trì. 2022: khách NĐ vượt đỉnh 2019. 2023: khách QT phục hồi (12,6 triệu) nhưng chưa đạt đỉnh 2019 (18 triệu).',
+    tips: 'COVID: Quốc tế ↓↓ mạnh hơn nội địa. Nội địa hồi phục nhanh hơn.',
+    mnemonics: '2019 = Đỉnh QT; 2022 = Đỉnh NĐ; 2023 = Đang hồi phục',
+    statements: [
+      { id: 'tf_p2_7_a', text: 'a) Năm 2019, lượng khách du lịch quốc tế đạt mức cao nhất trong bảng số liệu.', isTrue: true },
+      { id: 'tf_p2_7_b', text: 'b) Giai đoạn 2020–2022, cả khách quốc tế và khách nội địa đều giảm so với năm 2019.', isTrue: false },
+      { id: 'tf_p2_7_c', text: 'c) Năm 2023, ngành du lịch đã phục hồi nhưng lượng khách quốc tế chưa đạt đỉnh năm 2019.', isTrue: true },
+      { id: 'tf_p2_7_d', text: 'd) Doanh thu du lịch năm 2023 cao hơn năm 2022.', isTrue: true }
+    ]
+  },
+  {
+    id: 'tf_p2_8',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về sản lượng điện của Việt Nam theo nguồn. Hãy xem xét các nhận định sau:',
+    context: '**SẢN LƯỢNG ĐIỆN THEO NGUỒN (tỉ kWh)**\n| Nguồn điện | 2015 | 2020 | 2023 |\n|---|---|---|---|\n| Thủy điện | 65,2 | 72,6 | 98,3 |\n| Nhiệt điện than | 51,3 | 116,2 | 131,8 |\n| Khí & dầu | 37,4 | 30,3 | 19,4 |\n| Năng lượng tái tạo | 0,1 | 25,0 | 89,4 |\n| **Tổng** | **161,1** | **247,1** | **340,5** |',
+    topic: 'Địa lí các ngành kinh tế',
+    lesson: 'Vấn đề phát triển công nghiệp',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Tổng sản lượng điện tăng >2 lần (161→340 tỉ kWh). NLTT tăng đột biến (0,1→89,4 = tăng ~894 lần). Nhiệt điện than vẫn chiếm tỉ trọng lớn nhất 2020-2023. Điện khí & dầu giảm liên tục.',
+    tips: 'NLTT tăng tốc độ nhanh nhất NHƯNG nhiệt điện than vẫn có SẢN LƯỢNG cao nhất 2023',
+    mnemonics: 'Than: nhiều nhất; NLTT: tăng nhanh nhất; Khí-dầu: giảm nhất',
+    statements: [
+      { id: 'tf_p2_8_a', text: 'a) Tổng sản lượng điện Việt Nam tăng hơn 2 lần trong giai đoạn 2015–2023.', isTrue: true },
+      { id: 'tf_p2_8_b', text: 'b) Năng lượng tái tạo là nguồn có tốc độ tăng trưởng nhanh nhất giai đoạn 2015–2023.', isTrue: true },
+      { id: 'tf_p2_8_c', text: 'c) Nhiệt điện than luôn là nguồn cung cấp điện chủ yếu trong tất cả các năm của bảng.', isTrue: false },
+      { id: 'tf_p2_8_d', text: 'd) Sản lượng điện từ khí và dầu có xu hướng giảm trong giai đoạn 2015–2023.', isTrue: true }
+    ]
+  },
+  {
+    id: 'tf_p2_9',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về cơ cấu lao động theo ngành kinh tế của Việt Nam. Hãy xem xét các nhận định sau:',
+    context: '**CƠ CẤU LAO ĐỘNG THEO NGÀNH KINH TẾ VIỆT NAM (%)**\n| Ngành | 2010 | 2015 | 2020 | 2023 |\n|---|---|---|---|---|\n| Nông-lâm-thủy sản | 48,7 | 44,0 | 33,1 | 28,1 |\n| Công nghiệp-Xây dựng | 21,7 | 23,6 | 30,3 | 33,1 |\n| Dịch vụ | 29,6 | 32,4 | 36,6 | 38,8 |',
+    topic: 'Địa lí dân cư',
+    lesson: 'Dân số, lao động và việc làm',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Cơ cấu LĐ chuyển dịch đúng hướng CNH-HĐH: NN giảm mạnh (48,7→28,1%), CN+DV tăng. Năm 2023 DV thu hút nhiều LĐ nhất (38,8%). NN vẫn còn ~28% = vẫn đông nhưng không còn chiếm đa số.',
+    tips: 'Năm 2023: DV(38,8%) > CN(33,1%) > NN(28,1%) — DV thu hút nhiều LĐ nhất',
+    mnemonics: 'CNH-HĐH: NN↓ CN↑ DV↑ — giống chuyển dịch cơ cấu GDP',
+    statements: [
+      { id: 'tf_p2_9_a', text: 'a) Tỉ lệ lao động trong ngành nông-lâm-thủy sản giảm liên tục trong giai đoạn 2010–2023.', isTrue: true },
+      { id: 'tf_p2_9_b', text: 'b) Năm 2023, ngành dịch vụ thu hút nhiều lao động nhất trong 3 nhóm ngành.', isTrue: true },
+      { id: 'tf_p2_9_c', text: 'c) Sự chuyển dịch cơ cấu lao động phản ánh quá trình công nghiệp hóa, hiện đại hóa đất nước.', isTrue: true },
+      { id: 'tf_p2_9_d', text: 'd) Đến năm 2023, nông nghiệp đã không còn là ngành thu hút nhiều lao động nhất.', isTrue: true }
+    ]
+  },
+  {
+    id: 'tf_p2_10',
+    type: 'true_false',
+    text: 'Cho bảng số liệu về cơ cấu vốn đầu tư phát triển toàn xã hội của Việt Nam. Hãy xem xét các nhận định sau:',
+    context: '**VỐN ĐẦU TƯ PHÁT TRIỂN TOÀN XÃ HỘI VIỆT NAM**\n| Thành phần | 2015 (%) | 2020 (%) | 2023 (%) |\n|---|---|---|---|\n| Nhà nước | 38,6 | 34,3 | 32,1 |\n| Ngoài Nhà nước | 38,7 | 43,9 | 55,6 |\n| FDI | 22,7 | 21,8 | 12,3 |\n| **Tổng (nghìn tỉ đồng)** | **1 367** | **2 164** | **3 422** |',
+    topic: 'Địa lí kinh tế - xã hội',
+    lesson: 'Chuyển dịch cơ cấu kinh tế',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Tổng vốn ĐT tăng từ 1 367 lên 3 422 nghìn tỉ đồng. Ngoài NN tăng tỉ trọng mạnh nhất, vượt 50% năm 2023. FDI giảm tỉ trọng tương đối (nhưng giá trị tuyệt đối vẫn tăng vì tổng vốn tăng nhiều).',
+    tips: 'Tỉ trọng FDI giảm ≠ FDI giảm về giá trị tuyệt đối!',
+    mnemonics: 'Ngoài NN vượt 50% = Kinh tế thị trường phát triển mạnh',
+    statements: [
+      { id: 'tf_p2_10_a', text: 'a) Tổng vốn đầu tư phát triển toàn xã hội tăng liên tục trong giai đoạn 2015–2023.', isTrue: true },
+      { id: 'tf_p2_10_b', text: 'b) Khu vực kinh tế ngoài Nhà nước có tỉ trọng vốn đầu tư ngày càng tăng và vượt 50% vào năm 2023.', isTrue: true },
+      { id: 'tf_p2_10_c', text: 'c) Tỉ trọng vốn FDI giảm có nghĩa là giá trị đầu tư FDI vào Việt Nam đã giảm.', isTrue: false },
+      { id: 'tf_p2_10_d', text: 'd) Sự thay đổi cơ cấu vốn đầu tư phản ánh sự phát triển của nền kinh tế thị trường tại Việt Nam.', isTrue: true }
+    ]
   }
 ];
 

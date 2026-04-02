@@ -4,85 +4,10 @@ import { ArrowLeft, Home, Sparkles, Loader2, LayoutGrid } from 'lucide-react';
 import { NavigateFunction } from 'react-router-dom';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
+import RichContent from './RichContent';
 
-// ─── Shared: render inline bold/italic markdown + chart placeholders ──────────
-function renderInline(raw: string): React.ReactNode {
-  const segments: React.ReactNode[] = [];
-  const re = /(\[((biểu ?đồ|hình|bảng số liệu|bảng|sơ đồ|lược đồ|ảnh|hình ảnh|chart|figure)[^\]]{0,300})\]|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/gi;
-  let last = 0; let m: RegExpExecArray | null;
-  while ((m = re.exec(raw)) !== null) {
-    if (m.index > last) segments.push(raw.slice(last, m.index));
-    if (m[2] !== undefined) {
-      segments.push(
-        <span key={m.index} className="inline-flex items-center gap-1.5 px-2 py-1 my-0.5 bg-amber-50 border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold">
-          <span>📊</span><span className="italic">{m[0]}</span>
-        </span>
-      );
-    } else if (m[4] !== undefined) segments.push(<strong key={m.index}>{m[4]}</strong>);
-    else if (m[5] !== undefined) segments.push(<em key={m.index}>{m[5]}</em>);
-    else if (m[6] !== undefined) segments.push(<code key={m.index} className="bg-slate-100 px-1 rounded text-sm font-mono">{m[6]}</code>);
-    last = m.index + m[0].length;
-  }
-  if (last < raw.length) segments.push(raw.slice(last));
-  return segments.length === 1 ? segments[0] : <>{segments}</>;
-}
 
-const isChartLine = (line: string) =>
-  /^\[((biểu ?đồ|hình|bảng số liệu|bảng|sơ đồ|lược đồ|ảnh|hình ảnh|chart|figure)[^\]]{0,500})\]$/i.test(line.trim());
-
-function QuestionTextBlock({ text }: { text: string }) {
-  const lines = text.split(/\r?\n/);
-  const parts: React.ReactNode[] = [];
-  let tableLines: string[] = [];
-  let key = 0;
-  const flushTable = () => {
-    if (tableLines.length < 2) { tableLines.forEach(l => parts.push(<span key={key++} className="block">{l}</span>)); tableLines = []; return; }
-    const rows = tableLines.filter(l => l.trim().startsWith('|')).filter(l => l.replace(/[|\s\-:]/g, '').length > 0);
-    parts.push(
-      <div key={key++} className="my-3 overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
-        <table className="text-sm text-slate-700 w-full border-collapse">
-          <tbody>
-            {rows.map((row, ri) => {
-              const cells = row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1);
-              return (
-                <tr key={ri} className={ri === 0 ? 'bg-indigo-600 text-white font-bold' : ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'}>
-                  {cells.map((cell, ci) => ri === 0
-                    ? <th key={ci} className="px-3 py-2 border border-indigo-500 text-center whitespace-nowrap text-xs">{renderInline(cell.trim())}</th>
-                    : <td key={ci} className={cn("px-3 py-2 border border-indigo-100 whitespace-nowrap text-xs", ci === 0 ? "font-medium" : "text-center")}>{renderInline(cell.trim())}</td>)}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-    tableLines = [];
-  };
-  for (const line of lines) {
-    if (line.trim().startsWith('|')) { tableLines.push(line); }
-    else {
-      if (tableLines.length) flushTable();
-      if (line.trim()) {
-        if (isChartLine(line)) {
-          const label = line.trim().slice(1, -1);
-          parts.push(
-            <div key={key++} className="my-2 p-3 bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl flex items-start gap-2">
-              <span className="text-xl shrink-0">📊</span>
-              <div>
-                <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider mb-0.5">Biểu đồ / Bảng số liệu</p>
-                <p className="text-xs text-amber-800 font-medium italic">{label}</p>
-              </div>
-            </div>
-          );
-        } else {
-          parts.push(<span key={key++} className="block mb-0.5">{renderInline(line)}</span>);
-        }
-      }
-    }
-  }
-  if (tableLines.length) flushTable();
-  return <div className="text-base font-medium text-slate-800 leading-relaxed">{parts}</div>;
-}
+// Note: QuestionTextBlock replaced by shared RichContent (supports LaTeX + GFM tables)
 
 interface ExamReviewCardProps {
   examQuestions: Question[];
@@ -162,8 +87,8 @@ export default function ExamReviewCard({
                   </span>
                 </div>
 
-                <div className="mb-4">
-                  <QuestionTextBlock text={q.text} />
+                <div className="mb-4 text-base font-medium text-slate-800">
+                  <RichContent content={q.text} />
                 </div>
 
                 {q.imageUrl && (
@@ -174,8 +99,8 @@ export default function ExamReviewCard({
 
                 {q.context && (
                   <div className="mb-6 p-4 bg-blue-50/60 rounded-2xl border border-blue-200">
-                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">📊 Bảng số liệu / Biểu đồ</p>
-                    <QuestionTextBlock text={q.context} />
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">📊 Bảng số liệu / Dữ liệu tham khảo</p>
+                    <RichContent content={q.context} />
                   </div>
                 )}
 

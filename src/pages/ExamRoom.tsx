@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { examService } from '../services/examService';
 import { liveExamService } from '../services/liveExamService';
 import { assignmentService } from '../services/assignmentService';
+import { ref, get } from 'firebase/database';
+import { rtdb } from '../firebase';
+import { extractTextFromUrl } from '../utils/fileExtractor';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   CheckCircle2, 
@@ -33,6 +36,7 @@ export default function ExamRoom() {
   const navigate = useNavigate();
   const examId = searchParams.get('examId');
   const mode = searchParams.get('mode');
+  const libraryFileId = searchParams.get('libraryFileId');
   
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
   const [examTitle, setExamTitle] = useState('Đề thi ôn luyện');
@@ -101,9 +105,30 @@ export default function ExamRoom() {
       }
 
     } else {
-      generateRandomExam();
       if (mode === 'mock') {
         setExamTitle('Đề thi thử (AI) - Luyện tập');
+        if (libraryFileId) {
+          try {
+            const fileSnap = await get(ref(rtdb, `library_files/${libraryFileId}`));
+            if (fileSnap.exists()) {
+              const fileData = fileSnap.val();
+              const fileUrl = fileData.storagePath || fileData.fileUrl;
+              const fileContext = await extractTextFromUrl(fileUrl, fileData.fileType);
+              const aiQuestions = await examService.generateAIExam(fileContext);
+              setExamQuestions(aiQuestions);
+            } else {
+              generateRandomExam();
+            }
+          } catch (err) {
+            console.error('Lỗi khi đọc file thư viện, fallback về ngẫu nhiên:', err);
+            alert('Không thể tạo đề từ file (lỗi đọc tài liệu). Đang tạo đề ngẫu nhiên thay thế.');
+            generateRandomExam();
+          }
+        } else {
+          generateRandomExam();
+        }
+      } else {
+        generateRandomExam();
       }
     }
     
