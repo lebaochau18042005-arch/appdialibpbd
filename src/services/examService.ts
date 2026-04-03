@@ -427,61 +427,78 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
   },
 
   async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html'): Promise<string> {
+    // ── Helper: upload to Cloudinary (same service as the library) ──────────────
+    const uploadToCloudinary = async (): Promise<string> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'geo_uploads');
+      formData.append('cloud_name', 'dahaer5kb');
+      const res = await fetch('https://api.cloudinary.com/v1_1/dahaer5kb/raw/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error(`Cloudinary upload failed: HTTP ${res.status}`);
+      const data = await res.json();
+      return data.secure_url as string;
+    };
+
+    // ── Step 1: Try Firebase Storage (fast path for users with permissions) ─────
+    let fileUrl: string | null = null;
     try {
-      // 1. Try uploading to Firebase Storage (with timeout to avoid CORS hang)
       const storageRef = ref(storage, `exams/${creatorId}/${Date.now()}_${file.name}`);
       const uploadTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Storage timeout - CORS/permission issue')), 5000)
+        setTimeout(() => reject(new Error('Storage timeout')), 5000)
       );
       const snapshot = await Promise.race([uploadBytes(storageRef, file), uploadTimeout]);
-      const fileUrl = await getDownloadURL(snapshot.ref);
+      fileUrl = await getDownloadURL(snapshot.ref);
+    } catch {
+      // Firebase Storage unavailable — try Cloudinary next
+    }
 
-      // 2. Save metadata to Firestore
-      const examData = {
-        title,
-        creatorId,
-        type: 'upload' as const,
-        fileUrl,
-        fileType,
-        questions: [],
-        createdAt: new Date().toISOString()
-      };
-
+    // ── Step 2: Cloudinary fallback (handles PDF & large files) ─────────────────
+    if (!fileUrl) {
       try {
-        const docRef = await addDoc(collection(db, 'exams'), examData);
-        return docRef.id;
-      } catch (fsErr) {
-        if (isPermissionError(fsErr)) {
-          const localId = `local_${Date.now()}`;
-          lsSaveExam({ id: localId, ...examData });
-          return localId;
+        fileUrl = await uploadToCloudinary();
+      } catch (cloudErr) {
+        console.warn('Cloudinary fallback failed:', cloudErr);
+        // ── Step 3: Final fallback — data URL for small files only (<1MB) ──────
+        if (file.size < 1024 * 1024) {
+          fileUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        } else {
+          throw new Error(`Không thể tải lên file ${fileType.toUpperCase()} (${(file.size / 1024 / 1024).toFixed(1)}MB). Vui lòng kiểm tra kết nối mạng và thử lại.`);
         }
-        throw fsErr;
       }
-    } catch (storageErr) {
-      // Firebase Storage also blocked — read file as data URL and save to localStorage
-      console.warn('Firebase Storage unavailable, saving file locally:', storageErr);
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const localId = `local_${Date.now()}`;
-      const localExam: Exam = {
-        id: localId,
-        title,
-        creatorId,
-        type: 'upload',
-        fileUrl: dataUrl,
-        fileType,
-        questions: [],
-        createdAt: new Date().toISOString()
-      };
-      lsSaveExam(localExam);
-      return localId;
+    }
+
+    // ── Step 3: Save metadata ────────────────────────────────────────────────────
+    const examData = {
+      title,
+      creatorId,
+      type: 'upload' as const,
+      fileUrl,
+      fileType,
+      questions: [],
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, 'exams'), examData);
+      return docRef.id;
+    } catch (fsErr) {
+      if (isPermissionError(fsErr)) {
+        const localId = `local_${Date.now()}`;
+        lsSaveExam({ id: localId, ...examData });
+        return localId;
+      }
+      throw fsErr;
     }
   },
+
 
   async deleteExam(examId: string): Promise<void> {
     // Try localStorage first
