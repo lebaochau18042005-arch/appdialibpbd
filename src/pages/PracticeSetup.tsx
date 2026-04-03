@@ -48,8 +48,12 @@ export default function PracticeSetup() {
   }, []);
 
   // ── Auto-match library file when selection changes ─────────────────────────
+  // Include both Word and PDF files
   const wordFiles = useMemo(
-    () => libraryFiles.filter(f => f.fileType === 'word' || f.fileName.endsWith('.docx') || f.fileName.endsWith('.doc')),
+    () => libraryFiles.filter(f =>
+      f.fileType === 'word' || f.fileType === 'pdf' ||
+      f.fileName.endsWith('.docx') || f.fileName.endsWith('.doc') || f.fileName.endsWith('.pdf')
+    ),
     [libraryFiles]
   );
 
@@ -365,10 +369,10 @@ export default function PracticeSetup() {
                       color: '#e2e8f0',
                     }}
                   >
-                    <option value="">🤖 AI tự tạo (không dùng tài liệu)</option>
+                    <option value="">🤖 AI tự tạo (không cần tài liệu)</option>
                     {wordFiles.map(f => (
                       <option key={f.id} value={f.id}>
-                        📄 {f.title}
+                        {f.fileType === 'pdf' || f.fileName.endsWith('.pdf') ? '🔴 PDF' : '📄 Word'} — {f.title}
                         {autoMatchedFile?.id === f.id ? ' ✨ (Gợi ý)' : ''}
                       </option>
                     ))}
@@ -392,7 +396,7 @@ export default function PracticeSetup() {
                       <>
                         <Sparkles size={12} style={{ color: '#00bfff', flexShrink: 0, marginTop: 1 }} />
                         <span style={{ color: 'rgba(0,191,255,0.7)' }}>
-                          AI sẽ <strong style={{ color: '#00bfff' }}>tự biên soạn</strong> câu hỏi dựa trên kiến thức và chương trình địa lí 2025. Chỉ hỗ trợ tài liệu Word (.docx).
+                          AI sẽ <strong style={{ color: '#00bfff' }}>tự biên soạn</strong> câu hỏi dựa trên kiến thức địa lí 2025. Hỗ trợ tải tài liệu <strong style={{ color: '#00bfff' }}>Word (.docx) và PDF</strong>.
                         </span>
                       </>
                     )}
