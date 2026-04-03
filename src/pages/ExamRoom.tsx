@@ -497,21 +497,23 @@ export default function ExamRoom() {
         />
       </div>
 
-      {/* Mobile Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 md:hidden z-10">
+      {/* Mobile Submit Button - z-30 so it overlays Layout's bottom nav (z-20) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 md:hidden z-30" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="p-3">
         <button
           onClick={() => setShowSubmitConfirm(true)}
-          className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg"
+          className="w-full py-3.5 bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg"
         >
           <Send className="w-5 h-5" />
           Nộp bài thi
         </button>
+        </div>
       </div>
 
       {/* Submit Confirmation Modal */}
       <AnimatePresence>
         {showSubmitConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
