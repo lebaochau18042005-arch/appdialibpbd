@@ -1,9 +1,10 @@
 import React from 'react';
-import { FileText, Search, Download, Trash2, Sparkles, Presentation, Brain, PencilLine } from 'lucide-react';
+import { FileText, Search, Download, Trash2, Sparkles, Presentation, Brain, PencilLine, FileImage } from 'lucide-react';
 import { Exam } from '../../types';
 import { cn } from '../../utils/cn';
-import { exportExamToWord } from '../../utils/exportDocs';
+import { exportExamToWord, exportExamToPdf } from '../../utils/exportDocs';
 import { generatePptx } from '../../utils/exportPptx';
+import ExamContentToolbar from './ExamContentToolbar';
 
 interface ExamManagerProps {
   exams: Exam[];
@@ -14,6 +15,9 @@ interface ExamManagerProps {
   setViewingExam: (exam: Exam) => void;
   onExtractQuestions?: (exam: Exam) => void;
   onEditExam?: (exam: Exam) => void;
+  onFlashcard?: (exam: Exam) => void;
+  onPlayQuiz?: (exam: Exam) => void;
+  onAnalyze?: (exam: Exam) => void;
 }
 
 export default function ExamManager({
@@ -25,6 +29,9 @@ export default function ExamManager({
   setViewingExam,
   onExtractQuestions,
   onEditExam,
+  onFlashcard,
+  onPlayQuiz,
+  onAnalyze,
 }: ExamManagerProps) {
   const filteredExams = exams.filter(e => 
     e.title.toLowerCase().includes(examSearchTerm.toLowerCase())
@@ -68,16 +75,15 @@ export default function ExamManager({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredExams.map((exam) => (
-              <div key={exam.id} className="p-6 rounded-2xl border border-slate-100 hover:border-emerald-200 hover:shadow-md transition-all group">
-                <div className="flex justify-between items-start mb-4">
+              <div key={exam.id} className="p-6 rounded-2xl border border-slate-100 hover:border-emerald-200 hover:shadow-md transition-all group flex flex-col gap-4">
+                <div className="flex justify-between items-start">
                   <div className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center",
                     exam.type === 'ai' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
                   )}>
                     {exam.type === 'ai' ? <Sparkles size={20} /> : <FileText size={20} />}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {/* AI Extract button: only for uploaded exams with 0 questions */}
+                  <div className="flex items-center gap-1.5">
                     {exam.type === 'upload' && (!exam.questions || exam.questions.length === 0) && onExtractQuestions && (
                       <button 
                         onClick={() => onExtractQuestions(exam)}
@@ -87,37 +93,15 @@ export default function ExamManager({
                         <Brain size={20} />
                       </button>
                     )}
-                    {/* Edit button: opens ExamEditor for all exams with questions */}
                     {onEditExam && (exam.questions?.length ?? 0) > 0 && (
                       <button
                         onClick={() => onEditExam(exam)}
                         className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-                        title="Sửa đề thi (thêm ảnh, bảng số liệu)"
+                        title="Sửa đề thi"
                       >
                         <PencilLine size={20} />
                       </button>
                     )}
-                    <button 
-                      onClick={() => exportExamToWord(exam)}
-                      className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
-                      title="Xuất File Word"
-                    >
-                      <FileText size={20} />
-                    </button>
-                    <button 
-                      onClick={() => generatePptx(exam)}
-                      className="p-2 text-slate-400 hover:text-orange-500 transition-colors"
-                      title="Xuất PowerPoint"
-                    >
-                      <Presentation size={20} />
-                    </button>
-                    <button 
-                      onClick={() => handleDownload(exam.id)}
-                      className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"
-                      title="Tải xuống"
-                    >
-                      <Download size={20} />
-                    </button>
                     <button 
                       onClick={() => handleDeleteExam(exam.id)}
                       className="p-2 text-slate-400 hover:text-red-500 transition-colors"
@@ -127,19 +111,34 @@ export default function ExamManager({
                     </button>
                   </div>
                 </div>
-                <h4 className="font-bold text-slate-800 mb-1 line-clamp-1">{exam.title}</h4>
-                <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-4">
-                  {exam.type === 'ai' ? 'Đề thi AI' : 'Đề thi tải lên'} • {new Date(exam.createdAt).toLocaleDateString('vi-VN')}
+
+                <div>
+                  <h4 className="font-bold text-slate-800 mb-1 line-clamp-1">{exam.title}</h4>
+                  <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-3">
+                    {exam.type === 'ai' ? 'Đề thi AI' : 'Đề thi tải lên'} • {new Date(exam.createdAt).toLocaleDateString('vi-VN')}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500">{exam.questions?.length || 0} câu hỏi</span>
+                    <button 
+                      onClick={() => setViewingExam(exam)}
+                      className="text-xs font-black text-emerald-600 hover:underline"
+                    >
+                      CHI TIẾT
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500">{exam.questions?.length || 0} câu hỏi</span>
-                  <button 
-                    onClick={() => setViewingExam(exam)}
-                    className="text-xs font-black text-emerald-600 hover:underline"
-                  >
-                    CHI TIẾT
-                  </button>
-                </div>
+
+                {/* Toolbar */}
+                {(exam.questions?.length ?? 0) > 0 && (
+                  <div className="pt-3 border-t border-slate-50">
+                    <ExamContentToolbar
+                      exam={exam}
+                      onFlashcard={onFlashcard ? () => onFlashcard(exam) : undefined}
+                      onPlayQuiz={onPlayQuiz ? () => onPlayQuiz(exam) : undefined}
+                      onAnalyze={onAnalyze ? () => onAnalyze(exam) : undefined}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

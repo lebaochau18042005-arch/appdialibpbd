@@ -15,6 +15,10 @@ import LiveStudentTracker from '../components/teacher/LiveStudentTracker';
 import ExamAssignPanel from '../components/teacher/ExamAssignPanel';
 import RosterUploader from '../components/teacher/RosterUploader';
 import ExamEditor from '../components/teacher/ExamEditor';
+import ExamContentToolbar from '../components/teacher/ExamContentToolbar';
+import FlashcardModal from '../components/teacher/FlashcardModal';
+import QuizPlayModal from '../components/teacher/QuizPlayModal';
+import ExamAnalysisModal from '../components/teacher/ExamAnalysisModal';
 
 // ─── Inline chart/figure placeholder renderer for teacher previews ────────────
 function renderQText(text: string) {
@@ -82,6 +86,24 @@ export default function TeacherDashboard() {
 
   // Exam Editor state
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
+
+  // Toolbar modal states
+  const [flashcardExam, setFlashcardExam] = useState<Exam | null>(null);
+  const [quizPlayExam, setQuizPlayExam] = useState<Exam | null>(null);
+  const [analysisExam, setAnalysisExam] = useState<Exam | null>(null);
+
+  // Build a temporary Exam object from generated questions for toolbar use
+  const generatedExamObj = (): Exam | null => {
+    if (!generatedQuestions) return null;
+    return {
+      id: 'preview',
+      title: generatedExamTitle || 'Đề thi AI',
+      creatorId: user?.uid || 'anonymous-teacher',
+      type: 'ai',
+      questions: generatedQuestions,
+      createdAt: new Date().toISOString(),
+    };
+  };
 
   const handleEditExam = (exam: Exam) => setEditingExam(exam);
 
@@ -474,6 +496,9 @@ export default function TeacherDashboard() {
           setViewingExam={setViewingExam}
           onExtractQuestions={handleExtractQuestions}
           onEditExam={handleEditExam}
+          onFlashcard={(exam) => setFlashcardExam(exam)}
+          onPlayQuiz={(exam) => setQuizPlayExam(exam)}
+          onAnalyze={(exam) => setAnalysisExam(exam)}
         />
       )}
 
@@ -634,22 +659,31 @@ export default function TeacherDashboard() {
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] shadow-2xl border border-slate-100 flex flex-col overflow-hidden"
             >
-              <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-200">
-                    <Sparkles size={28} />
+              <div className="p-6 border-b border-slate-50 flex flex-col gap-4 bg-slate-50/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-200">
+                      <Sparkles size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">ĐỀ THI AI ĐÃ SẴN SÀNG</h3>
+                      <p className="text-slate-500 text-sm">Hệ thống đã tạo thành công đề thi theo cấu trúc 2025.</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">ĐỀ THI AI ĐÃ SẴN SÀNG</h3>
-                    <p className="text-slate-500 text-sm">Hệ thống đã tạo thành công đề thi theo cấu trúc 2025.</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
                   <div className="text-right hidden md:block">
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng số câu hỏi</div>
-                    <div className="text-lg font-black text-emerald-600">28 CÂU</div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng câu</div>
+                    <div className="text-lg font-black text-emerald-600">{generatedQuestions?.length ?? 0} CÂU</div>
                   </div>
                 </div>
+                {/* Toolbar */}
+                {generatedQuestions && generatedQuestions.length > 0 && (
+                  <ExamContentToolbar
+                    exam={generatedExamObj()!}
+                    onFlashcard={() => setFlashcardExam(generatedExamObj())}
+                    onPlayQuiz={() => setQuizPlayExam(generatedExamObj())}
+                    onAnalyze={() => setAnalysisExam(generatedExamObj())}
+                  />
+                )}
               </div>
               
               <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white">
@@ -912,12 +946,19 @@ export default function TeacherDashboard() {
                 ))}
               </div>
               
-              <div className="p-8 border-t border-slate-50 bg-slate-50/30 flex justify-end gap-4">
+              <div className="p-6 border-t border-slate-50 bg-slate-50/30 flex flex-col gap-4">
+                <ExamContentToolbar
+                  exam={viewingExam}
+                  onViewContent={undefined}
+                  onFlashcard={() => { setViewingExam(null); setFlashcardExam(viewingExam); }}
+                  onPlayQuiz={() => { setViewingExam(null); setQuizPlayExam(viewingExam); }}
+                  onAnalyze={() => { setViewingExam(null); setAnalysisExam(viewingExam); }}
+                />
                 <button 
-                  onClick={() => handleDownload(viewingExam.id)}
-                  className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 flex items-center gap-2"
+                  onClick={() => setViewingExam(null)}
+                  className="self-end text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  <Download size={20} /> TẢI ĐỀ THI
+                  Đóng
                 </button>
               </div>
             </motion.div>
@@ -993,6 +1034,7 @@ export default function TeacherDashboard() {
         </div>
       )}
 
+
       {/* Exam Editor Modal */}
       <AnimatePresence>
         {editingExam && (
@@ -1001,6 +1043,27 @@ export default function TeacherDashboard() {
             onSave={handleSaveEditedExam}
             onClose={() => setEditingExam(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Flashcard Modal */}
+      <AnimatePresence>
+        {flashcardExam && (
+          <FlashcardModal exam={flashcardExam} onClose={() => setFlashcardExam(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* Quiz Play Modal */}
+      <AnimatePresence>
+        {quizPlayExam && (
+          <QuizPlayModal exam={quizPlayExam} onClose={() => setQuizPlayExam(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* Analysis Modal */}
+      <AnimatePresence>
+        {analysisExam && (
+          <ExamAnalysisModal exam={analysisExam} onClose={() => setAnalysisExam(null)} />
         )}
       </AnimatePresence>
     </div>

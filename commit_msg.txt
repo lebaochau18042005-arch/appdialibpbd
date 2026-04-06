@@ -1,0 +1,8 @@
+feat: them toolbar 7 nut vao khu vuc tao de thi
+
+- Tao ExamContentToolbar (7 nut: Tai PDF, Tai Word, Xuat PPTX, Flashcard, Choi Quiz, Phan Tich)
+- Tao FlashcardModal (lat the 3D, next/prev, thanh tien do)
+- Tao QuizPlayModal (quiz tuong tac, kiem tra dap an, xem ket qua)
+- Tao ExamAnalysisModal (phan tich co cau de: bieu do loai cau, cap nhan thuc, chu de)
+- Them exportExamToPdf vao exportDocs.ts (dung iframe + print dialog)
+- Tich hop toolbar vao AI confirm modal, viewingExam modal va ExamManager cards
