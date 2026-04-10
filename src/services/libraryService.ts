@@ -10,6 +10,9 @@ import { ref as rtdbRef, push, onValue, remove } from 'firebase/database';
 const CLOUDINARY_CLOUD_NAME = 'dahaer5kb';
 const CLOUDINARY_UPLOAD_PRESET = 'geo_uploads'; // unsigned preset
 
+/** Maximum file size allowed for direct upload (Cloudinary free tier) */
+export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB
+
 export interface LibraryVideo {
   id: string;
   title: string;
@@ -80,6 +83,14 @@ export const libraryService = {
     title: string,
     onProgress?: (pct: number) => void
   ): Promise<void> {
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new Error(
+        `File quá lớn (${(file.size / 1024 / 1024).toFixed(0)} MB). ` +
+        `Giới hạn tải lên trực tiếp là 100 MB. ` +
+        `Hãy dùng Google Drive và nhập link bên dưới.`
+      );
+    }
+
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
     const fileType = ['pdf'].includes(ext) ? 'pdf'
       : ['doc', 'docx'].includes(ext) ? 'word'
@@ -111,7 +122,7 @@ export const libraryService = {
         }
       };
 
-      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.onerror = () => reject(new Error('Lỗi mạng khi tải lên. Kiểm tra kết nối hoặc dùng Google Drive thay thế.'));
       xhr.send(formData);
     });
 
@@ -122,6 +133,24 @@ export const libraryService = {
       fileType,
       fileSize: file.size,
       storagePath: fileUrl, // store URL as storagePath for compatibility
+      createdAt: new Date().toISOString(),
+    });
+  },
+
+  // Teacher: add a file by URL (Google Drive, Dropbox, etc.) — no upload needed
+  async addFileLink(
+    url: string,
+    title: string,
+    fileName: string,
+    fileType: string,
+  ): Promise<void> {
+    await push(rtdbRef(rtdb, 'library_files'), {
+      title: title || fileName,
+      fileUrl: url,
+      fileName,
+      fileType,
+      fileSize: 0, // unknown
+      storagePath: url,
       createdAt: new Date().toISOString(),
     });
   },

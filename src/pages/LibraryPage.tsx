@@ -111,17 +111,38 @@ function AddVideoModal({ onClose }: { onClose: () => void }) {
 
 // ── Teacher: Upload File Modal ────────────────────────────────────────────────
 function UploadFileModal({ onClose }: { onClose: () => void }) {
+  const [mode, setMode] = useState<'choose' | 'upload' | 'link'>('choose');
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
+  const [driveUrl, setDriveUrl] = useState('');
+  const [driveName, setDriveName] = useState('');
+  const [driveType, setDriveType] = useState('pdf');
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
+  const [sizeError, setSizeError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const MAX_MB = 100;
+  const MAX_BYTES = MAX_MB * 1024 * 1024;
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] || null;
-    setFile(f);
-    if (f && !title) setTitle(f.name.replace(/\.[^.]+$/, ''));
+    setSizeError('');
+    if (f) {
+      if (f.size > MAX_BYTES) {
+        setSizeError(`File ${(f.size / 1024 / 1024).toFixed(0)} MB vượt quá giới hạn ${MAX_MB} MB. Hãy dùng Google Drive bên dưới.`);
+        setMode('link');
+        setDriveName(f.name);
+        const ext = f.name.split('.').pop()?.toLowerCase() || 'pdf';
+        setDriveType(['doc','docx'].includes(ext) ? 'word' : ['ppt','pptx'].includes(ext) ? 'ppt' : 'pdf');
+        if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
+        return;
+      }
+      setFile(f);
+      setMode('upload');
+      if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
+    }
   };
 
   const handleUpload = async () => {
@@ -138,6 +159,20 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const handleSaveLink = async () => {
+    if (!driveUrl.trim()) return;
+    setUploading(true);
+    try {
+      await libraryService.addFileLink(driveUrl.trim(), title || driveName, driveName || title, driveType);
+      setDone(true);
+      setTimeout(onClose, 1000);
+    } catch (e: any) {
+      console.error('Save link error:', e);
+      alert('Lưu link thất bại! (Lỗi: ' + (e.message || 'Chưa xác định') + ')');
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
@@ -146,57 +181,118 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center"><Upload size={18} /></div>
-              <p className="font-black text-lg">Tải lên bài giảng</p>
+              <p className="font-black text-lg">Thêm tài liệu</p>
             </div>
             <button onClick={onClose} className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30"><X size={16} /></button>
           </div>
-          <p className="text-indigo-200 text-xs mt-1">Hỗ trợ: PDF, Word (.doc/.docx), PowerPoint (.ppt/.pptx)</p>
+          <p className="text-indigo-200 text-xs mt-1">PDF, Word, PowerPoint · Tối đa {MAX_MB} MB khi tải trực tiếp</p>
         </div>
+
         <div className="p-5 space-y-4">
-          <input ref={fileRef} type="file" className="hidden"
-            accept=".pdf,.doc,.docx,.ppt,.pptx" onChange={handleFile} />
-          <button onClick={() => fileRef.current?.click()}
-            className={cn('w-full border-2 border-dashed rounded-2xl py-8 text-center transition-all',
-              file ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50')}>
-            {file ? (
-              <div>
-                <p className="text-2xl mb-1">{fileIcon(file.name.split('.').pop()?.toLowerCase() || '')}</p>
-                <p className="font-bold text-slate-800 text-sm">{file.name}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{formatSize(file.size)}</p>
-              </div>
-            ) : (
-              <div>
-                <Upload size={28} className="mx-auto mb-2 text-slate-300" />
-                <p className="font-bold text-slate-500 text-sm">Chọn file để tải lên</p>
-                <p className="text-xs text-slate-400">PDF, Word, PowerPoint</p>
-              </div>
-            )}
-          </button>
 
-          {file && (
-            <div>
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Tiêu đề hiển thị</label>
-              <input value={title} onChange={e => setTitle(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+          {/* Mode tabs */}
+          <div className="flex gap-2">
+            <button onClick={() => { setMode('upload'); setSizeError(''); }}
+              className={cn('flex-1 py-2 rounded-xl text-xs font-black border transition-all flex items-center justify-center gap-1.5',
+                mode === 'upload' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-white text-indigo-500 border-indigo-200 hover:bg-indigo-50')}>
+              <Upload size={12} /> Tải file lên
+            </button>
+            <button onClick={() => setMode('link')}
+              className={cn('flex-1 py-2 rounded-xl text-xs font-black border transition-all flex items-center justify-center gap-1.5',
+                mode === 'link' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50')}>
+              <Link2 size={12} /> Dùng link Drive
+            </button>
+          </div>
+
+          {/* Size error banner */}
+          {sizeError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 font-medium">
+              ⚠️ {sizeError}
             </div>
           )}
 
-          {uploading && !done && (
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                <span>Đang tải lên...</span><span>{progress}%</span>
-              </div>
-              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-2 bg-indigo-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
-              </div>
-            </div>
+          {/* Upload mode */}
+          {mode === 'upload' && (
+            <>
+              <input ref={fileRef} type="file" className="hidden"
+                accept=".pdf,.doc,.docx,.ppt,.pptx" onChange={handleFile} />
+              <button onClick={() => fileRef.current?.click()}
+                className={cn('w-full border-2 border-dashed rounded-2xl py-8 text-center transition-all',
+                  file ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50')}>
+                {file ? (
+                  <div>
+                    <p className="text-2xl mb-1">{fileIcon(file.name.split('.').pop()?.toLowerCase() || '')}</p>
+                    <p className="font-bold text-slate-800 text-sm">{file.name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{formatSize(file.size)}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <Upload size={28} className="mx-auto mb-2 text-slate-300" />
+                    <p className="font-bold text-slate-500 text-sm">Chọn file để tải lên</p>
+                    <p className="text-xs text-slate-400">PDF, Word, PowerPoint · Tối đa {MAX_MB} MB</p>
+                  </div>
+                )}
+              </button>
+              {file && (
+                <div>
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Tiêu đề hiển thị</label>
+                  <input value={title} onChange={e => setTitle(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                </div>
+              )}
+              {uploading && !done && (
+                <div>
+                  <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
+                    <span>Đang tải lên...</span><span>{progress}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-indigo-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+              )}
+              <button onClick={handleUpload} disabled={!file || uploading}
+                className={cn('w-full py-3 rounded-2xl font-black text-white transition-all text-sm flex items-center justify-center gap-2',
+                  done ? 'bg-emerald-500' : 'bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed')}>
+                {done ? <><CheckCircle2 size={16} /> Tải lên thành công!</> : uploading ? <><Loader2 size={16} className="animate-spin" /> Đang tải... {progress}%</> : <><Upload size={16} /> Tải lên</>}
+              </button>
+            </>
           )}
 
-          <button onClick={handleUpload} disabled={!file || uploading}
-            className={cn('w-full py-3 rounded-2xl font-black text-white transition-all text-sm flex items-center justify-center gap-2',
-              done ? 'bg-emerald-500' : 'bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed')}>
-            {done ? <><CheckCircle2 size={16} /> Tải lên thành công!</> : uploading ? <><Loader2 size={16} className="animate-spin" /> Đang tải... {progress}%</> : <><Upload size={16} /> Tải lên</>}
-          </button>
+          {/* Drive link mode */}
+          {mode === 'link' && (
+            <>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800">
+                📂 <b>Gợi ý:</b> Tải file lên Google Drive → Chia sẻ → Lấy link → Dán vào đây.<br />
+                Học sinh sẽ mở thẳng file trên Drive mà không cần tải về máy.
+              </div>
+              <div>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Link Google Drive / Dropbox *</label>
+                <input value={driveUrl} onChange={e => setDriveUrl(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100" />
+              </div>
+              <div>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Tiêu đề hiển thị *</label>
+                <input value={title} onChange={e => setTitle(e.target.value)}
+                  placeholder="Vd: EBOOK 30 Đề thi thực chiến Địa lý"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100" />
+              </div>
+              <div>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Loại file</label>
+                <select value={driveType} onChange={e => setDriveType(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-emerald-400 bg-white">
+                  <option value="pdf">📄 PDF</option>
+                  <option value="word">📝 Word</option>
+                  <option value="ppt">📊 PowerPoint</option>
+                </select>
+              </div>
+              <button onClick={handleSaveLink} disabled={!driveUrl.trim() || !title.trim() || uploading}
+                className={cn('w-full py-3 rounded-2xl font-black text-white transition-all text-sm flex items-center justify-center gap-2',
+                  done ? 'bg-emerald-500' : 'bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed')}>
+                {done ? <><CheckCircle2 size={16} /> Đã lưu!</> : uploading ? <><Loader2 size={16} className="animate-spin" /> Đang lưu...</> : <><Plus size={16} /> Lưu link tài liệu</>}
+              </button>
+            </>
+          )}
         </div>
       </motion.div>
     </div>
