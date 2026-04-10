@@ -485,28 +485,41 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
     }
 
     // ─── Save metadata (instant) ──────────────────────────────────────────────
-    const examData = {
+    // IMPORTANT: data URLs can be several MB — exceeds Firestore's 1MB doc limit.
+    // We save the full fileUrl (data URL) ONLY to localStorage.
+    // Firestore gets a stripped version with fileUrl=''.
+    const localId = `local_${Date.now()}`;
+    const localExamData = {
+      id: localId,
       title,
       creatorId,
       type: 'upload' as const,
-      fileUrl,
+      fileUrl,          // full data URL — localStorage only
       fileType,
       questions: [],
       createdAt: new Date().toISOString()
     };
+    // Always save locally with full data URL
+    lsSaveExam(localExamData);
 
-    const localId = `local_${Date.now()}`;
-    // Always save locally so the exam appears immediately without Firestore latency
-    lsSaveExam({ id: localId, ...examData });
+    // Firestore metadata: strip the data URL so the doc stays under 1MB
+    const fsExamData = {
+      title,
+      creatorId,
+      type: 'upload' as const,
+      fileUrl: fileUrl.startsWith('data:') ? '' : fileUrl, // strip data URLs
+      fileType,
+      questions: [],
+      createdAt: localExamData.createdAt
+    };
 
-    // Also try Firestore for teachers with permissions (non-blocking)
     const isGuest = !creatorId || creatorId === 'anonymous' || creatorId.includes('anonymous') || creatorId.startsWith('guest_');
     if (!isGuest) {
       try {
-        const docRef = await addDoc(collection(db, 'exams'), examData);
-        // Replace the local entry with the Firestore ID
+        const docRef = await addDoc(collection(db, 'exams'), fsExamData);
+        // Replace the local entry with the Firestore ID (keep full data URL locally)
         lsDeleteExam(localId);
-        lsSaveExam({ id: docRef.id, ...examData });
+        lsSaveExam({ ...localExamData, id: docRef.id });
         return docRef.id;
       } catch (fsErr) {
         if (!isPermissionError(fsErr)) {
