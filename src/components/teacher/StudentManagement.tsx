@@ -21,7 +21,16 @@ function buildStudentList(attempts: QuizAttempt[]): StudentSummary[] {
   const map = new Map<string, QuizAttempt[]>();
 
   for (const a of attempts) {
-    const key = a.userId || a.userName || 'unknown';
+    // For authenticated users: use userId as key (stable across sessions).
+    // For anonymous/guest users: use "name::class" so each named student
+    // appears as a separate row instead of all collapsing into one anonymous entry.
+    const isAnon = !a.userId
+      || a.userId === 'anonymous'
+      || a.userId.includes('anonymous')
+      || a.userId.startsWith('guest_');
+    const key = isAnon
+      ? `${(a.userName || 'unknown').trim().toLowerCase()}::${(a.className || '').trim().toLowerCase()}`
+      : a.userId;
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(a);
   }
