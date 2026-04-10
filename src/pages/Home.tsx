@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, Map, Target, Award, ArrowRight, Settings, LayoutDashboard, Users, FileText, Sparkles, ShieldCheck, History, Bell, Clock } from 'lucide-react';
-import { motion } from 'motion/react';
+import { BookOpen, Map, Target, Award, ArrowRight, Settings, LayoutDashboard, Users, FileText, Sparkles, ShieldCheck, History, Bell, Clock, Pencil, Check, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { QuizAttempt, UserProfile, Exam } from '../types';
 import { cn } from '../utils/cn';
@@ -9,13 +9,34 @@ import { examService } from '../services/examService';
 import { db } from '../firebase';
 import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
 
+
 export default function Home() {
   const { user, isTeacherMode } = useAuth();
   const [recentAttempts, setRecentAttempts] = useState<QuizAttempt[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [pendingAssignments, setPendingAssignments] = useState<Array<Exam & { examId: string; examTitle: string; assignedBy: string; targetClass: string; dueDate?: string }>>([]);
 
+  // Edit name inline
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editClass, setEditClass] = useState('');
+
+  const openEdit = () => {
+    setEditName(profile?.name || '');
+    setEditClass(profile?.className || '');
+    setEditMode(true);
+  };
+
+  const saveEdit = () => {
+    if (!editName.trim() || !editClass.trim()) return;
+    const updated = { ...(profile || {}), name: editName.trim(), className: editClass.trim() } as UserProfile;
+    localStorage.setItem('examGeoProfile', JSON.stringify(updated));
+    setProfile(updated);
+    setEditMode(false);
+  };
+
   useEffect(() => {
+
     if (user) {
       loadUserData();
     } else {
@@ -125,14 +146,25 @@ export default function Home() {
         <div className="relative z-10 max-w-2xl">
           {(profile?.name || user?.displayName) ? (
             <>
-              <motion.h1 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-3xl md:text-4xl font-bold mb-2"
+                className="flex items-center flex-wrap gap-3 mb-2"
               >
-                Chào {profile?.name || user?.displayName}, sẵn sàng ôn thi chưa?
-              </motion.h1>
+                <h1 className="text-3xl md:text-4xl font-bold">
+                  Chao {profile?.name || user?.displayName}, san sang on thi chua?
+                </h1>
+                {!isTeacherMode && (
+                  <button
+                    onClick={openEdit}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-bold"
+                    style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.35)', color: 'white' }}
+                  >
+                    <Pencil size={13} /> Sua ten
+                  </button>
+                )}
+              </motion.div>
               {profile?.className && (
                 <motion.p 
                   initial={{ opacity: 0, y: 20 }}
@@ -252,6 +284,56 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      {/* Edit Name Modal */}
+      <AnimatePresence>
+        {editMode && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setEditMode(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-black text-slate-800 text-lg">Sua thong tin</p>
+                <button onClick={() => setEditMode(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">Ho va ten *</label>
+                <input
+                  autoFocus value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                  placeholder="Ho va ten..."
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-emerald-400 outline-none text-sm font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">Lop *</label>
+                <input
+                  value={editClass}
+                  onChange={e => setEditClass(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                  placeholder="VD: 12C1"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-emerald-400 outline-none text-sm font-medium"
+                />
+              </div>
+              <button
+                onClick={saveEdit}
+                disabled={!editName.trim() || !editClass.trim()}
+                className="w-full py-3 rounded-2xl font-black flex items-center justify-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 transition-all"
+              >
+                <Check size={16} /> Luu thay doi
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
