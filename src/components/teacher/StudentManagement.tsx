@@ -27,20 +27,30 @@ function buildStudentList(attempts: QuizAttempt[]): StudentSummary[] {
   }
 
   return Array.from(map.entries()).map(([key, atts]) => {
-    const scores = atts.map(a => a.score);
-    const sorted = [...atts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Filter out attempts with invalid/missing scores
+    const validScores = atts.map(a => a.score).filter(s => typeof s === 'number' && !isNaN(s));
+    const sorted = [...atts].sort((a, b) => {
+      const da = a.date ? new Date(a.date).getTime() : 0;
+      const db = b.date ? new Date(b.date).getTime() : 0;
+      return db - da;
+    });
+    const lastDate = sorted.find(a => a.date && !isNaN(new Date(a.date).getTime()))?.date || '';
     return {
       key,
       userName: sorted[0].userName || 'Học sinh ẩn danh',
       className: sorted[0].className || 'Chưa xác định',
       totalAttempts: atts.length,
-      avgScore: scores.reduce((s, v) => s + v, 0) / scores.length,
-      highestScore: Math.max(...scores),
-      lowestScore: Math.min(...scores),
-      lastAttemptDate: sorted[0].date,
+      avgScore: validScores.length > 0 ? validScores.reduce((s, v) => s + v, 0) / validScores.length : 0,
+      highestScore: validScores.length > 0 ? Math.max(...validScores) : 0,
+      lowestScore: validScores.length > 0 ? Math.min(...validScores) : 0,
+      lastAttemptDate: lastDate,
       attempts: sorted,
     } as StudentSummary;
-  }).sort((a, b) => new Date(b.lastAttemptDate).getTime() - new Date(a.lastAttemptDate).getTime());
+  }).sort((a, b) => {
+    const da = a.lastAttemptDate ? new Date(a.lastAttemptDate).getTime() : 0;
+    const db = b.lastAttemptDate ? new Date(b.lastAttemptDate).getTime() : 0;
+    return db - da;
+  });
 }
 
 // Compute topic stats from all attempts of a student
@@ -96,6 +106,9 @@ function exportCSV(students: StudentSummary[]) {
 }
 
 const ScoreBadge = ({ score }: { score: number }) => {
+  if (typeof score !== 'number' || isNaN(score)) {
+    return <span className="inline-block px-2 py-0.5 rounded-lg border text-xs font-black bg-slate-50 text-slate-400 border-slate-100">—</span>;
+  }
   const color =
     score >= 8 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
     score >= 6.5 ? 'bg-blue-50 text-blue-700 border-blue-100' :
@@ -623,7 +636,9 @@ export default function StudentManagement({ attempts, onRefresh }: StudentManage
                   <td className="px-6 py-4"><ScoreBadge score={student.highestScore} /></td>
                   <td className="px-6 py-4"><ScoreBadge score={student.lowestScore} /></td>
                   <td className="px-6 py-4 text-xs text-slate-400 font-medium whitespace-nowrap">
-                    {new Date(student.lastAttemptDate).toLocaleDateString('vi-VN')}
+                    {student.lastAttemptDate && !isNaN(new Date(student.lastAttemptDate).getTime())
+                      ? new Date(student.lastAttemptDate).toLocaleDateString('vi-VN')
+                      : '—'}
                   </td>
                   <td className="px-6 py-4">
                     <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
