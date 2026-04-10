@@ -153,7 +153,7 @@ export default function Home() {
                 className="flex items-center flex-wrap gap-3 mb-2"
               >
                 <h1 className="text-3xl md:text-4xl font-bold">
-                  Chao {profile?.name || user?.displayName}, san sang on thi chua?
+                  Chào {profile?.name || user?.displayName}, sẵn sàng ôn thi chưa?
                 </h1>
                 {!isTeacherMode && (
                   <button
@@ -161,7 +161,7 @@ export default function Home() {
                     className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-bold"
                     style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.35)', color: 'white' }}
                   >
-                    <Pencil size={13} /> Sua ten
+                    <Pencil size={13} /> Sửa tên
                   </button>
                 )}
               </motion.div>
@@ -300,21 +300,21 @@ export default function Home() {
               className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl space-y-4"
             >
               <div className="flex items-center justify-between">
-                <p className="font-black text-slate-800 text-lg">Sua thong tin</p>
+                <p className="font-black text-slate-800 text-lg">✑️ Sửa thông tin</p>
                 <button onClick={() => setEditMode(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">Ho va ten *</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">Họ và tên *</label>
                 <input
                   autoFocus value={editName}
                   onChange={e => setEditName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && saveEdit()}
-                  placeholder="Ho va ten..."
+                  placeholder="Họ và tên..."
                   className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-emerald-400 outline-none text-sm font-medium"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">Lop *</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">Lớp *</label>
                 <input
                   value={editClass}
                   onChange={e => setEditClass(e.target.value)}
@@ -328,7 +328,7 @@ export default function Home() {
                 disabled={!editName.trim() || !editClass.trim()}
                 className="w-full py-3 rounded-2xl font-black flex items-center justify-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 transition-all"
               >
-                <Check size={16} /> Luu thay doi
+                <Check size={16} /> Lưu thay đổi
               </button>
             </motion.div>
           </motion.div>
