@@ -141,21 +141,41 @@ export default function TeacherDashboard() {
       const { generateExamFromContext } = await import('../services/ai');
       const questions = await generateExamFromContext(extractText);
       const updatedExam: Exam = { ...extractingExam, questions, type: 'ai' as const };
+      // Strip data URL before saving — raw file no longer needed after extraction
+      // This also frees localStorage quota so setItem doesn't throw
+      const examToSave: Exam = {
+        ...updatedExam,
+        fileUrl: (updatedExam.fileUrl || '').startsWith('data:') ? '' : (updatedExam.fileUrl || ''),
+      };
       // Update in localStorage
       const lsKey = 'geo_pro_local_exams';
-      const allExams: Exam[] = JSON.parse(localStorage.getItem(lsKey) || '[]');
-      const newExams = allExams.map(e => e.id === updatedExam.id ? updatedExam : e);
-      localStorage.setItem(lsKey, JSON.stringify(newExams));
+      try {
+        const allExams: Exam[] = JSON.parse(localStorage.getItem(lsKey) || '[]');
+        const newExams = allExams.map(e => e.id === examToSave.id ? examToSave : e);
+        localStorage.setItem(lsKey, JSON.stringify(newExams));
+      } catch { /* quota — skip local cache update, in-memory state is enough */ }
       setExams(prev => prev.map(e => e.id === updatedExam.id ? updatedExam : e));
+      // Also update Firestore if not a local-only exam
+      if (!extractingExam.id.startsWith('local_')) {
+        try {
+          const { doc, updateDoc } = await import('firebase/firestore');
+          const { db } = await import('../firebase');
+          await updateDoc(doc(db, 'exams', extractingExam.id), { questions, type: 'ai' });
+        } catch { /* silent — local state already updated */ }
+      }
       alert(`Đã trích xuất ${questions.length} câu hỏi từ nội dung!`);
       setExtractingExam(null);
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      alert(`Lỗi trích xuất: ${errMsg}`);
+      // Don't show quota errors to the user — they're non-critical
+      if (!errMsg.includes('quota') && !errMsg.includes('setItem')) {
+        alert(`Lỗi trích xuất: ${errMsg}`);
+      }
     } finally {
       setIsExtracting(false);
     }
   };
+
 
   useEffect(() => {
     let unsubscribeAttempts: (() => void) | undefined;

@@ -14,8 +14,11 @@ function lsGetExams(): Exam[] {
   try { return JSON.parse(localStorage.getItem(LS_EXAM_KEY) || '[]'); } catch { return []; }
 }
 function lsSaveExam(exam: Exam): void {
-  const exams = lsGetExams().filter(e => e.id !== exam.id);
-  localStorage.setItem(LS_EXAM_KEY, JSON.stringify([exam, ...exams]));
+  // Strip data URLs before storing — they can be several MB and blow localStorage quota.
+  // Data URLs are only needed transiently for AI extraction; metadata is all we persist.
+  const safe: Exam = (exam.fileUrl || '').startsWith('data:') ? { ...exam, fileUrl: '' } : exam;
+  const exams = lsGetExams().filter(e => e.id !== safe.id);
+  localStorage.setItem(LS_EXAM_KEY, JSON.stringify([safe, ...exams]));
 }
 function lsDeleteExam(id: string): void {
   localStorage.setItem(LS_EXAM_KEY, JSON.stringify(lsGetExams().filter(e => e.id !== id)));
