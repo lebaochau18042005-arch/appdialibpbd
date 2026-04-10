@@ -5,6 +5,7 @@ import { NavigateFunction } from 'react-router-dom';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 import RichContent from './RichContent';
+import DataTableChart from './DataTableChart';
 
 
 // Note: QuestionTextBlock replaced by shared RichContent (supports LaTeX + GFM tables)
@@ -98,9 +99,9 @@ export default function ExamReviewCard({
                 )}
 
                 {q.context && (
-                  <div className="mb-6 p-4 bg-blue-50/60 rounded-2xl border border-blue-200">
-                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">📊 Bảng số liệu / Dữ liệu tham khảo</p>
-                    <RichContent content={q.context} />
+                  <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200">
+                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">📊 Bảng số liệu &amp; Biểu đồ tham khảo</p>
+                    <DataTableChart content={q.context} />
                   </div>
                 )}
 

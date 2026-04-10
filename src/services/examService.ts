@@ -176,7 +176,21 @@ Các chủ đề PHẢI được đề cập trong đề:
 
       QUY TẮC KỸ THUẬT BẮT BUỘC:
       A. PHẦN II - mỗi câu PHẢI CÓ trường "context" là Markdown table với số liệu THỰC. KHÔNG dùng URL.
-         Định dạng: | Tiêu đề | 2020 | 2022 | 2024 |
+
+         CHUẨN BẢNG SỐ LIỆU BẮT BUỘC — phải tuân thủ CHÍNH XÁC:
+         - Hàng 1: header với tên các cột (dùng đơn vị trong ngoặc nếu cần): | Chỉ tiêu | 2015 | 2020 | 2024 |
+         - Hàng 2: dòng phân cách: |---|---|---|---|
+         - Hàng 3+: dữ liệu số, dùng DẤU PHẨY ngăn hàng nghìn phổ thông VN: 1.234,5
+         - Dòng cuối bắt đầu bằng "(Nguồn: ..." để ghi nguồn số liệu
+         - Số liệu PHẢI NHẤT QUÁN với câu text và phương án đúng/sai
+
+         VÍ DỤ HỢP LỆ:
+         | Sản phẩm | 2015 | 2019 | 2024 |
+         |---|---|---|---|
+         | Sản lượng lúa (triệu tấn) | 45,1 | 43,4 | 43,9 |
+         | Sản lượng ngô (triệu tấn) | 5,3 | 4,8 | 5,1 |
+         (Nguồn: Niên giám thống kê 2024)
+
       B. PHẦN III - correctAnswer PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
       C. MỌI CÂU HỎI phải có fields: id, type, text, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
       D. Câu hỏi trắc nghiệm: phải có options (4 phương án) và correctAnswerIndex.
@@ -189,11 +203,13 @@ Các chủ đề PHẢI được đề cập trong đề:
       - 4 câu Phần II (mỗi câu có 4 statements đúng/sai, không có correctAnswerIndex)
       - 6 câu Phần III (điền số: tất cả là bài tính toán, correctAnswer là số)
 
-      YÊu CẦU ĐẶC BIỆT PHẦN II (RẤT QUAN TRỌNG, KHÔNG Bỏ QUA):
-      **** TẤT CẢ 4 câu Phần II ĐềU PHẢI có trường "context" chứa một bảng số liệu Markdown TABLE hoàn chỉnh.
-      - context PHẢI có têu hàng (header row), dòng phân cách (|---|---|), và ít nhất 3 dòng dữ liệu.
+      YÊU CẦU ĐẶC BIỆT PHẦN II (RẤT QUAN TRỌNG, BẮT BUỘC 100%):
+      **** TẤT CẢ 4 câu Phần II PHẢI có trường "context" chứa bảng Markdown TABLE hoàn chỉnh.
+      - Phân bố 4 chủ đề khác nhau: dân số, nông nghiệp, công nghiệp, Đông Nam Á.
+      - context PHẢI có: header row → separator row → ít nhất 3 dòng dữ liệu → dòng nguồn.
+      - Tất cả số liệu trong context PHẢI NHẤT QUÁN với text câu hỏi và statements.
       - ĐẶC BIỆT: PHẦN II CÂU SỐ 4 PHẢI VỀ ĐÔNG NAM Á (chương trình Địa 11):
-          context bắt buộc phải có: | Quốc gia | 2019 | 2021 | 2024 | với số liệu GDP thực của ít nhất In-đô-nê-xi-a, Thái Lan, Việt Nam.
+          context bắt buộc: | Quốc gia | 2019 | 2021 | 2024 | với số liệu GDP thực của ít nhất 3 nước.
           text: "Cho bảng số liệu [GDP/dân số/xuất nhập khẩu] một số nước Đông Nam Á. Nhận định nào sau đây đúng?"
 
       LƯU Ý KHÁC:

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 import RichContent from './RichContent';
+import DataTableChart from './DataTableChart';
 
 
 // Note: QuestionText has been replaced by the shared RichContent component (supports LaTeX, GFM tables, math)
@@ -65,9 +66,9 @@ export default function ExamActiveCard({
         )}
 
         {currentQuestion.context && (
-          <div className="mb-6 p-5 bg-blue-50/60 rounded-2xl border border-blue-200">
-            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">📊 Bảng số liệu / Dữ liệu tham khảo</p>
-            <RichContent content={currentQuestion.context} />
+          <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200">
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">📊 Bảng số liệu &amp; Biểu đồ tham khảo</p>
+            <DataTableChart content={currentQuestion.context} />
           </div>
         )}
 
