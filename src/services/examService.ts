@@ -427,104 +427,50 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
   },
 
   async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html'): Promise<string> {
-    // ─── Read file as data URL instantly (no network round-trip) ──────────────
-    // File content is stored in localStorage only for AI extraction.
-    // We don't need permanent cloud storage for the raw file — AI extracts
-    // questions immediately after upload, after which the raw file is not used.
-    const readFileAsDataUrl = (): Promise<string> =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+    const createdAt = new Date().toISOString();
+    const localId = `local_${Date.now()}`;
 
-    // For files <8 MB store data URL in localStorage; for larger files we skip
-    // the local content but still register the exam entry so AI extraction can
-    // be triggered later by re-uploading from the UI if needed.
-    let fileUrl: string = '';
-    try {
-      if (file.size <= 8 * 1024 * 1024) {
-        fileUrl = await readFileAsDataUrl();
-      } else {
-        // For large files, try a quick Cloudinary upload in the background
-        // but don't block the UI — show a toast-style note instead.
-        fileUrl = `pending:${file.name}`;
-        // Fire-and-forget Cloudinary upload
-        (async () => {
-          try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', 'geo_uploads');
-            formData.append('cloud_name', 'dahaer5kb');
-            const res = await fetch('https://api.cloudinary.com/v1_1/dahaer5kb/raw/upload', {
-              method: 'POST',
-              body: formData,
-            });
-            if (res.ok) {
-              const data = await res.json();
-              const cloudUrl = data.secure_url as string;
-              // Update the exam record in Firestore/LS with the cloud URL
-              const exams = lsGetExams();
-              const exam = exams.find(e => e.fileUrl === `pending:${file.name}`);
-              if (exam) {
-                exam.fileUrl = cloudUrl;
-                localStorage.setItem(LS_EXAM_KEY, JSON.stringify(exams));
-                if (!exam.id.startsWith('local_')) {
-                  try {
-                    await updateDoc(doc(db, 'exams', exam.id), { fileUrl: cloudUrl });
-                  } catch { /* silent */ }
-                }
-              }
-            }
-          } catch { /* silent – large file upload is optional */ }
-        })();
-      }
-    } catch (e) {
-      fileUrl = `pending:${file.name}`;
+    // Step 1: Read file as data URL (best-effort, silent on failure)
+    let fileUrl = '';
+    if (file.size <= 8 * 1024 * 1024) {
+      try {
+        fileUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(file);
+        });
+      } catch { /* silent */ }
     }
 
-    // ─── Save metadata (instant) ──────────────────────────────────────────────
-    // IMPORTANT: data URLs can be several MB — exceeds Firestore's 1MB doc limit.
-    // We save the full fileUrl (data URL) ONLY to localStorage.
-    // Firestore gets a stripped version with fileUrl=''.
-    const localId = `local_${Date.now()}`;
-    const localExamData = {
-      id: localId,
-      title,
-      creatorId,
-      type: 'upload' as const,
-      fileUrl,          // full data URL — localStorage only
-      fileType,
-      questions: [],
-      createdAt: new Date().toISOString()
+    // Step 2: Save to localStorage (with data URL) - best-effort
+    const localExamData: Exam = {
+      id: localId, title, creatorId,
+      type: 'upload', fileUrl, fileType,
+      questions: [], createdAt,
     };
-    // Always save locally with full data URL
-    lsSaveExam(localExamData);
+    try {
+      lsSaveExam(localExamData);
+    } catch {
+      // Quota exceeded - try without data URL
+      try { lsSaveExam({ ...localExamData, fileUrl: '' }); } catch { /* skip */ }
+    }
 
-    // Firestore metadata: strip the data URL so the doc stays under 1MB
-    const fsExamData = {
-      title,
-      creatorId,
-      type: 'upload' as const,
-      fileUrl: fileUrl.startsWith('data:') ? '' : fileUrl, // strip data URLs
-      fileType,
-      questions: [],
-      createdAt: localExamData.createdAt
-    };
-
+    // Step 3: Firestore metadata only (NEVER data URL - 1MB doc limit)
     const isGuest = !creatorId || creatorId === 'anonymous' || creatorId.includes('anonymous') || creatorId.startsWith('guest_');
     if (!isGuest) {
       try {
-        const docRef = await addDoc(collection(db, 'exams'), fsExamData);
-        // Replace the local entry with the Firestore ID (keep full data URL locally)
-        lsDeleteExam(localId);
-        lsSaveExam({ ...localExamData, id: docRef.id });
+        const docRef = await addDoc(collection(db, 'exams'), {
+          title, creatorId, type: 'upload' as const,
+          fileUrl: '', fileType, questions: [], createdAt,
+        });
+        try {
+          lsDeleteExam(localId);
+          lsSaveExam({ ...localExamData, id: docRef.id });
+        } catch { /* quota - keep localId entry */ }
         return docRef.id;
       } catch (fsErr) {
-        if (!isPermissionError(fsErr)) {
-          console.warn('saveUploadedExam Firestore failed, keeping local:', fsErr);
-        }
+        console.warn('saveUploadedExam Firestore failed, keeping local:', fsErr);
       }
     }
 
