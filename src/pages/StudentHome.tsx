@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Bell, BookOpen, BarChart2, Map, History, Clock,
-  ChevronRight, Trophy, Target, ArrowRight, Sparkles, AlertTriangle, X, Compass, Library, Globe2
+  ChevronRight, Trophy, Target, ArrowRight, Sparkles, AlertTriangle, X, Compass, Library, Globe2,
+  Pencil, Trash2, Check, School, User as UserIcon, BookMarked
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { sessionService, LiveAlert } from '../services/sessionService';
@@ -71,11 +72,40 @@ const FEATURES = [
 ];
 
 export default function StudentHome() {
-  const profile = getProfile();
+  const [profile, setProfile] = useState(() => getProfile());
   const [pendingAssignments, setPendingAssignments] = useState<AssignedExam[]>([]);
   const [recentAttempts, setRecentAttempts] = useState<any[]>([]);
   const [liveAlert, setLiveAlert] = useState<LiveAlert | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
+
+  // Edit profile state
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editClass, setEditClass] = useState('');
+  const [editSchool, setEditSchool] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const openEdit = () => {
+    setEditName(profile.name || '');
+    setEditClass(profile.className || '');
+    setEditSchool(profile.school || '');
+    setEditMode(true);
+  };
+
+  const saveEdit = () => {
+    if (!editName.trim() || !editClass.trim()) return;
+    const updated = { ...profile, name: editName.trim(), className: editClass.trim(), school: editSchool.trim() };
+    localStorage.setItem('examGeoProfile', JSON.stringify(updated));
+    setProfile(updated);
+    setEditMode(false);
+  };
+
+  const deleteProfile = () => {
+    localStorage.removeItem('examGeoProfile');
+    localStorage.removeItem('examGeoRole');
+    localStorage.removeItem('geo_pro_guest_profile');
+    window.location.reload();
+  };
 
   useEffect(() => {
     if (!profile.name || !profile.className) return;
@@ -149,10 +179,30 @@ export default function StudentHome() {
               Chào mừng trở lại
             </span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black mb-1" style={{ color: '#f1f5f9', letterSpacing: '-0.02em' }}>
-            {profile.name || 'Học sinh'} 👋
-          </h1>
-          <p className="text-sm font-medium" style={{ color: 'rgba(148,163,184,0.7)' }}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl md:text-3xl font-black" style={{ color: '#f1f5f9', letterSpacing: '-0.02em' }}>
+              {profile.name || 'Học sinh'} 👋
+            </h1>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={openEdit}
+                title="Sửa thông tin"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
+                style={{ background: 'rgba(0,191,255,0.12)', border: '1px solid rgba(0,191,255,0.25)', color: 'rgba(0,191,255,0.8)' }}
+              >
+                <Pencil size={11} /> Sửa tên
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                title="Xóa hồ sơ và đăng ký lại"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: 'rgba(248,113,113,0.85)' }}
+              >
+                <Trash2 size={11} /> Xóa
+              </button>
+            </div>
+          </div>
+          <p className="text-sm font-medium mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
             Lớp {profile.className || '?'}{profile.school ? ` · ${profile.school}` : ''}
           </p>
 
@@ -205,6 +255,133 @@ export default function StudentHome() {
           </div>
         </div>
       </section>
+
+      {/* ── EDIT PROFILE MODAL ── */}
+      <AnimatePresence>
+        {editMode && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setEditMode(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm rounded-3xl p-6 space-y-4"
+              style={{ background: '#0f172a', border: '1px solid rgba(0,191,255,0.25)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-black text-white text-lg">✏️ Sửa thông tin</p>
+                <button onClick={() => setEditMode(false)} style={{ color: 'rgba(148,163,184,0.5)' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider mb-1.5 block" style={{ color: 'rgba(0,191,255,0.6)' }}>Họ và tên *</label>
+                <div className="relative">
+                  <UserIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(148,163,184,0.4)' }} />
+                  <input
+                    autoFocus
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                    placeholder="Họ và tên..."
+                    className="w-full pl-9 pr-4 py-3 rounded-2xl text-white font-medium outline-none text-sm"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,191,255,0.2)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Class */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider mb-1.5 block" style={{ color: 'rgba(0,191,255,0.6)' }}>Lớp *</label>
+                <div className="relative">
+                  <BookMarked size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(148,163,184,0.4)' }} />
+                  <input
+                    value={editClass}
+                    onChange={e => setEditClass(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                    placeholder="VD: 12C1"
+                    className="w-full pl-9 pr-4 py-3 rounded-2xl text-white font-medium outline-none text-sm"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,191,255,0.2)' }}
+                  />
+                </div>
+              </div>
+
+              {/* School */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider mb-1.5 block" style={{ color: 'rgba(0,191,255,0.6)' }}>Trường (tùy chọn)</label>
+                <div className="relative">
+                  <School size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(148,163,184,0.4)' }} />
+                  <input
+                    value={editSchool}
+                    onChange={e => setEditSchool(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                    placeholder="Tên trường..."
+                    className="w-full pl-9 pr-4 py-3 rounded-2xl text-white font-medium outline-none text-sm"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,191,255,0.2)' }}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={saveEdit}
+                disabled={!editName.trim() || !editClass.trim()}
+                className="w-full py-3 rounded-2xl font-black flex items-center justify-center gap-2 transition-all disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg, #0ea5e9, #14b8a6)', color: 'white' }}
+              >
+                <Check size={16} /> Lưu thay đổi
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── DELETE CONFIRM MODAL ── */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm rounded-3xl p-6 space-y-4 text-center"
+              style={{ background: '#0f172a', border: '1px solid rgba(239,68,68,0.3)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
+            >
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <Trash2 size={24} style={{ color: '#f87171' }} />
+              </div>
+              <div>
+                <p className="text-white font-black text-lg">Xóa hồ sơ?</p>
+                <p className="text-sm mt-1" style={{ color: 'rgba(148,163,184,0.6)' }}>Bạn sẽ cần nhập lại tên và lớp. Lịch sử bài làm sẽ được giữ lại.</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-3 rounded-2xl font-bold text-sm transition-all"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(148,163,184,0.8)' }}
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={deleteProfile}
+                  className="flex-1 py-3 rounded-2xl font-black text-sm transition-all"
+                  style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white' }}
+                >
+                  Xóa hồ sơ
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── LIVE ALERT FROM TEACHER ── */}
       {liveAlert && !alertDismissed && (
