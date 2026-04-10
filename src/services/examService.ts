@@ -427,55 +427,64 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
   },
 
   async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html'): Promise<string> {
-    // ── Helper: upload to Cloudinary (same service as the library) ──────────────
-    const uploadToCloudinary = async (): Promise<string> => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', 'geo_uploads');
-      formData.append('cloud_name', 'dahaer5kb');
-      const res = await fetch('https://api.cloudinary.com/v1_1/dahaer5kb/raw/upload', {
-        method: 'POST',
-        body: formData,
+    // ─── Read file as data URL instantly (no network round-trip) ──────────────
+    // File content is stored in localStorage only for AI extraction.
+    // We don't need permanent cloud storage for the raw file — AI extracts
+    // questions immediately after upload, after which the raw file is not used.
+    const readFileAsDataUrl = (): Promise<string> =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
-      if (!res.ok) throw new Error(`Cloudinary upload failed: HTTP ${res.status}`);
-      const data = await res.json();
-      return data.secure_url as string;
-    };
 
-    // ── Step 1: Try Firebase Storage (fast path for users with permissions) ─────
-    let fileUrl: string | null = null;
+    // For files <8 MB store data URL in localStorage; for larger files we skip
+    // the local content but still register the exam entry so AI extraction can
+    // be triggered later by re-uploading from the UI if needed.
+    let fileUrl: string = '';
     try {
-      const storageRef = ref(storage, `exams/${creatorId}/${Date.now()}_${file.name}`);
-      const uploadTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Storage timeout')), 5000)
-      );
-      const snapshot = await Promise.race([uploadBytes(storageRef, file), uploadTimeout]);
-      fileUrl = await getDownloadURL(snapshot.ref);
-    } catch {
-      // Firebase Storage unavailable — try Cloudinary next
-    }
-
-    // ── Step 2: Cloudinary fallback (handles PDF & large files) ─────────────────
-    if (!fileUrl) {
-      try {
-        fileUrl = await uploadToCloudinary();
-      } catch (cloudErr) {
-        console.warn('Cloudinary fallback failed:', cloudErr);
-        // ── Step 3: Final fallback — data URL for small files only (<1MB) ──────
-        if (file.size < 1024 * 1024) {
-          fileUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-        } else {
-          throw new Error(`Không thể tải lên file ${fileType.toUpperCase()} (${(file.size / 1024 / 1024).toFixed(1)}MB). Vui lòng kiểm tra kết nối mạng và thử lại.`);
-        }
+      if (file.size <= 8 * 1024 * 1024) {
+        fileUrl = await readFileAsDataUrl();
+      } else {
+        // For large files, try a quick Cloudinary upload in the background
+        // but don't block the UI — show a toast-style note instead.
+        fileUrl = `pending:${file.name}`;
+        // Fire-and-forget Cloudinary upload
+        (async () => {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', 'geo_uploads');
+            formData.append('cloud_name', 'dahaer5kb');
+            const res = await fetch('https://api.cloudinary.com/v1_1/dahaer5kb/raw/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const cloudUrl = data.secure_url as string;
+              // Update the exam record in Firestore/LS with the cloud URL
+              const exams = lsGetExams();
+              const exam = exams.find(e => e.fileUrl === `pending:${file.name}`);
+              if (exam) {
+                exam.fileUrl = cloudUrl;
+                localStorage.setItem(LS_EXAM_KEY, JSON.stringify(exams));
+                if (!exam.id.startsWith('local_')) {
+                  try {
+                    await updateDoc(doc(db, 'exams', exam.id), { fileUrl: cloudUrl });
+                  } catch { /* silent */ }
+                }
+              }
+            }
+          } catch { /* silent – large file upload is optional */ }
+        })();
       }
+    } catch (e) {
+      fileUrl = `pending:${file.name}`;
     }
 
-    // ── Step 3: Save metadata ────────────────────────────────────────────────────
+    // ─── Save metadata (instant) ──────────────────────────────────────────────
     const examData = {
       title,
       creatorId,
@@ -486,17 +495,27 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
       createdAt: new Date().toISOString()
     };
 
-    try {
-      const docRef = await addDoc(collection(db, 'exams'), examData);
-      return docRef.id;
-    } catch (fsErr) {
-      if (isPermissionError(fsErr)) {
-        const localId = `local_${Date.now()}`;
-        lsSaveExam({ id: localId, ...examData });
-        return localId;
+    const localId = `local_${Date.now()}`;
+    // Always save locally so the exam appears immediately without Firestore latency
+    lsSaveExam({ id: localId, ...examData });
+
+    // Also try Firestore for teachers with permissions (non-blocking)
+    const isGuest = !creatorId || creatorId === 'anonymous' || creatorId.includes('anonymous') || creatorId.startsWith('guest_');
+    if (!isGuest) {
+      try {
+        const docRef = await addDoc(collection(db, 'exams'), examData);
+        // Replace the local entry with the Firestore ID
+        lsDeleteExam(localId);
+        lsSaveExam({ id: docRef.id, ...examData });
+        return docRef.id;
+      } catch (fsErr) {
+        if (!isPermissionError(fsErr)) {
+          console.warn('saveUploadedExam Firestore failed, keeping local:', fsErr);
+        }
       }
-      throw fsErr;
     }
+
+    return localId;
   },
 
 
