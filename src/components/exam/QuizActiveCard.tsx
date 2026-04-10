@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 import RichContent from './RichContent';
+import DataTableChart from './DataTableChart';
 
 interface QuizActiveCardProps {
   currentQuestion: Question;
@@ -64,9 +65,9 @@ export default function QuizActiveCard({
               </div>
             )}
             {currentQuestion.context && (
-              <div className="mt-4 p-4 bg-blue-50/80 rounded-xl border border-blue-200">
-                <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2">📊 Bảng số liệu / Dữ liệu tham khảo</p>
-                <RichContent content={currentQuestion.context} />
+              <div className="mt-4 p-4 bg-indigo-50/70 rounded-xl border border-indigo-200">
+                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">📊 Bảng số liệu &amp; Biểu đồ tham khảo</p>
+                <DataTableChart content={currentQuestion.context} />
               </div>
             )}
           </div>
