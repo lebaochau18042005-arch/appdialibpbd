@@ -329,15 +329,26 @@ export default function TeacherDashboard() {
     try {
       const id = await examService.saveUploadedExam(uploadTitle, user?.uid || 'anonymous-teacher', selectedFile, uploadingType);
       if (id) {
-        alert(`Đã tải lên đề thi ${uploadingType.toUpperCase()} thành công!`);
-        await loadData();
+        // Close modal instantly without waiting for Firestore refetch
         setShowUploadConfirm(false);
         setUploadingType(null);
         setSelectedFile(null);
         setUploadTitle('');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        // Optimistic update: add the new exam to the list immediately
+        const newExam: Exam = {
+          id,
+          title: uploadTitle,
+          creatorId: user?.uid || 'anonymous-teacher',
+          type: 'upload',
+          fileUrl: '',
+          fileType: uploadingType,
+          questions: [],
+          createdAt: new Date().toISOString(),
+        };
+        setExams(prev => [newExam, ...prev.filter(e => e.id !== id)]);
+        // Silently refresh in background
+        loadData();
       }
     } catch (error) {
       console.error(error);
@@ -346,6 +357,7 @@ export default function TeacherDashboard() {
       setIsUploading(false);
     }
   };
+
 
   const handleDeleteExam = async (examId: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa đề thi này?')) return;
