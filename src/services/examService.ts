@@ -67,8 +67,7 @@ export const examService = {
   // Generate AI Exam based on 2025 structure using Gemini
   async generateAIExam(fileContext?: string): Promise<Question[]> {
     try {
-      const model = "gemini-2.0-flash";
-
+      // model is selected automatically by generateContentWithFallback
       // ===== KHỐI KIẾN THỨC HÀNH CHÍNH BẮT BUỘC (sau sáp nhập 1/7/2025) =====
       const HANH_CHINH_2025 = `
 === DANH SÁCH 34 ĐƠN VỊ HÀNH CHÍNH CẤP TỈNH HIỆN HÀNH (sau NQ202/2025/QH15 có hiệu lực 1/7/2025) ===
@@ -164,28 +163,8 @@ Các chủ đề PHẢI được đề cập trong đề:
 `;
 
       const systemInstruction = `Bạn là chuyên gia biên soạn đề thi Địa lí THPT Quốc gia cấp Bộ, GIỎI NHẤT Việt Nam.
-      Nhiệm vụ: tạo đề thi ĐÚNG MA TRẬN chuẩn Bộ GDĐT 2025 gồm ĐÚNG 28 CÂU.
-
-      ${HANH_CHINH_2025}
-      ${MA_TRAN_DE_THI}
-      ${CHUONG_TRINH_TT17}
-
-      QUY TẮC KỸ THUẬT BẮT BUỘC:
-      A. BIỂU ĐỒ / BẢNG SỐ LIỆU — ÁP DỤNG CHO MỌI LOẠI CÂU HỎI (PHẦN I, II, III):
-         ⚠️ QUY TẮC VÀNG: Nếu text câu hỏi có chứa từ "biểu đồ", "bảng số liệu", "bảng dưới đây",
-         "số liệu", "hình", "lược đồ" → CÂU ĐÓ BẮT BUỘC PHẢI CÓ trường "context" chứa bảng Markdown.
-         KHÔNG BAO GIỜ hỏi "Cho biểu đồ X. Nhận xét nào đúng?" mà để context rỗng/null.
-         Nếu không có số liệu để điền → KHÔNG DÙNG "biểu đồ/bảng số liệu" trong câu hỏi đó.
-
-         CHUẨN BẢNG SỐ LIỆU BẮT BUỘC — phải tuân thủ CHÍNH XÁC:
-         - Hàng 1: header với tên các cột (dùng đơn vị trong ngoặc nếu cần): | Chỉ tiêu | 2015 | 2020 | 2024 |
-         - Hàng 2: dòng phân cách: |---|---|---|---|
-         - Hàng 3+: dữ liệu số, dùng DẤU PHẨY ngăn hàng nghìn phổ thông VN: 1.234,5
-         - Dòng cuối bắt đầu bằng "(Nguồn: ..." để ghi nguồn số liệu
-         - Số liệu PHẢI NHẤT QUÁN với câu text và phương án đúng/sai
-
-      B. PHẦN III - correctAnswer PHẦN III PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
-      C. MỌI CÂU HỎI phải có fields: id, type, text, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
+      Nhiệm vụ: tạo đề thi ĐÚNG MA TRẬN chu      B. PHẦN III - correctAnswer PHẦN III PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
+      C. MỌI CÂU HỎi phải có fields: id, type, text, context, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
       D. Câu hỏi trắc nghiệm: phải có options (4 phương án) và correctAnswerIndex.
       E. correctAnswerIndex là INDEX (0, 1, 2, 3), KHÔNG phải nhãn A/B/C/D.
       F. KHÔNG sử dụng tỉnh/thành đã bị sáp nhập làm đáp án đúng tồn tại độc lập.
@@ -196,11 +175,28 @@ Các chủ đề PHẢI được đề cập trong đề:
       - 4 câu Phần II (mỗi câu có 4 statements đúng/sai, không có correctAnswerIndex)
       - 6 câu Phần III (điền số: tất cả là bài tính toán, correctAnswer là số)
 
+         ❌ FORBIDDEN (sẽ gây lỗi hệ thống): { "text": "Cho biểu đồ X...", "context": null }
+          ✅ REQUIRED: { "text": "Cho biểu đồ X...", "context": "| Loại | 2015 | 2020 | 2024 |\n|---|---|---|---|\n..." }
+          🔑 GIẢI PHÁP ĐƠN GIẢN: Nếu không có số liệu → KHÔNG VÀO câu hỏi về biểu đồ/bảng mà hỏi về đặc điểm/nguyên nhân.
+
+         CHUẨN BẢNG SỐ LIỆU BẮT BUỘC — phải tuân thủ CHÍNH XÁC:
+         - Hàng 1: header với tên các cột (dùng đơn vị trong ngoốc nếu cần): | Chỉ tiêu | 2015 | 2020 | 2024 |
+         - Hàng 2: dòng phân cách: |---|---|---|---|
+         - Hàng 3+: dữ liệu số, dùng DẤU PHẨY ngăn hàng nghìn phổ thông VN: 1.234,5
+         - Dòng cuối bắt đầu bằng "(Nguồn: ..." để ghi nguồn số liệu
+         - Số liệu PHẢI NHẤT QUÁN với câu text và phương án đúng/sai
+
+      B. PHẦN III - correctAnswer PHẦN III PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
+      C. MỌI CÂU HỎI phải có fields: id, type, text, context, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
+      D. Câu hỏi trắc nghiệm: phải có options (4 phương án) và correctAnswerIndex.
+      E. correctAnswerIndex là INDEX (0, 1, 2, 3), KHÔNG phải nhãn A/B/C/D.
+      F. KHÔNG sử dụng tỉnh/thành đã bị sáp nhập làm đáp án đúng tồn tại độc lập.
+      - 6 câu Phần III (điền số: tất cả là bài tính toán, correctAnswer là số)
+
       YÊU CẦU PHẦN II (ĐÚNG CẤU TRÚC THI TỐT NGHIỆP 2025 — BẮT BUỘC):
-      *** CÂU 1, 2, 3 Phần II: KHÔNG có bảng số liệu. context = null. ***
+      *** CÂU 1, 2, 3 Phần II: CẤM dùng bất kỳ từ "biểu đồ", "bảng", "số liệu", "hình" trong câu hỏi. ***
           - 4 mệnh đề Đúng/Sai về kiến thức, khái niệm, đặc điểm địa lí Việt Nam (lý thuyết thuần túy).
-          - text câu hỏi KHÔNG được chứa "biểu đồ", "bảng số liệu", "số liệu dưới đây".
-          - Ví dụ: "Nhận định nào sau đây đúng về đặc điểm dân cư nước ta?"
+          - Câu hỏi phải hỏi về khái niệm, đặc điểm, nguyên nhân, ý nghĩa địa lí — KHÔNG hỏi về số liệu.
           - id 4 statements: "stmt_a", "stmt_b", "stmt_c", "stmt_d"
           - Phân bố: 2 đúng 2 sai (hoặc 3-1 hoặc 1-3, đa dạng).
 
@@ -245,11 +241,12 @@ Các chủ đề PHẢI được đề cập trong đề:
                     id: { type: Type.STRING },
                     text: { type: Type.STRING },
                     isTrue: { type: Type.BOOLEAN }
-                  }
+                  },
+                  required: ["id", "text", "isTrue"]
                 }
               }
             },
-            required: ["id", "type", "text", "explanation"]
+            required: ["id", "type", "text", "context", "explanation", "cognitiveLevel"]
           }
         }
       });
@@ -262,6 +259,39 @@ Các chủ đề PHẢI được đề cập trong đề:
         throw new Error("Dữ liệu đề thi không hợp lệ.");
       }
 
+      // ===== TWO-PASS: Generate missing context for chart-reference questions =====
+      // Gemini may still return context="" for some chart questions despite being required.
+      // For those, call AI separately just to generate the data table.
+      const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|lược đồ|hình dưới|số liệu sau/i;
+      const needsContext = examQuestions.filter((q: any) => 
+        CHART_RE.test(q.text || '') && (!q.context || q.context.trim().length < 15)
+      );
+
+      if (needsContext.length > 0) {
+        await Promise.all(needsContext.map(async (q: any) => {
+          try {
+            const ctxPrompt = `Tạo ngay một bảng số liệu Markdown phù hợp với câu hỏi địa lí sau (không giải thích gì thêm, chỉ trả về bảng Markdown):
+
+CÂU HỎI: ${q.text}
+
+YÊU CẦU:
+- Bảng có ít nhất 4 hàng dữ liệu và 3-5 cột
+- Nếu câu hỏi về Đông Nam Á: dùng ít nhất 5 quốc gia ĐNÁ với GDP/dân số từ 2019-2024
+- Nếu câu hỏi về Việt Nam: dùng số liệu kinh tế-xã hội VN từ 2015-2024
+- Số liệu phải nhất quán với nội dung câu hỏi
+- Kết thúc bảng bằng dòng "(Nguồn: ...)"
+- CHỈ trả về bảng Markdown, không có text khác`;
+            const ctxRes = await generateContentWithFallback(ctxPrompt);
+            const generated = ctxRes.text?.trim() || '';
+            if (generated.includes('|') && generated.includes('---')) {
+              q.context = generated;
+            }
+          } catch {
+            // if fails, leave context as-is — warning will show as fallback
+          }
+        }));
+      }
+
       return examQuestions;
     } catch (error) {
       console.error("AI Generation Error:", error);
@@ -271,7 +301,7 @@ Các chủ đề PHẢI được đề cập trong đề:
 
   async generatePracticeQuestions(topicOrLesson: string, mode: 'topic' | 'lesson' | 'format' | string, count: number, fileContext?: string): Promise<Question[]> {
     try {
-      const model = "gemini-2.0-flash";
+      // model is selected automatically by generateContentWithFallback
 
       const HANH_CHINH_NOTE = `
 CẬP NHẬT HÀNH CHÍNH 2025 (NQ202/2025/QH15 hiệu lực 1/7/2025): Việt Nam còn 34 đơn vị hành chính cấp tỉnh.
@@ -722,23 +752,31 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
 
   async generateDetailedExplanation(question: Question, userAnswer: any): Promise<{ explanation: string, tips: string, mnemonics: string }> {
     try {
-      const model = "gemini-3-flash-preview";
-      const prompt = `Bạn là một chuyên gia giáo dục Địa lí. Hãy giải thích chi tiết câu hỏi sau đây cho học sinh.
-      
-      CÂU HỎI: ${question.text}
-      LOẠI CÂU HỎI: ${question.type}
-      ĐÁP ÁN ĐÚNG: ${question.type === 'multiple_choice' ? question.options[question.correctAnswerIndex] : 
-                    question.type === 'true_false' ? JSON.stringify(question.statements.filter(s => s.isTrue).map(s => s.text)) : 
-                    question.correctAnswer}
-      CÂU TRẢ LỜI CỦA HỌC SINH: ${JSON.stringify(userAnswer)}
-      
-      YÊU CẦU:
-      1. Giải thích tại sao đáp án đúng là chính xác.
-      2. Nếu học sinh trả lời sai, hãy phân tích lỗi sai thường gặp.
-      3. Cung cấp lời khuyên (tips) để làm dạng bài này.
-      4. Cung cấp mẹo ghi nhớ (mnemonics) để nhớ kiến thức này lâu hơn.
-      
-      Trả về JSON: { "explanation": "...", "tips": "...", "mnemonics": "..." }`;
+      // Lấy kiến thức hành chính 2025 từ ai.ts
+      const { KIEN_THUC_HANH_CHINH_2025_EXPORT } = await import('./ai');
+      const adminNote = KIEN_THUC_HANH_CHINH_2025_EXPORT ||
+        'Cập nhật hành chính 2025: Việt Nam còn 34 tỉnh/thành sau NQ202/2025/QH15 (hiệu lực 1/7/2025). Dùng đúng tên tỉnh mới.';
+
+      const contextBlock = question.context ? `\nBẢNG SỐ LIỆU / NGỮ CẢNH:\n${question.context}\n` : '';
+
+      const prompt = `Bạn là một chuyên gia giáo dục Địa lí THPT, nắm vững cấu trúc đề 2025 và TT 17/2025/TT-BGDĐT. Hãy giải thích chi tiết câu hỏi sau cho học sinh.
+
+${adminNote}${contextBlock}
+CÂU HỎI: ${question.text}
+LOẠI CÂU HỎI: ${question.type}
+ĐÁP ÁN ĐÚNG: ${question.type === 'multiple_choice' ? (question as any).options[(question as any).correctAnswerIndex] :
+                    question.type === 'true_false' ? JSON.stringify((question as any).statements.filter((s: any) => s.isTrue).map((s: any) => s.text)) :
+                    (question as any).correctAnswer}
+CÂU TRẢ LỜI CỦA HỌC SINH: ${JSON.stringify(userAnswer)}
+
+YÊU CẦU:
+1. Giải thích tại sao đáp án đúng là chính xác (trích dẫn nội dung TT 17/2025 nếu phù hợp).
+2. Nếu học sinh trả lời sai, hãy phân tích lỗi sai thường gặp.
+3. Cung cấp lời khuyên (tips) để làm dạng bài này.
+4. Cung cấp mẹo ghi nhớ (mnemonics) để nhớ kiến thức này lâu hơn.
+Nếu câu hỏi liên quan tỉnh/thành, vùng kinh tế — SỬ DỤNG TÊN TỈNH SAU SÁP NHẬP 1/7/2025.
+
+Trả về JSON: { "explanation": "...", "tips": "...", "mnemonics": "..." }`;
 
       const response = await generateContentWithFallback(prompt, {
         responseMimeType: "application/json",

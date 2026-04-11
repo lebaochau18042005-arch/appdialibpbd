@@ -23,12 +23,13 @@ function parseMarkdownTable(md: string): TableData | null {
   if (lines.length < 3) return null;
 
   const parseRow = (line: string) =>
-    line.replace(/^\||\\|$/g, '').split('|').map(c => c.trim());
+    line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
 
-  // Find separator row (contains only |----|----| style)
-  const separatorIdx = lines.findIndex(l =>
-    /^\|[-|:\s]+\|$/.test(l) || /^(\s*[-:]+\s*\|)+\s*[-:]+\s*$/.test(l.replace(/^\|/, '').replace(/\|$/, ''))
-  );
+  // Find separator row: a row where every cell is only dashes/colons/spaces
+  const separatorIdx = lines.findIndex(l => {
+    const inner = l.replace(/^\||\|$/g, '');
+    return inner.split('|').every(cell => /^\s*:?-+:?\s*$/.test(cell));
+  });
   if (separatorIdx < 1) return null;
 
   const headers = parseRow(lines[separatorIdx - 1]);

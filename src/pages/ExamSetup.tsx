@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Play, Upload, ArrowRight, Loader2, Sparkles, FileText, Search, History, ShieldCheck, Download } from 'lucide-react';
 import { cn } from '../utils/cn';
@@ -12,6 +12,7 @@ import { libraryService, LibraryFile } from '../services/libraryService';
 
 export default function ExamSetup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,6 +21,12 @@ export default function ExamSetup() {
   
   const [libraryFiles, setLibraryFiles] = useState<LibraryFile[]>([]);
   const [selectedLibraryFileId, setSelectedLibraryFileId] = useState<string>('');
+
+  // Auto-select if coming from Library page with ?libraryFileId=...
+  useEffect(() => {
+    const fromLib = searchParams.get('libraryFileId');
+    if (fromLib) setSelectedLibraryFileId(fromLib);
+  }, [searchParams]);
 
   useEffect(() => {
     // Fetch files for AI reference

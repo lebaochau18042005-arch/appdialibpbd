@@ -16,6 +16,7 @@ import { getExplanation } from '../services/ai';
 import { cn } from '../utils/cn';
 import QuizActiveCard from '../components/exam/QuizActiveCard';
 import QuizResultCard from '../components/exam/QuizResultCard';
+import ExamReviewCard from '../components/exam/ExamReviewCard';
 import AITutorChatbot from '../components/ai/AITutorChatbot';
 
 export default function Quiz() {
@@ -43,6 +44,7 @@ export default function Quiz() {
   const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
   const [score, setScore] = useState(0); // Raw score for simplicity
   const [isFinished, setIsFinished] = useState(false);
+  const [isReviewMode, setIsReviewMode] = useState(false);
   const [startTime, setStartTime] = useState(0);
   
   // Timer states (50 minutes = 3000 seconds)
@@ -335,6 +337,44 @@ export default function Quiz() {
   }
 
   if (isFinished) {
+    if (isReviewMode) {
+      // Build a mock answers record keyed by index for ExamReviewCard
+      const answersForReview: Record<number, any> = {};
+      quizQuestions.forEach((q, idx) => {
+        const rich = detailedAnswers[q.id];
+        if (rich) answersForReview[idx] = rich.userAnswer;
+      });
+      const isCorrectFn = (idx: number) => {
+        const q = quizQuestions[idx];
+        const ans = answersForReview[idx];
+        if (q.type === 'multiple_choice') return ans === (q as any).correctAnswerIndex;
+        if (q.type === 'true_false') return ans ? (q as any).statements.every((s: any) => ans[s.id] === s.isTrue) : false;
+        if (q.type === 'short_answer') return ans ? ans.toString().trim().toLowerCase() === (q as any).correctAnswer.toString().toLowerCase() : false;
+        return false;
+      };
+      const isStatementCorrectFn = (qIdx: number, stmtId: string) => {
+        const q = quizQuestions[qIdx];
+        const ans = answersForReview[qIdx];
+        if (q.type !== 'true_false' || !ans) return false;
+        const stmt = (q as any).statements.find((s: any) => s.id === stmtId);
+        return stmt && ans[stmtId] === stmt.isTrue;
+      };
+      return (
+        <ExamReviewCard
+          examQuestions={quizQuestions}
+          answers={answersForReview}
+          finalScore={score}
+          maxPossibleScore={maxScore}
+          detailedExplanations={{}}
+          loadingExplanation={null}
+          handleGetDetailedExplanation={async () => {}}
+          setIsReviewMode={setIsReviewMode}
+          navigate={navigate}
+          isCorrect={isCorrectFn}
+          isStatementCorrect={isStatementCorrectFn}
+        />
+      );
+    }
     return (
       <QuizResultCard
         timeRanOut={timeRanOut}
@@ -344,6 +384,7 @@ export default function Quiz() {
         maxScore={maxScore}
         startTime={startTime}
         navigate={navigate}
+        onReview={() => setIsReviewMode(true)}
       />
     );
   }

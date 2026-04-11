@@ -331,7 +331,6 @@ export default function ExamRoom() {
     } catch (error) {
       console.error(error);
     } finally {
-      setLoadingExplanation(index);
       setLoadingExplanation(null);
     }
   };
@@ -342,6 +341,25 @@ export default function ExamRoom() {
         <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mb-4" />
         <p className="text-slate-600 font-medium">Đang chuẩn bị đề thi...</p>
       </div>
+    );
+  }
+
+  // ── Review mode: must be checked BEFORE isFinished so it takes priority ──
+  if (isReviewMode) {
+    return (
+      <ExamReviewCard
+        examQuestions={examQuestions}
+        answers={answers}
+        finalScore={finalScore}
+        maxPossibleScore={maxPossibleScore}
+        detailedExplanations={detailedExplanations}
+        loadingExplanation={loadingExplanation}
+        handleGetDetailedExplanation={handleGetDetailedExplanation}
+        setIsReviewMode={setIsReviewMode}
+        navigate={navigate}
+        isCorrect={isCorrect}
+        isStatementCorrect={isStatementCorrect}
+      />
     );
   }
 
@@ -398,24 +416,6 @@ export default function ExamRoom() {
           </button>
         </div>
       </motion.div>
-    );
-  }
-
-  if (isReviewMode) {
-    return (
-      <ExamReviewCard
-        examQuestions={examQuestions}
-        answers={answers}
-        finalScore={finalScore}
-        maxPossibleScore={maxPossibleScore}
-        detailedExplanations={detailedExplanations}
-        loadingExplanation={loadingExplanation}
-        handleGetDetailedExplanation={handleGetDetailedExplanation}
-        setIsReviewMode={setIsReviewMode}
-        navigate={navigate}
-        isCorrect={isCorrect}
-        isStatementCorrect={isStatementCorrect}
-      />
     );
   }
 

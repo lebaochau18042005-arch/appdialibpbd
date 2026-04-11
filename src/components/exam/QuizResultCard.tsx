@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle2, AlertCircle, RefreshCcw, Home } from 'lucide-react';
+import { CheckCircle2, AlertCircle, RefreshCcw, Home, Search } from 'lucide-react';
 import { NavigateFunction } from 'react-router-dom';
 
 interface QuizResultCardProps {
@@ -11,6 +11,7 @@ interface QuizResultCardProps {
   maxScore: number;
   startTime: number;
   navigate: NavigateFunction;
+  onReview?: () => void;
 }
 
 export default function QuizResultCard({
@@ -20,7 +21,8 @@ export default function QuizResultCard({
   score,
   maxScore,
   startTime,
-  navigate
+  navigate,
+  onReview
 }: QuizResultCardProps) {
   return (
     <motion.div 
@@ -47,11 +49,22 @@ export default function QuizResultCard({
         </div>
         <div className="bg-slate-50 p-4 rounded-2xl">
           <div className="text-sm text-slate-500 mb-1">Thời gian</div>
-          <div className="text-3xl font-bold text-blue-600">{Math.floor(((Date.now() - startTime) / 1000) / 60)}p {Math.floor(((Date.now() - startTime) / 1000) % 60)}s</div>
+          <div className="text-3xl font-bold text-blue-600">
+            {Math.floor(((Date.now() - startTime) / 1000) / 60)}p {Math.floor(((Date.now() - startTime) / 1000) % 60)}s
+          </div>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        {onReview && (
+          <button
+            onClick={onReview}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <Search className="w-5 h-5" />
+            Xem lại bài làm
+          </button>
+        )}
         <button 
           onClick={() => navigate(0 as any)}
           className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-xl font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"

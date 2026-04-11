@@ -13,7 +13,7 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 // ===== KIẾN THỨC HÀNH CHÍNH SAU SÁP NHẬP 1/7/2025 (NQ 202/2025/QH15) =====
 // Được nhúng vào TẤT CẢ các prompt AI để mọi giải thích đều dùng thông tin hành chính MỚI NHẤT
-const KIEN_THUC_HANH_CHINH_2025 = `
+export const KIEN_THUC_HANH_CHINH_2025_EXPORT = `
 ## KIẾN THỨC BẮT BUỘC VỀ ĐƠN VỊ HÀNH CHÍNH VIỆT NAM SAU SÁP NHẬP (HIỆU LỰC 1/7/2025)
 
 Nghị quyết 202/2025/QH15 của Quốc hội (hiệu lực 1/7/2025) sắp xếp lại đơn vị hành chính cấp tỉnh:
@@ -142,7 +142,7 @@ export async function getExplanation(question: Question, userAnswer: any, isCorr
     const prompt = `Học sinh đang ôn thi THPT Quốc gia môn Địa lí (theo cấu trúc đề tham khảo 2025 mới nhất và bám sát Thông tư 17/2025/TT-BGDĐT sửa đổi, bổ sung Chương trình GDPT môn Địa lí cấp THPT) và vừa ${performanceStatus} câu hỏi sau:
 ${questionContext}
 
-${KIEN_THUC_HANH_CHINH_2025}
+${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
 Hãy đóng vai một giáo viên Địa lí nhiệt tình. Bắt đầu bằng "${greeting}".
 YÊU CẦU BẮT BUỘC (Trình bày bằng Markdown, SỬ DỤNG GẠCH ĐẦU DÒNG (bullet points) cho TẤT CẢ các phần để dễ đọc):
@@ -168,7 +168,7 @@ export async function chatWithTutor(message: string, history: {role: 'user' | 'm
     const prompt = `Bạn là một gia sư môn Địa lý cấp THPT nhiệt tình, am hiểu sâu sắc về kiến thức hướng tới kỳ thi tốt nghiệp THPT 2025, đặc biệt nắm vững các thay đổi theo Thông tư 17/2025/TT-BGDĐT.
 Hãy trả lời câu hỏi của học sinh một cách dễ hiểu, có căn cứ khoa học, sử dụng Markdown để làm nổi bật ý chính và ĐẶC BIỆT chú trọng vào mẹo giải nhanh hoặc cách nhớ lâu. Ngôn ngữ thân thiện, khích lệ.
 
-${KIEN_THUC_HANH_CHINH_2025}
+${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
 ${formattedHistory ? `Lịch sử trò chuyện:\n${formattedHistory}\n` : ''}Học sinh: ${message}
 Gia sư AI:`;
@@ -210,7 +210,7 @@ Hãy đóng vai một chuyên gia giáo dục phân tích dữ liệu trên và 
 export async function generateExamFromContext(context: string): Promise<Question[]> {
   const prompt = `Bạn là một chuyên gia phân tích đề thi môn Địa lý THPT, nắm vững cấu trúc đề 2025 và các thay đổi theo TT 17/2025/TT-BGDĐT. Nhiệm vụ của bạn là TRÍCH XUẤT TOÀN BỘ câu hỏi từ ĐỀ THI được cung cấp bên dưới.
 
-${KIEN_THUC_HANH_CHINH_2025}
+${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
 QUY TẮC BẮT BUỘC:
 1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong đề - KHÔNG BỎ SÓT câu nào.
@@ -220,6 +220,12 @@ QUY TẮC BẮT BUỘC:
 5. Phải xác định đáp án đúng dựa trên kiến thức Địa lý hoặc ghi chú trong đề. Nếu đề thi đề cập đến tỉnh/thành đã sáp nhập, hãy ghi chú trong explanation về tên mới sau 1/7/2025.
 6. id phải là "q1", "q2", "q3",... theo thứ tự câu trong đề.
 7. KHÔNG thêm câu mới - chỉ chuyển đổi câu có sẵn sang JSON.
+
+⚠️ QUY TẮC VÀNG VỀ BẢNG SỐ LIỆU / BIỂU ĐỒ:
+- Nếu câu hỏi tham chiếu đến bảng số liệu, biểu đồ, hình, lược đồ (text có chứa "bảng", "biểu đồ", "hình", "lược đồ", "số liệu dưới đây", "theo bảng") → trường "context" BẮT BUỘC phải chứa toàn bộ bảng dưới dạng MARKDOWN TABLE (cú pháp pipe |...|).
+- Nếu trong đề thi đã có bảng số liệu (Markdown table hoặc bảng plain-text), hãy chuyển đổi nguyên si sang Markdown table và đặt vào "context".
+- Nếu câu hỏi KHÔNG tham chiếu bảng/biểu đồ → "context" để null hoặc bỏ qua.
+- KHÔNG BAO GIỜ để "context" rỗng khi text câu hỏi có từ "biểu đồ" hay "bảng số liệu".
 
 [ĐỀ THI CẦN PHÂN TÍCH]:
 ${context}
@@ -231,6 +237,7 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
     "type": "multiple_choice",
     "topic": "Địa lý",
     "text": "Nội dung câu hỏi?",
+    "context": null,
     "options": ["Phương án A", "Phương án B", "Phương án C", "Phương án D"],
     "correctAnswerIndex": 0,
     "explanation": "Giải thích đáp án đúng"
@@ -239,12 +246,13 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
     "id": "q2",
     "type": "true_false",
     "topic": "Địa lý",
-    "text": "Nội dung câu hỏi Đúng/Sai",
+    "text": "Cho bảng số liệu sau đây về GDP các nước Đông Nam Á:",
+    "context": "| Quốc gia | 2019 | 2021 | 2024 |\n|---|---|---|---|\n| Indonesia | 1.119 | 1.186 | 1.475 |\n| Việt Nam | 261 | 271 | 430 |\n(Nguồn: World Bank)",
     "statements": [
-      {"id": "s1", "text": "Ý a", "isTrue": true},
-      {"id": "s2", "text": "Ý b", "isTrue": false},
-      {"id": "s3", "text": "Ý c", "isTrue": true},
-      {"id": "s4", "text": "Ý d", "isTrue": false}
+      {"id": "stmt_a", "text": "Ý a", "isTrue": true},
+      {"id": "stmt_b", "text": "Ý b", "isTrue": false},
+      {"id": "stmt_c", "text": "Ý c", "isTrue": true},
+      {"id": "stmt_d", "text": "Ý d", "isTrue": false}
     ],
     "explanation": "Giải thích"
   },
@@ -253,6 +261,7 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
     "type": "short_answer",
     "topic": "Địa lý",
     "text": "Nội dung câu tự luận/tính toán?",
+    "context": null,
     "correctAnswer": "Đáp án",
     "explanation": "Giải thích"
   }

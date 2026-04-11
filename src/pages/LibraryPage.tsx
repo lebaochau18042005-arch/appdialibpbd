@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Library, PlayCircle, Gamepad2, FileText, ExternalLink, Search,
   BookOpen, ChevronRight, Plus, Trash2, Upload, X, Loader2,
-  Video, File, FileType, Download, Link2, CheckCircle2
+  Video, File, FileType, Download, Link2, CheckCircle2, Eye, Sparkles
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
 import { libraryService, LibraryVideo, LibraryFile } from '../services/libraryService';
+import { useNavigate } from 'react-router-dom';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fileIcon(type: string) {
@@ -36,6 +37,57 @@ const GAMES = [
   { id: 'g3', title: 'Padlet — Bản đồ tư duy', desc: 'Tạo bản đồ tư duy và sơ đồ kiến thức trực tuyến.', url: 'https://padlet.com', tags: ['Tư duy'] },
   { id: 'g4', title: 'Wordwall — Ôn từ vựng Địa lí', desc: 'Trò chơi ôn tập thuật ngữ và khái niệm Địa lí.', url: 'https://wordwall.net/vi/community/dia-li', tags: ['Từ vựng'] },
 ];
+
+// ── Document Preview Modal ────────────────────────────────────────────────────
+function DocPreviewModal({ file, onClose }: { file: LibraryFile; onClose: () => void }) {
+  // For PDF: use direct URL; for Word/PPT: use Google Docs Viewer (works for Cloudinary & Drive)
+  const isPdf = file.fileType === 'pdf';
+  const previewUrl = isPdf
+    ? file.fileUrl
+    : `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
+
+  return (
+    <div className="fixed inset-0 z-[90] flex flex-col bg-slate-900/90 backdrop-blur-md">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <span className="text-xl">{fileIcon(file.fileType)}</span>
+          <div>
+            <p className="font-black text-white text-sm leading-tight line-clamp-1">{file.title}</p>
+            <p className="text-[10px] text-slate-400">{file.fileName}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href={file.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 text-white text-xs font-black rounded-xl hover:bg-indigo-600 transition-colors"
+          >
+            <Download size={12} /> Tải về
+          </a>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors text-white"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+      {/* Viewer */}
+      <div className="flex-1 relative">
+        <iframe
+          src={previewUrl}
+          className="w-full h-full border-0"
+          title={file.title}
+          allow="fullscreen"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        />
+      </div>
+    </div>
+  );
+}
 
 // ── Teacher: Add Video Modal ──────────────────────────────────────────────────
 function AddVideoModal({ onClose }: { onClose: () => void }) {
@@ -302,6 +354,7 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LibraryPage() {
   const { isTeacherMode } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('video');
   const [search, setSearch] = useState('');
   const [videos, setVideos] = useState<LibraryVideo[]>([]);
@@ -309,6 +362,7 @@ export default function LibraryPage() {
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [showUploadFile, setShowUploadFile] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<LibraryFile | null>(null);
 
   useEffect(() => {
     const u1 = libraryService.subscribeToVideos(setVideos);
@@ -358,6 +412,7 @@ export default function LibraryPage() {
       {/* Modals */}
       {showAddVideo && <AddVideoModal onClose={() => setShowAddVideo(false)} />}
       {showUploadFile && <UploadFileModal onClose={() => setShowUploadFile(false)} />}
+      {previewFile && <DocPreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -473,17 +528,34 @@ export default function LibraryPage() {
                     <p className="text-xs text-slate-400 mt-0.5">{item.fileName} · {formatSize(item.fileSize)}</p>
                     <p className="text-[10px] text-slate-300 mt-0.5">{new Date(item.createdAt).toLocaleDateString('vi-VN')}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                     {isTeacherMode && (
                       <button onClick={() => handleDeleteFile(item)} disabled={deleting === item.id}
                         className="w-7 h-7 bg-red-50 text-red-400 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors">
                         {deleting === item.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                       </button>
                     )}
+                    {/* View inline */}
+                    <button
+                      onClick={() => setPreviewFile(item)}
+                      className="px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-black rounded-xl hover:bg-emerald-100 transition-colors flex items-center gap-1 border border-emerald-200"
+                    >
+                      <Eye size={11} /> Xem
+                    </button>
+                    {/* Download */}
                     <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" download
                       className="px-3 py-1.5 bg-indigo-500 text-white text-xs font-black rounded-xl hover:bg-indigo-600 transition-colors flex items-center gap-1">
                       <Download size={11} /> Tải về
                     </a>
+                    {/* Create AI exam from this file */}
+                    {(item.fileType === 'pdf' || item.fileType === 'word') && (
+                      <button
+                        onClick={() => navigate(`/exam?libraryFileId=${item.id}`)}
+                        className="px-3 py-1.5 bg-violet-500 text-white text-xs font-black rounded-xl hover:bg-violet-600 transition-colors flex items-center gap-1"
+                      >
+                        <Sparkles size={11} /> Tạo đề AI
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               );
