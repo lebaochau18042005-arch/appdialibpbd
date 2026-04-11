@@ -242,11 +242,31 @@ function StudentDetailPanel({ student, onClose, onRefresh }: DetailPanelProps) {
           <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
             <Calendar size={14} /> Lịch sử bài làm ({student.attempts.length})
           </h4>
+          {/* Exam vs practice summary */}
+          <div className="flex gap-2 mb-3">
+            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+              <ClipboardList size={10} /> Đề giao: {student.attempts.filter(a => a.mode === 'exam').length}
+            </span>
+            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-violet-50 text-violet-600 border border-violet-100">
+              <BookOpen size={10} /> Tự luyện: {student.attempts.filter(a => a.mode !== 'exam').length}
+            </span>
+          </div>
           <div className="space-y-3">
             {student.attempts.map(attempt => (
-              <div key={attempt.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div key={attempt.id} className={`p-4 rounded-2xl border ${
+                attempt.mode === 'exam' ? 'bg-indigo-50/40 border-indigo-100' : 'bg-slate-50 border-slate-100'
+              }`}>
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        attempt.mode === 'exam'
+                          ? 'bg-indigo-500 text-white'
+                          : 'bg-violet-100 text-violet-600'
+                      }`}>
+                        {attempt.mode === 'exam' ? '📋 Đề GV giao' : '📚 Tự luyện'}
+                      </span>
+                    </div>
                     <p className="font-bold text-slate-800 text-sm truncate">{attempt.examTitle}</p>
                     <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-slate-400 font-medium">
                       <span className="flex items-center gap-1"><Calendar size={11} />{new Date(attempt.date).toLocaleDateString('vi-VN')}</span>
