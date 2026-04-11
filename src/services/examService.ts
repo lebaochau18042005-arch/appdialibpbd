@@ -175,7 +175,11 @@ Các chủ đề PHẢI được đề cập trong đề:
       ${CHUONG_TRINH_TT17}
 
       QUY TẮC KỸ THUẬT BẮT BUỘC:
-      A. PHẦN II - mỗi câu PHẢI CÓ trường "context" là Markdown table với số liệu THỰC. KHÔNG dùng URL.
+      A. BIỂU ĐỒ / BẢNG SỐ LIỆU — ÁP DỤNG CHO MỌI LOẠI CÂU HỎI (PHẦN I, II, III):
+         ⚠️ QUY TẮC VÀNG: Nếu text câu hỏi có chứa từ "biểu đồ", "bảng số liệu", "bảng dưới đây",
+         "số liệu", "hình", "lược đồ" → CÂU ĐÓ BẮT BUỘC PHẢI CÓ trường "context" chứa bảng Markdown.
+         KHÔNG BAO GIỜ hỏi "Cho biểu đồ X. Nhận xét nào đúng?" mà để context rỗng/null.
+         Nếu không có số liệu để điền → KHÔNG DÙNG "biểu đồ/bảng số liệu" trong câu hỏi đó.
 
          CHUẨN BẢNG SỐ LIỆU BẮT BUỘC — phải tuân thủ CHÍNH XÁC:
          - Hàng 1: header với tên các cột (dùng đơn vị trong ngoặc nếu cần): | Chỉ tiêu | 2015 | 2020 | 2024 |

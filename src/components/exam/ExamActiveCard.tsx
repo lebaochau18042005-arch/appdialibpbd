@@ -72,6 +72,17 @@ export default function ExamActiveCard({
           </div>
         )}
 
+        {/* Warn when question mentions chart/table but context is missing */}
+        {!currentQuestion.context && /biểu đồ|bảng số liệu|bảng dưới đây|số liệu|hình dưới/i.test(currentQuestion.text) && (
+          <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-start gap-3">
+            <span className="text-amber-500 text-xl shrink-0">⚠️</span>
+            <div>
+              <p className="text-sm font-bold text-amber-800">Câu hỏi này tham chiếu biểu đồ/bảng nhưng dữ liệu chưa được tải.</p>
+              <p className="text-xs text-amber-600 mt-1">Hãy thử làm lại đề mới — AI sẽ tự động thêm bảng số liệu theo quy tắc mới.</p>
+            </div>
+          </div>
+        )}
+
 
         <div className="space-y-4">
           {currentQuestion.type === 'multiple_choice' && currentQuestion.options.map((option, idx) => (
