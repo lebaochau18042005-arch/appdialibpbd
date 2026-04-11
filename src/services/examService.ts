@@ -54,11 +54,12 @@ export const examService = {
     const q = query(collection(db, 'exams'), where('creatorId', '==', creatorId));
     const unsub = onSnapshot(q, (snapshot) => {
       const fsExams = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
-      const lsExams = lsGetExams().filter(le => le.creatorId === creatorId && !fsExams.find(fe => fe.id === le.id));
+      // Show all local exams not already in Firestore (no creatorId filter — localStorage is device-specific)
+      const lsExams = lsGetExams().filter(le => !fsExams.find(fe => fe.id === le.id));
       callback([...fsExams, ...lsExams]);
     }, (_error) => {
-      // Firestore failed - use only localStorage
-      callback(lsGetExams().filter(e => e.creatorId === creatorId));
+      // Firestore failed - use all local exams
+      callback(lsGetExams());
     });
     return unsub;
   },
