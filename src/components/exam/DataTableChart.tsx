@@ -19,17 +19,20 @@ interface TableData {
 }
 
 function parseMarkdownTable(md: string): TableData | null {
-  const lines = md.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  // Collect ALL lines that look like table rows (start with |)
+  const lines = md.split('\n').map(l => l.trim()).filter(l => l.startsWith('|'));
   if (lines.length < 3) return null;
 
   const parseRow = (line: string) =>
     line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
 
-  const headers = parseRow(lines[0]);
-  // Line 1 is separator (|---|---|), skip it
-  const separatorIdx = lines.findIndex(l => /^\|[-|:\s]+\|$/.test(l) || /^[-|:\s]+$/.test(l));
-  if (separatorIdx < 0) return null;
+  // Find separator row (contains only |----|----| style)
+  const separatorIdx = lines.findIndex(l =>
+    /^\|[-|:\s]+\|$/.test(l) || /^(\s*[-:]+\s*\|)+\s*[-:]+\s*$/.test(l.replace(/^\|/, '').replace(/\|$/, ''))
+  );
+  if (separatorIdx < 1) return null;
 
+  const headers = parseRow(lines[separatorIdx - 1]);
   const rows = lines.slice(separatorIdx + 1).map(parseRow);
   if (rows.length === 0 || headers.length < 2) return null;
   return { headers, rows };
@@ -90,19 +93,10 @@ export default function DataTableChart({ content, title }: DataTableChartProps) 
   const [showTable, setShowTable] = useState(true);
 
   const table = useMemo(() => {
-    // Extract only the markdown table portion from content
-    const lines = content.split('\n');
-    const tableLines: string[] = [];
-    let inTable = false;
-    for (const line of lines) {
-      if (line.trim().startsWith('|')) {
-        inTable = true;
-        tableLines.push(line);
-      } else if (inTable && line.trim() === '') {
-        break;
-      }
-    }
-    return tableLines.length >= 3 ? parseMarkdownTable(tableLines.join('\n')) : null;
+    // Collect ALL pipe-starting lines in the content — do NOT stop at blank lines
+    // This is the fix for truncation: AI often puts source note after a blank line,
+    // but actual data rows may also have gaps we must not misinterpret as end-of-table.
+    return parseMarkdownTable(content);
   }, [content]);
 
   const chartData = useMemo(() => table ? tableToChartData(table) : [], [table]);
@@ -153,39 +147,36 @@ export default function DataTableChart({ content, title }: DataTableChartProps) 
         </div>
       )}
 
-      {/* Data Table */}
-      {showTable && (
-        <div className="overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
-          <table className="text-sm w-full border-collapse min-w-full">
-            <thead>
-              <tr className="bg-indigo-600 text-white">
-                {table.headers.map((h, i) => (
-                  <th key={i} className="px-4 py-2.5 border border-indigo-500 text-center whitespace-nowrap font-bold text-sm">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {table.rows.map((row, ri) => (
-                <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'}>
-                  {row.map((cell, ci) => (
-                    <td
-                      key={ci}
-                      className={`px-4 py-2 border border-indigo-100 text-center whitespace-nowrap text-sm ${ci === 0 ? 'font-semibold text-slate-700 text-left' : 'text-slate-600 tabular-nums'}`}
-                    >
-                      {/* Bold the first column and format numbers */}
-                      {ci > 0 && !isNaN(parseFloat(cell.replace(/,/g, '')))
-                        ? parseFloat(cell.replace(/,/g, '')).toLocaleString('vi-VN')
-                        : cell}
-                    </td>
-                  ))}
-                </tr>
+  // Data Table — always show all rows and columns, with horizontal scroll
+  {showTable && (
+    <div className="overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
+      <table className="text-sm border-collapse" style={{ minWidth: 'max-content', width: '100%' }}>
+        <thead>
+          <tr className="bg-indigo-600 text-white">
+            {table.headers.map((h, i) => (
+              <th key={i} className="px-4 py-2.5 border border-indigo-500 text-center whitespace-nowrap font-bold text-sm">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, ri) => (
+            <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'}>
+              {table.headers.map((_, ci) => (
+                <td
+                  key={ci}
+                  className={`px-4 py-2 border border-indigo-100 text-center whitespace-nowrap text-sm ${ci === 0 ? 'font-semibold text-slate-700 text-left' : 'text-slate-600 tabular-nums font-medium'}`}
+                >
+                  {row[ci] ?? '—'}
+                </td>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
 
       {/* Chart */}
       {canChart && (
