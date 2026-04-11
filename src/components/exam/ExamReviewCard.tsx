@@ -127,35 +127,57 @@ export default function ExamReviewCard({
                     </div>
                   ))}
 
-                  {q.type === 'true_false' && q.statements.map((stmt) => (
-                    <div key={stmt.id} className={cn(
-                      "p-4 rounded-xl border transition-all",
-                      isStatementCorrect(idx, stmt.id) ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
-                    )}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={cn(
-                          "font-medium",
-                          isStatementCorrect(idx, stmt.id) ? "text-emerald-800" : "text-rose-800"
-                        )}>{stmt.text}</span>
-                        <div className="flex gap-2">
-                          <span className={cn(
-                            "px-2 py-1 rounded text-[10px] font-bold uppercase",
-                            stmt.isTrue ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
-                          )}>
-                            Đáp án: {stmt.isTrue ? 'Đúng' : 'Sai'}
-                          </span>
-                          {answers[idx]?.[stmt.id] !== undefined && (
-                            <span className={cn(
-                              "px-2 py-1 rounded text-[10px] font-bold uppercase border-2",
-                              answers[idx][stmt.id] === stmt.isTrue ? "border-emerald-500 text-emerald-600" : "border-rose-500 text-rose-600"
-                            )}>
-                              Bạn chọn: {answers[idx][stmt.id] ? 'Đúng' : 'Sai'}
-                            </span>
-                          )}
+                  {q.type === 'true_false' && (
+                    <div className="space-y-3">
+                      {/* Scoring guide */}
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Phần II — Đúng / Sai</p>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                          <span className="px-1.5 py-0.5 bg-slate-100 rounded">1→0.1đ</span>
+                          <span className="px-1.5 py-0.5 bg-slate-100 rounded">2→0.25đ</span>
+                          <span className="px-1.5 py-0.5 bg-slate-100 rounded">3→0.5đ</span>
+                          <span className="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded">4→1.0đ</span>
                         </div>
                       </div>
+                      {q.statements.map((stmt, sIdx) => {
+                        const label = ['a', 'b', 'c', 'd'][sIdx] || String(sIdx + 1);
+                        const userAns = answers[idx]?.[stmt.id];
+                        const isCorrect = userAns === stmt.isTrue;
+                        return (
+                          <div key={stmt.id} className={cn(
+                            'rounded-2xl border-2 overflow-hidden',
+                            isCorrect ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'
+                          )}>
+                            <div className="flex items-start gap-3 p-4">
+                              <span className={cn(
+                                'flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm mt-0.5',
+                                isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                              )}>{label}</span>
+                              <p className={cn('flex-1 text-sm font-medium leading-relaxed',
+                                isCorrect ? 'text-emerald-800' : 'text-rose-800'
+                              )}>{stmt.text}</p>
+                              <div className="flex flex-col gap-1 items-end shrink-0">
+                                <span className={cn(
+                                  'px-2 py-1 rounded-lg text-[10px] font-black uppercase',
+                                  stmt.isTrue ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                                )}>
+                                  Đáp án: {stmt.isTrue ? 'Đúng' : 'Sai'}
+                                </span>
+                                {userAns !== undefined && (
+                                  <span className={cn(
+                                    'px-2 py-1 rounded-lg text-[10px] font-black uppercase border',
+                                    isCorrect ? 'border-emerald-400 text-emerald-600 bg-white' : 'border-rose-400 text-rose-600 bg-white'
+                                  )}>
+                                    Bạn: {userAns ? 'Đúng' : 'Sai'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
 
                   {q.type === 'short_answer' && (
                     <div className="space-y-2">

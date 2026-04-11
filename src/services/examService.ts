@@ -208,6 +208,9 @@ Các chủ đề PHẢI được đề cập trong đề:
       - Phân bố 4 chủ đề khác nhau: dân số, nông nghiệp, công nghiệp, Đông Nam Á.
       - context PHẢI có: header row → separator row → ít nhất 3 dòng dữ liệu → dòng nguồn.
       - Tất cả số liệu trong context PHẢI NHẤT QUÁN với text câu hỏi và statements.
+      - MỖI CÂU PHẦN II PHẢI CÓ ĐÚNG 4 STATEMENTS, id lần lượt là: "stmt_a", "stmt_b", "stmt_c", "stmt_d".
+        Mỗi statement là một mệnh đề ngắn về số liệu trong bảng, học sinh chọn Đúng hoặc Sai.
+        Phân bố: 2 đúng 2 sai, HOẶC 3 đúng 1 sai, HOẶC 1 đúng 3 sai (đa dạng).
       - ĐẶC BIỆT: PHẦN II CÂU SỐ 4 PHẢI VỀ ĐÔNG NAM Á (chương trình Địa 11):
           context bắt buộc: | Quốc gia | 2019 | 2021 | 2024 | với số liệu GDP thực của ít nhất 3 nước.
           text: "Cho bảng số liệu [GDP/dân số/xuất nhập khẩu] một số nước Đông Nam Á. Nhận định nào sau đây đúng?"
@@ -305,6 +308,12 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
 
       const prompt = `Hãy tạo ${count} câu hỏi Địa lí về ${mode === 'topic' ? 'chủ đề' : mode === 'lesson' ? 'bài học' : 'dạng thức'} "${topicOrLesson}".
       Đảm bảo nội dung chính xác (dùng tên tỉnh thành sau sáp nhập 2025), cập nhật và có giải thích chi tiết.
+
+      ĐỐI VỚI CÂU ĐÚNG/SAI (true_false) - BẮT BUỘC:
+      - Mỗi câu PHẢI CÓ ĐÚNG 4 statements, id lần lượt là: "stmt_a", "stmt_b", "stmt_c", "stmt_d".
+      - Viết text mỗi mệnh đề bắt đầu bằng chữ thường (không cần ghi a) b) c) d) vì UI đã tự thêm).
+      - Phân bố đúng/sai đa dạng (không phải lúc nào cũng 2 đúng 2 sai).
+      - Nếu có bảng số liệu, đặt vào trường "context" dạng MARKDOWN TABLE.
       
       ${fileContext ? `=== TÀI LIỆU THAM KHẢO GỐC ===\n${fileContext.slice(0, 50000)}` : ''}`;
 
