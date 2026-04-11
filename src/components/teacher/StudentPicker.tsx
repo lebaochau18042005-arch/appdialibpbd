@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Check, ChevronDown, GraduationCap } from 'lucide-react';
-import { rosterService, StudentEntry } from '../../services/rosterService';
+import { rosterService, StudentEntry, ClassRoster } from '../../services/rosterService';
 import { cn } from '../../utils/cn';
 
 export type AssignTarget =
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function StudentPicker({ value, onChange }: Props) {
-  const [rosters, setRosters] = useState(() => rosterService.getRosters());
+  const [rosters, setRosters] = useState<ClassRoster[]>(() => rosterService.getRosters());
   const [tab, setTab] = useState<'class' | 'individual'>('class');
   const [selectedClass, setSelectedClass] = useState('');
   const [customClass, setCustomClass] = useState('');
@@ -22,9 +22,10 @@ export default function StudentPicker({ value, onChange }: Props) {
   const [checkedStudents, setCheckedStudents] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
 
-  // Refresh rosters when they change
+  // Subscribe to RTDB rosters for cross-device sync
   useEffect(() => {
-    setRosters(rosterService.getRosters());
+    const unsub = rosterService.subscribeToRosters(setRosters);
+    return () => unsub();
   }, []);
 
   const students: StudentEntry[] = selectedClass
