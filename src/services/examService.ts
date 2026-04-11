@@ -112,10 +112,6 @@ PHẦN I – TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN (18 câu × 0,25đ = 4,5đ):
 
 PHẦN II – TRẮC NGHIỆM ĐÚNG/SAI (4 câu × 1đ = 4đ):
   Mỗi câu có 4 ý a/b/c/d: 1 ý đúng = 0,1đ | 2 ý đúng = 0,25đ | 3 ý đúng = 0,5đ | 4 ý đúng = 1đ
-  NỘI DUNG PHẦN II: 4 câu phải có MỞ ĐẦU bằng bảng số liệu/biểu đồ (số liệu nhúng trực tiếp):
-  - Câu 1: Số liệu dân cư/lao động VN, 4 nhận định phân tích
-  - Câu 2: Số liệu cơ cấu kinh tế/ngành, 4 nhận định phân tích
-  - Câu 3: Số liệu nông nghiệp/xuất khẩu, 4 nhận định phân tích
   - Câu 4 (BẮT BUỘC về ĐNÁ): Bảng GDP/dân số/xuất nhập khẩu ĐÔNG NAM Á (lớp 11), với ít nhất 3 quốc gia và 3 mốc năm
 
 PHẦN III – TRẢ LỜI NGẮN / ĐIỀN SỐ (6 câu × 0,25đ = 1,5đ):
@@ -188,14 +184,7 @@ Các chủ đề PHẢI được đề cập trong đề:
          - Dòng cuối bắt đầu bằng "(Nguồn: ..." để ghi nguồn số liệu
          - Số liệu PHẢI NHẤT QUÁN với câu text và phương án đúng/sai
 
-         VÍ DỤ HỢP LỆ:
-         | Sản phẩm | 2015 | 2019 | 2024 |
-         |---|---|---|---|
-         | Sản lượng lúa (triệu tấn) | 45,1 | 43,4 | 43,9 |
-         | Sản lượng ngô (triệu tấn) | 5,3 | 4,8 | 5,1 |
-         (Nguồn: Niên giám thống kê 2024)
-
-      B. PHẦN III - correctAnswer PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
+      B. PHẦN III - correctAnswer PHẦN III PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
       C. MỌI CÂU HỎI phải có fields: id, type, text, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
       D. Câu hỏi trắc nghiệm: phải có options (4 phương án) và correctAnswerIndex.
       E. correctAnswerIndex là INDEX (0, 1, 2, 3), KHÔNG phải nhãn A/B/C/D.
@@ -207,24 +196,24 @@ Các chủ đề PHẢI được đề cập trong đề:
       - 4 câu Phần II (mỗi câu có 4 statements đúng/sai, không có correctAnswerIndex)
       - 6 câu Phần III (điền số: tất cả là bài tính toán, correctAnswer là số)
 
-      YÊU CẦU ĐẶC BIỆT PHẦN II (RẤT QUAN TRỌNG, BẮT BUỘC 100%):
-      **** TẤT CẢ 4 câu Phần II PHẢI có trường "context" chứa bảng Markdown TABLE hoàn chỉnh.
-      - Phân bố 4 chủ đề khác nhau: dân số, nông nghiệp, công nghiệp, Đông Nam Á.
-      - context PHẢI có: header row → separator row → ít nhất 3 dòng dữ liệu → dòng nguồn.
-      - Tất cả số liệu trong context PHẢI NHẤT QUÁN với text câu hỏi và statements.
-      - MỖI CÂU PHẦN II PHẢI CÓ ĐÚNG 4 STATEMENTS, id lần lượt là: "stmt_a", "stmt_b", "stmt_c", "stmt_d".
-        Mỗi statement là một mệnh đề ngắn về số liệu trong bảng, học sinh chọn Đúng hoặc Sai.
-        Phân bố: 2 đúng 2 sai, HOẶC 3 đúng 1 sai, HOẶC 1 đúng 3 sai (đa dạng).
-      - ĐẶC BIỆT: PHẦN II CÂU SỐ 4 PHẢI VỀ ĐÔNG NAM Á (chương trình Địa 11):
-          context bắt buộc: | Quốc gia | 2019 | 2021 | 2024 | với số liệu GDP thực của ít nhất 3 nước.
-          text: "Cho bảng số liệu [GDP/dân số/xuất nhập khẩu] một số nước Đông Nam Á. Nhận định nào sau đây đúng?"
+      YÊU CẦU PHẦN II (ĐÚNG CẤU TRÚC THI TỐT NGHIỆP 2025 — BẮT BUỘC):
+      *** CÂU 1, 2, 3 Phần II: KHÔNG có bảng số liệu. context = null. ***
+          - 4 mệnh đề Đúng/Sai về kiến thức, khái niệm, đặc điểm địa lí Việt Nam (lý thuyết thuần túy).
+          - text câu hỏi KHÔNG được chứa "biểu đồ", "bảng số liệu", "số liệu dưới đây".
+          - Ví dụ: "Nhận định nào sau đây đúng về đặc điểm dân cư nước ta?"
+          - id 4 statements: "stmt_a", "stmt_b", "stmt_c", "stmt_d"
+          - Phân bố: 2 đúng 2 sai (hoặc 3-1 hoặc 1-3, đa dạng).
+
+      *** CÂU 4 Phần II: BẮT BUỘC có bảng số liệu Đông Nam Á. context là Markdown table. ***
+          - Về địa lí Đông Nam Á (Địa 11). text: "Cho bảng số liệu... một số nước Đông Nam Á..."
+          - context: bảng Markdown ít nhất 5 quốc gia ĐNÁ, 3 mốc năm (2019, 2021, 2024).
+          - 4 mệnh đề phân tích số liệu từ bảng (id: "stmt_a" đến "stmt_d").
 
       LƯU Ý KHÁC:
-      - Điểm cực Bắc VN nằm tại TUYÊN QUANG (vì Lũng Cú của Hà Giang cũ đã thành Tuyên Quang).
-      - Không ra câu hỏi nào có đáp án là tỉnh đã bị sáp nhập (Hà Giang, Hải Dương, v.v.)
-      - Phần III phải có đủ: 1 câu tính tỉ suất sinh/tử, 1 câu mật độ dân số, 2 câu cơ cấu %, 2 câu tăng trưởng/năng suất.
+      - Phần III: 1 câu tính tỉ suất sinh/tử, 1 mật độ dân số, 2 cơ cấu %, 2 tăng trưởng/năng suất.
+      - Điểm cực Bắc VN: TUYÊN QUANG. Không ra câu hỏi có đáp án tỉnh đã bị sáp nhập.
 
-      ${fileContext ? `=== TÀI LIỆU THAM KHẢO (bám sát nội dung này) ===\n${fileContext.slice(0, 50000)}` : ''}`;
+      ${fileContext ? `=== TÀI LIỆU THAM KHẢO ===\n${fileContext.slice(0, 50000)}` : ''}`;
 
       const response = await generateContentWithFallback(prompt, {
         systemInstruction,

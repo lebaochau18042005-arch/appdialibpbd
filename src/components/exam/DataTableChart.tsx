@@ -1,15 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, Cell
+  Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { BarChart2, TrendingUp, Table2 } from 'lucide-react';
 
 /**
  * DataTableChart: Parses a GFM markdown table from the question's context field
- * and renders both a styled HTML table AND an interactive Recharts bar/line chart.
- *
- * Designed for Vietnamese geography exam data tables (GDP, population, production, etc.)
+ * and renders either a styled HTML table OR an interactive Recharts bar/line chart.
+ * Table and chart are MUTUALLY EXCLUSIVE (toggle between them).
  */
 
 // ── Markdown table parser ─────────────────────────────────────────────────────
@@ -24,7 +23,7 @@ function parseMarkdownTable(md: string): TableData | null {
   if (lines.length < 3) return null;
 
   const parseRow = (line: string) =>
-    line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+    line.replace(/^\||\\|$/g, '').split('|').map(c => c.trim());
 
   // Find separator row (contains only |----|----| style)
   const separatorIdx = lines.findIndex(l =>
@@ -63,7 +62,7 @@ const CHART_COLORS = [
   '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6',
 ];
 
-// Custom tooltip with Vietnamese number formatting
+// Custom tooltip
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -82,20 +81,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 interface DataTableChartProps {
-  /** Markdown table content (the question's context field) */
   content: string;
-  /** Optional title override */
   title?: string;
 }
 
-export default function DataTableChart({ content, title }: DataTableChartProps) {
-  const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
-  const [showTable, setShowTable] = useState(true);
+export default function DataTableChart({ content }: DataTableChartProps) {
+  // Mutually exclusive: show table OR chart (not both)
+  const [view, setView] = useState<'table' | 'bar' | 'line'>('table');
 
   const table = useMemo(() => {
-    // Collect ALL pipe-starting lines in the content — do NOT stop at blank lines
-    // This is the fix for truncation: AI often puts source note after a blank line,
-    // but actual data rows may also have gaps we must not misinterpret as end-of-table.
+    // Collect ALL pipe-starting lines — do NOT stop at blank lines (fixes truncation)
     return parseMarkdownTable(content);
   }, [content]);
 
@@ -107,7 +102,7 @@ export default function DataTableChart({ content, title }: DataTableChartProps) 
 
   const canChart = numericKeys.length > 0 && chartData.length >= 2;
 
-  // Extract non-table text (annotations, source notes)
+  // Extract non-table text (source notes)
   const annotation = useMemo(() => {
     const lines = content.split('\n');
     const nonTable = lines.filter(l => !l.trim().startsWith('|') && l.trim()).join(' ');
@@ -115,7 +110,6 @@ export default function DataTableChart({ content, title }: DataTableChartProps) 
   }, [content]);
 
   if (!table) {
-    // No parseable table — fall back to plain text
     return (
       <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{content}</p>
     );
@@ -123,66 +117,66 @@ export default function DataTableChart({ content, title }: DataTableChartProps) 
 
   return (
     <div className="space-y-3 w-full">
-      {/* Controls */}
+      {/* View toggle — mutually exclusive */}
       {canChart && (
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setShowTable(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${showTable ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-300 hover:bg-indigo-50'}`}
+            onClick={() => setView('table')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${view === 'table' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-300 hover:bg-indigo-50'}`}
           >
             <Table2 size={12} /> Bảng số liệu
           </button>
           <button
-            onClick={() => setChartType('bar')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${chartType === 'bar' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-emerald-300 hover:bg-emerald-50'}`}
+            onClick={() => setView('bar')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${view === 'bar' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-600 border-emerald-300 hover:bg-emerald-50'}`}
           >
             <BarChart2 size={12} /> Biểu đồ cột
           </button>
           <button
-            onClick={() => setChartType('line')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${chartType === 'line' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-amber-600 border-amber-300 hover:bg-amber-50'}`}
+            onClick={() => setView('line')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${view === 'line' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-amber-600 border-amber-300 hover:bg-amber-50'}`}
           >
             <TrendingUp size={12} /> Biểu đồ đường
           </button>
         </div>
       )}
 
-  // Data Table — always show all rows and columns, with horizontal scroll
-  {showTable && (
-    <div className="overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
-      <table className="text-sm border-collapse" style={{ minWidth: 'max-content', width: '100%' }}>
-        <thead>
-          <tr className="bg-indigo-600 text-white">
-            {table.headers.map((h, i) => (
-              <th key={i} className="px-4 py-2.5 border border-indigo-500 text-center whitespace-nowrap font-bold text-sm">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {table.rows.map((row, ri) => (
-            <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'}>
-              {table.headers.map((_, ci) => (
-                <td
-                  key={ci}
-                  className={`px-4 py-2 border border-indigo-100 text-center whitespace-nowrap text-sm ${ci === 0 ? 'font-semibold text-slate-700 text-left' : 'text-slate-600 tabular-nums font-medium'}`}
-                >
-                  {row[ci] ?? '—'}
-                </td>
+      {/* Data Table — only when view === 'table' */}
+      {view === 'table' && (
+        <div className="overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
+          <table className="text-sm border-collapse" style={{ minWidth: 'max-content', width: '100%' }}>
+            <thead>
+              <tr className="bg-indigo-600 text-white">
+                {table.headers.map((h, i) => (
+                  <th key={i} className="px-4 py-2.5 border border-indigo-500 text-center whitespace-nowrap font-bold text-sm">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {table.rows.map((row, ri) => (
+                <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'}>
+                  {table.headers.map((_, ci) => (
+                    <td
+                      key={ci}
+                      className={`px-4 py-2 border border-indigo-100 text-center whitespace-nowrap text-sm ${ci === 0 ? 'font-semibold text-slate-700 text-left' : 'text-slate-600 tabular-nums font-medium'}`}
+                    >
+                      {row[ci] ?? '—'}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      {/* Chart */}
-      {canChart && (
+      {/* Chart — only when view === 'bar' or 'line' */}
+      {canChart && (view === 'bar' || view === 'line') && (
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <ResponsiveContainer width="100%" height={260}>
-            {chartType === 'bar' ? (
+            {view === 'bar' ? (
               <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
