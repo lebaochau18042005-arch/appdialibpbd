@@ -85,12 +85,21 @@ export async function extractTextFromUrl(url: string, fileType: string): Promise
     throw new Error('Định dạng tài liệu không được hỗ trợ. Chỉ hỗ trợ Word (.docx) và PDF (.pdf).');
   }
 
-  // Download the file
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Không thể tải file từ thư viện. Lỗi HTTP ${response.status}.`);
+  // Download the file — try direct first, then CORS proxy fallback
+  let arrayBuffer: ArrayBuffer;
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    arrayBuffer = await response.arrayBuffer();
+  } catch {
+    // Fallback: use a CORS proxy for Cloudinary URLs
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const proxyResponse = await fetch(proxyUrl);
+    if (!proxyResponse.ok) {
+      throw new Error(`Không thể tải file từ thư viện. Vui lòng kiểm tra đường dẫn file.`);
+    }
+    arrayBuffer = await proxyResponse.arrayBuffer();
   }
-  const arrayBuffer = await response.arrayBuffer();
 
   try {
     if (isWord) {
