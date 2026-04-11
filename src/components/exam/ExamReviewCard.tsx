@@ -196,10 +196,60 @@ export default function ExamReviewCard({
                   )}
                 </div>
 
-                {/* AI Explanation Section */}
-                <div className="mt-8 pt-8 border-t border-slate-100">
-                  {!detailedExplanations[idx] ? (
-                    <button 
+                {/* Explanation Section - always show existing data, AI button only as fallback */}
+                <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                  {/* Always show the question's built-in explanation if present */}
+                  {q.explanation && (
+                    <div className="bg-indigo-50/60 p-5 rounded-2xl border border-indigo-100">
+                      <h4 className="flex items-center gap-2 text-indigo-700 font-bold mb-2 text-sm uppercase tracking-wider">
+                        <Sparkles className="w-4 h-4" /> Giải thích
+                      </h4>
+                      <p className="text-slate-700 leading-relaxed text-sm">{q.explanation}</p>
+                    </div>
+                  )}
+
+                  {(q.tips || q.mnemonics) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {q.tips && (
+                        <div className="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-100">
+                          <h4 className="text-emerald-700 font-bold mb-2 text-xs uppercase tracking-wider">💡 Mẹo làm bài</h4>
+                          <p className="text-slate-600 text-sm leading-relaxed">{q.tips}</p>
+                        </div>
+                      )}
+                      {q.mnemonics && (
+                        <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
+                          <h4 className="text-amber-700 font-bold mb-2 text-xs uppercase tracking-wider">🧠 Mẹo ghi nhớ</h4>
+                          <p className="text-slate-600 text-sm leading-relaxed">{q.mnemonics}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI detailed explanation (from additional call) — show if loaded */}
+                  {detailedExplanations[idx] && (
+                    <div className="space-y-4 pt-2">
+                      <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100">
+                        <h4 className="flex items-center gap-2 text-indigo-700 font-bold mb-3 text-sm">
+                          <Sparkles className="w-4 h-4" /> Chi tiết bổ sung (AI)
+                        </h4>
+                        <p className="text-slate-700 leading-relaxed text-sm">{detailedExplanations[idx].explanation}</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
+                          <h4 className="text-emerald-700 font-bold mb-2 text-xs uppercase tracking-wider">Mẹo làm bài</h4>
+                          <p className="text-slate-600 text-sm leading-relaxed">{detailedExplanations[idx].tips}</p>
+                        </div>
+                        <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
+                          <h4 className="text-amber-700 font-bold mb-2 text-xs uppercase tracking-wider">Mẹo ghi nhớ</h4>
+                          <p className="text-slate-600 text-sm leading-relaxed">{detailedExplanations[idx].mnemonics}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fallback: show AI button ONLY when question has no explanation/tips/mnemonics at all */}
+                  {!q.explanation && !q.tips && !q.mnemonics && !detailedExplanations[idx] && (
+                    <button
                       onClick={() => handleGetDetailedExplanation(idx)}
                       disabled={loadingExplanation === idx}
                       className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-100 transition-all border border-indigo-100"
@@ -209,33 +259,8 @@ export default function ExamReviewCard({
                       ) : (
                         <Sparkles className="w-5 h-5" />
                       )}
-                      Xem chi tiết giải thích AI
+                      Xem giải thích chi tiết (AI)
                     </button>
-                  ) : (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-6"
-                    >
-                      <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
-                        <h4 className="flex items-center gap-2 text-indigo-700 font-bold mb-3">
-                          <Sparkles className="w-5 h-5" />
-                          Giải thích chi tiết
-                        </h4>
-                        <p className="text-slate-700 leading-relaxed">{detailedExplanations[idx].explanation}</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100">
-                          <h4 className="text-emerald-700 font-bold mb-2 text-sm uppercase tracking-wider">Mẹo làm bài</h4>
-                          <p className="text-slate-600 text-sm leading-relaxed">{detailedExplanations[idx].tips}</p>
-                        </div>
-                        <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-100">
-                          <h4 className="text-amber-700 font-bold mb-2 text-sm uppercase tracking-wider">Mẹo ghi nhớ</h4>
-                          <p className="text-slate-600 text-sm leading-relaxed">{detailedExplanations[idx].mnemonics}</p>
-                        </div>
-                      </div>
-                    </motion.div>
                   )}
                 </div>
               </div>
