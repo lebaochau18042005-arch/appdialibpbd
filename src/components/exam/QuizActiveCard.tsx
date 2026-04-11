@@ -117,55 +117,124 @@ export default function QuizActiveCard({
           })}
 
           {currentQuestion.type === 'true_false' && (
-            <div className="space-y-4">
+            <div className="space-y-3">
+              {/* Header - scoring guide */}
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Phần II — Đúng / Sai (4 mệnh đề)
+                </p>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">1Đ</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">2→0.25</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">3→0.5</span>
+                  <span className="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded">4→1.0đ</span>
+                </div>
+              </div>
+
               {currentQuestion.statements.map((stmt, idx) => {
+                const label = ['a', 'b', 'c', 'd'][idx] || String(idx + 1);
                 const isTrueSelected = tfAnswer[stmt.id] === true;
                 const isFalseSelected = tfAnswer[stmt.id] === false;
+                const answered = tfAnswer[stmt.id] !== undefined;
                 const isCorrectlyAnswered = tfAnswer[stmt.id] === stmt.isTrue;
 
+                // Border + bg for the card
+                let cardStyle = 'border-slate-200 bg-slate-50/50';
+                if (isSubmitted) {
+                  cardStyle = isCorrectlyAnswered
+                    ? 'border-emerald-300 bg-emerald-50'
+                    : 'border-rose-300 bg-rose-50';
+                } else if (answered) {
+                  cardStyle = 'border-indigo-200 bg-indigo-50/40';
+                }
+
                 return (
-                  <div key={stmt.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50">
-                    <p className="font-medium text-slate-800 mb-3">{stmt.text}</p>
-                    <div className="flex gap-2">
+                  <div key={stmt.id} className={`rounded-2xl border-2 transition-all overflow-hidden ${cardStyle}`}>
+                    <div className="flex items-start gap-3 p-4">
+                      {/* Letter badge */}
+                      <span className={cn(
+                        'flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm mt-0.5',
+                        isSubmitted
+                          ? isCorrectlyAnswered ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                          : answered ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-600'
+                      )}>
+                        {label}
+                      </span>
+
+                      {/* Statement text */}
+                      <p className="flex-1 text-sm font-medium text-slate-800 leading-relaxed">{stmt.text}</p>
+
+                      {/* After submit: correct answer badge */}
+                      {isSubmitted && (
+                        <span className={cn(
+                          'flex-shrink-0 px-2 py-1 rounded-lg text-[10px] font-black uppercase',
+                          stmt.isTrue ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-rose-100 text-rose-700 border border-rose-200'
+                        )}>
+                          {stmt.isTrue ? '✓ Đúng' : '✗ Sai'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Đúng / Sai buttons */}
+                    <div className="flex border-t border-slate-100">
                       <button
-                        onClick={() => !isSubmitted && setTfAnswer(prev => ({...prev, [stmt.id]: true}))}
                         disabled={isSubmitted}
+                        onClick={() => !isSubmitted && setTfAnswer(prev => ({ ...prev, [stmt.id]: true }))}
                         className={cn(
-                          "flex-1 py-2 rounded-xl border-2 font-medium transition-colors",
-                          isSubmitted && stmt.isTrue ? "border-emerald-500 bg-emerald-50 text-emerald-700" :
-                          isSubmitted && isTrueSelected && !stmt.isTrue ? "border-rose-500 bg-rose-50 text-rose-700" :
-                          isTrueSelected ? "border-emerald-500 bg-emerald-50 text-emerald-700" :
-                          "border-slate-200 bg-white text-slate-600 hover:border-emerald-200"
+                          'flex-1 py-2.5 text-sm font-black transition-all flex items-center justify-center gap-1.5 border-r border-slate-100',
+                          isSubmitted
+                            ? stmt.isTrue
+                              ? 'bg-emerald-500 text-white'
+                              : isTrueSelected && !stmt.isTrue ? 'bg-rose-100 text-rose-600' : 'bg-white text-slate-400'
+                            : isTrueSelected
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-white text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'
                         )}
                       >
-                        Đúng
+                        <CheckCircle2 size={14} /> Đúng
                       </button>
                       <button
-                        onClick={() => !isSubmitted && setTfAnswer(prev => ({...prev, [stmt.id]: false}))}
                         disabled={isSubmitted}
+                        onClick={() => !isSubmitted && setTfAnswer(prev => ({ ...prev, [stmt.id]: false }))}
                         className={cn(
-                          "flex-1 py-2 rounded-xl border-2 font-medium transition-colors",
-                          isSubmitted && !stmt.isTrue ? "border-emerald-500 bg-emerald-50 text-emerald-700" :
-                          isSubmitted && isFalseSelected && stmt.isTrue ? "border-rose-500 bg-rose-50 text-rose-700" :
-                          isFalseSelected ? "border-emerald-500 bg-emerald-50 text-emerald-700" :
-                          "border-slate-200 bg-white text-slate-600 hover:border-emerald-200"
+                          'flex-1 py-2.5 text-sm font-black transition-all flex items-center justify-center gap-1.5',
+                          isSubmitted
+                            ? !stmt.isTrue
+                              ? 'bg-rose-500 text-white'
+                              : isFalseSelected && stmt.isTrue ? 'bg-rose-100 text-rose-600' : 'bg-white text-slate-400'
+                            : isFalseSelected
+                              ? 'bg-rose-500 text-white'
+                              : 'bg-white text-slate-500 hover:bg-rose-50 hover:text-rose-600'
                         )}
                       >
-                        Sai
+                        <XCircle size={14} /> Sai
                       </button>
                     </div>
+
+                    {/* After submit: user choice vs correct */}
                     {isSubmitted && (
-                      <div className="mt-2 text-sm flex items-center gap-1">
-                        {isCorrectlyAnswered ? (
-                          <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> Trả lời đúng</span>
-                        ) : (
-                          <span className="text-rose-600 flex items-center gap-1"><XCircle className="w-4 h-4"/> Trả lời sai</span>
-                        )}
+                      <div className="px-4 pb-2.5 flex items-center gap-2 text-[11px]">
+                        <span className="text-slate-400">Bạn chọn:</span>
+                        <span className={cn('font-bold', isCorrectlyAnswered ? 'text-emerald-600' : 'text-rose-600')}>
+                          {tfAnswer[stmt.id] === true ? 'Đúng' : tfAnswer[stmt.id] === false ? 'Sai' : '(Bỏ qua)'}
+                        </span>
+                        {isCorrectlyAnswered
+                          ? <CheckCircle2 size={12} className="text-emerald-500" />
+                          : <XCircle size={12} className="text-rose-500" />}
                       </div>
                     )}
                   </div>
                 );
               })}
+
+              {/* Live score indicator */}
+              {!isSubmitted && Object.keys(tfAnswer).length > 0 && (
+                <div className="flex justify-end">
+                  <span className="text-[11px] font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                    Đã chọn {Object.keys(tfAnswer).length}/4 mệnh đề
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

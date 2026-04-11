@@ -98,36 +98,67 @@ export default function ExamActiveCard({
           ))}
 
           {currentQuestion.type === 'true_false' && (
-            <div className="space-y-6">
-              {currentQuestion.statements.map((stmt) => (
-                <div key={stmt.id} className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50">
-                  <p className="text-lg font-medium text-slate-800 mb-4">{stmt.text}</p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleAnswer({ ...(answer || {}), [stmt.id]: true })}
-                      className={cn(
-                        "flex-1 py-3 rounded-xl border-2 font-bold transition-all",
-                        answer?.[stmt.id] === true
-                          ? "border-emerald-500 bg-emerald-500 text-white"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200"
-                      )}
-                    >
-                      Đúng
-                    </button>
-                    <button
-                      onClick={() => handleAnswer({ ...(answer || {}), [stmt.id]: false })}
-                      className={cn(
-                        "flex-1 py-3 rounded-xl border-2 font-bold transition-all",
-                        answer?.[stmt.id] === false
-                          ? "border-emerald-500 bg-emerald-500 text-white"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200"
-                      )}
-                    >
-                      Sai
-                    </button>
-                  </div>
+            <div className="space-y-3">
+              {/* Scoring guide header */}
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Phần II — Đúng / Sai (4 mệnh đề)</p>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">1→0.1đ</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">2→0.25đ</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">3→0.5đ</span>
+                  <span className="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded">4→1.0đ</span>
                 </div>
-              ))}
+              </div>
+              {currentQuestion.statements.map((stmt, idx) => {
+                const label = ['a', 'b', 'c', 'd'][idx] || String(idx + 1);
+                const isTrueSelected = answer?.[stmt.id] === true;
+                const isFalseSelected = answer?.[stmt.id] === false;
+                const answered = answer?.[stmt.id] !== undefined;
+                return (
+                  <div key={stmt.id} className={cn(
+                    'rounded-2xl border-2 transition-all overflow-hidden',
+                    answered ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-100 bg-slate-50/50'
+                  )}>
+                    <div className="flex items-start gap-3 p-4">
+                      <span className={cn(
+                        'flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm mt-0.5',
+                        answered ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-600'
+                      )}>
+                        {label}
+                      </span>
+                      <p className="flex-1 text-base font-medium text-slate-800 leading-relaxed">{stmt.text}</p>
+                    </div>
+                    <div className="flex border-t border-slate-100">
+                      <button
+                        onClick={() => handleAnswer({ ...(answer || {}), [stmt.id]: true })}
+                        className={cn(
+                          'flex-1 py-3 text-sm font-black transition-all flex items-center justify-center gap-1.5 border-r border-slate-100',
+                          isTrueSelected ? 'bg-emerald-500 text-white' : 'bg-white text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'
+                        )}
+                      >
+                        ✓ Đúng
+                      </button>
+                      <button
+                        onClick={() => handleAnswer({ ...(answer || {}), [stmt.id]: false })}
+                        className={cn(
+                          'flex-1 py-3 text-sm font-black transition-all flex items-center justify-center gap-1.5',
+                          isFalseSelected ? 'bg-rose-500 text-white' : 'bg-white text-slate-500 hover:bg-rose-50 hover:text-rose-600'
+                        )}
+                      >
+                        ✗ Sai
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Progress indicator */}
+              {answer && Object.keys(answer).length > 0 && Object.keys(answer).length < 4 && (
+                <div className="flex justify-end">
+                  <span className="text-[11px] font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                    Đã chọn {Object.keys(answer).length}/4 mệnh đề
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
