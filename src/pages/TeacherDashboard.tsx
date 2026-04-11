@@ -19,6 +19,7 @@ import ExamContentToolbar from '../components/teacher/ExamContentToolbar';
 import FlashcardModal from '../components/teacher/FlashcardModal';
 import QuizPlayModal from '../components/teacher/QuizPlayModal';
 import ExamAnalysisModal from '../components/teacher/ExamAnalysisModal';
+import DataTableChart from '../components/exam/DataTableChart';
 
 // ─── Inline chart/figure placeholder renderer for teacher previews ────────────
 function renderQText(text: string) {
@@ -117,6 +118,12 @@ export default function TeacherDashboard() {
   const handleQuestionImageUrl = (qIdx: number, url: string) => {
     setGeneratedQuestions(prev => prev ? prev.map((q, i) =>
       i === qIdx ? { ...q, imageUrl: url || undefined } : q
+    ) : prev);
+  };
+
+  const handleQuestionContext = (qIdx: number, ctx: string) => {
+    setGeneratedQuestions(prev => prev ? prev.map((q, i) =>
+      i === qIdx ? { ...q, context: ctx || undefined } : q
     ) : prev);
   };
 
@@ -745,23 +752,95 @@ export default function TeacherDashboard() {
                   </div>
                 </div>
 
+                {/* Validation summary */}
+                {generatedQuestions && (() => {
+                  const warnings = generatedQuestions.reduce((acc, q, i) => {
+                    const refChart = /biểu đồ|bảng số liệu|số liệu|hình/i.test(q.text);
+                    const hasContext = !!q.context?.trim();
+                    if (refChart && !hasContext) acc.push(i + 1);
+                    return acc;
+                  }, [] as number[]);
+                  return warnings.length > 0 ? (
+                    <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3">
+                      <AlertCircle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-black text-amber-800">
+                          ⚠️ Phát hiện {warnings.length} câu hỏi tham chiếu biểu đồ/bảng số liệu nhưng thiếu dữ liệu!
+                        </p>
+                        <p className="text-xs text-amber-700 mt-1">
+                          Câu: {warnings.join(', ')} — Hãy bổ sung bảng Markdown vào ô "Dữ liệu bảng/biểu đồ" bên dưới trước khi xác nhận.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2 text-sm font-bold text-emerald-700">
+                      <CheckCircle2 size={16} /> Tất cả câu hỏi đã có dữ liệu đầy đủ ✓
+                    </div>
+                  );
+                })()}
+
                 <div className="space-y-6">
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2">Nội dung chi tiết đề thi</h4>
-                  {generatedQuestions?.map((q, i) => (
-                    <div key={q.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2">Nội dung chi tiết — Kiểm tra và sửa trước khi xác nhận</h4>
+                  {generatedQuestions?.map((q, i) => {
+                    const refChart = /biểu đồ|bảng số liệu|số liệu|hình/i.test(q.text);
+                    const hasContext = !!q.context?.trim();
+                    const isWarning = refChart && !hasContext;
+                    return (
+                    <div key={q.id} className={`p-6 rounded-3xl border-2 ${
+                      isWarning ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-100'
+                    }`}>
                       <div className="flex items-start gap-4 mb-4">
-                        <span className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-400 text-sm shrink-0">
-                          {i + 1}
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                          isWarning ? 'bg-amber-400 text-white' : 'bg-white border border-slate-200 text-slate-400'
+                        }`}>
+                          {isWarning ? '!' : i + 1}
                         </span>
                         <div className="flex-1">
-                          <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">
-                            {q.type === 'multiple_choice' ? 'Trắc nghiệm' : q.type === 'true_false' ? 'Đúng/Sai' : 'Trả lời ngắn'}
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                              {q.type === 'multiple_choice' ? 'Trắc nghiệm' : q.type === 'true_false' ? 'Đúng/Sai' : 'Trả lời ngắn'}
+                            </div>
+                            {isWarning && (
+                              <span className="text-[10px] font-black px-2 py-0.5 bg-amber-400 text-white rounded-full">⚠️ Thiếu bảng số liệu</span>
+                            )}
                           </div>
                           <p className="text-slate-800 font-bold text-base leading-relaxed">{renderQText(q.text)}</p>
                         </div>
                       </div>
 
-                      {/* Image attach section */}
+                      {/* Context: rendered chart + editor */}
+                      <div className="ml-12 mb-4">
+                        {q.context?.trim() ? (
+                          <div className="mb-3">
+                            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                              <CheckCircle2 size={10} /> Bảng số liệu / Biểu đồ (xem trước)
+                            </div>
+                            <div className="border border-emerald-200 rounded-2xl bg-white p-3 overflow-x-auto">
+                              <DataTableChart content={q.context} />
+                            </div>
+                          </div>
+                        ) : (
+                          refChart && (
+                            <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-medium">
+                              🔴 Câu này nhắc đến biểu đồ/bảng nhưng chưa có dữ liệu. Hãy nhập bảng Markdown bên dưới.
+                            </div>
+                          )
+                        )}
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                            📊 Dữ liệu bảng/biểu đồ (Markdown Table) {q.type === 'true_false' ? '— Bắt buộc cho Phần II' : '— Tùy chọn'}
+                          </label>
+                          <textarea
+                            value={q.context || ''}
+                            onChange={e => handleQuestionContext(i, e.target.value)}
+                            placeholder={`| Năm | 2019 | 2021 | 2024 |\n|-----|------|------|------|\n| Dân số (tr) | 96.5 | 98.5 | 100.3 |\n\n*Nguồn: GSO 2024*`}
+                            rows={6}
+                            className="w-full p-3 text-xs font-mono border border-slate-200 rounded-xl resize-y focus:ring-2 focus:ring-emerald-400 outline-none bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Image attach */}
                       <div className="ml-12 mb-4">
                         {q.imageUrl ? (
                           <div className="relative group mb-2">
@@ -805,14 +884,17 @@ export default function TeacherDashboard() {
                           ))}
                         </div>
                       )}
-                      
+
                       {q.type === 'true_false' && q.statements && (
                         <div className="space-y-2 ml-12">
                           {q.statements.map((s, idx) => (
                             <div key={idx} className="flex items-center justify-between p-2.5 bg-white border border-slate-100 rounded-xl text-sm">
-                              <span className="text-slate-600 font-medium">{s.text}</span>
+                              <span className="text-slate-600 font-medium">
+                                <span className="font-black text-indigo-600 mr-2">{['a', 'b', 'c', 'd'][idx]})</span>
+                                {s.text}
+                              </span>
                               <span className={cn(
-                                "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase",
+                                "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase shrink-0 ml-2",
                                 s.isTrue ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
                               )}>
                                 {s.isTrue ? 'Đúng' : 'Sai'}
@@ -821,14 +903,15 @@ export default function TeacherDashboard() {
                           ))}
                         </div>
                       )}
-                      
+
                       {q.type === 'short_answer' && (
                         <div className="ml-12 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700 font-bold">
                           Đáp án: {q.correctAnswer} {q.unit}
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
