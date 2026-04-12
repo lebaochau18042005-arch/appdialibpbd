@@ -117,15 +117,28 @@ export default function ExamRoom() {
               const aiQuestions = await examService.generateAIExam(fileContext);
               setExamQuestions(aiQuestions);
             } else {
-              generateRandomExam();
+              // No library file found — generate fresh AI exam (with chart contexts)
+              try {
+                const aiQuestions = await examService.generateAIExam();
+                setExamQuestions(aiQuestions);
+              } catch { generateRandomExam(); }
             }
           } catch (err) {
-            console.error('Lỗi khi đọc file thư viện, fallback về ngẫu nhiên:', err);
-            alert('Không thể tạo đề từ file (lỗi đọc tài liệu). Đang tạo đề ngẫu nhiên thay thế.');
-            generateRandomExam();
+            console.error('Lỗi khi đọc file thư viện, fallback về AI:', err);
+            try {
+              const aiQuestions = await examService.generateAIExam();
+              setExamQuestions(aiQuestions);
+            } catch { generateRandomExam(); }
           }
         } else {
-          generateRandomExam();
+          // No library file — generate fresh AI exam (with two-pass chart context)
+          try {
+            const aiQuestions = await examService.generateAIExam();
+            setExamQuestions(aiQuestions);
+          } catch (err) {
+            console.warn('AI exam gen failed, falling back to random:', err);
+            generateRandomExam();
+          }
         }
       } else {
         generateRandomExam();
