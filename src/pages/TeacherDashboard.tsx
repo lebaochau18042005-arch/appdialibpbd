@@ -39,6 +39,94 @@ function renderQText(text: string) {
   return <span className="text-slate-800 font-bold text-base leading-relaxed">{parts}</span>;
 }
 
+// ── Regex-based Word exam question parser (no AI) ───────────────────────────
+function parseExamQuestionsFromText(rawText: string): Question[] {
+  const questions: Question[] = [];
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Extract answer key (e.g. "Câu 1: B; Câu 2: A" or "1-D 2-A ...")
+  const answerMap: Record<number, number> = {};
+  const ansKeyStart = lines.findIndex(l => /đáp án|ĐÁP ÁN|answer key|đáp án chính thức/i.test(l));
+  if (ansKeyStart >= 0) {
+    const ansBlock = lines.slice(ansKeyStart, ansKeyStart + 20).join(' ');
+    const matches = [...ansBlock.matchAll(/(\d+)[\s.:-]+([A-Da-d])/g)];
+    matches.forEach(m => { answerMap[parseInt(m[1])] = 'ABCD'.indexOf(m[2].toUpperCase()); });
+  }
+
+  // Split into question blocks on "Câu N"
+  const qStartRe = /^câu\s+(\d+)[.:)\s]/i;
+  let block: string[] = [];
+  let qNum = 0;
+
+  const processBlock = () => {
+    if (block.length === 0) return;
+    const firstLine = block[0];
+    const headerMatch = firstLine.match(/^câu\s+\d+[.:)\s]+(.+)?/i);
+    let qText = (headerMatch?.[1] || '').trim();
+
+    const mcOptRe = /^([ABCD])[.)\s]\s*(.+)/;
+    const tfOptRe = /^([abcd])[.)\s]\s*(.+)/;
+    const options: string[] = [];
+    const statements: { id: string; text: string; isTrue: boolean }[] = [];
+    let buildingText = true;
+
+    for (let i = 1; i < block.length; i++) {
+      const line = block[i];
+      const mc = line.match(mcOptRe);
+      const tf = line.match(tfOptRe);
+      if (mc) {
+        buildingText = false;
+        options.push(mc[2].trim());
+      } else if (tf && options.length === 0 && statements.length < 4) {
+        buildingText = false;
+        statements.push({ id: `stmt_${tf[1]}`, text: tf[2].trim(), isTrue: false });
+      } else if (buildingText && !/^(phần|câu|I\.|II\.|III\.)/i.test(line)) {
+        qText += (qText ? ' ' : '') + line;
+      }
+    }
+
+    if (!qText.trim()) return;
+    const correctIdx = answerMap[qNum] ?? 0;
+
+    if (options.length >= 2) {
+      const opts = [...options];
+      while (opts.length < 4) opts.push('');
+      questions.push({
+        id: `q_up_${Date.now()}_${qNum}`,
+        type: 'multiple_choice', text: qText, options: opts,
+        correctAnswerIndex: correctIdx >= 0 ? correctIdx : 0,
+        explanation: '', cognitiveLevel: 'Nhận biết', topic: '', lesson: '',
+      });
+    } else if (statements.length >= 2) {
+      questions.push({
+        id: `q_up_${Date.now()}_${qNum}`,
+        type: 'true_false', text: qText, statements,
+        explanation: '', cognitiveLevel: 'Thông hiểu', topic: '', lesson: '',
+      });
+    } else {
+      questions.push({
+        id: `q_up_${Date.now()}_${qNum}`,
+        type: 'short_answer', text: qText,
+        correctAnswer: '',
+        explanation: '', cognitiveLevel: 'Vận dụng', topic: '', lesson: '',
+      });
+    }
+  };
+
+  for (const line of lines) {
+    const m = line.match(qStartRe);
+    if (m) {
+      processBlock();
+      qNum = parseInt(m[1]);
+      block = [line];
+    } else if (block.length > 0) {
+      block.push(line);
+    }
+  }
+  processBlock();
+  return questions;
+}
+
 type DashboardTab = 'overview' | 'exams' | 'history' | 'students' | 'assign' | 'roster';
 
 const TABS: { id: DashboardTab; label: string; icon: React.ReactNode }[] = [
@@ -354,7 +442,20 @@ export default function TeacherDashboard() {
 
     setIsUploading(true);
     try {
-      const id = await examService.saveUploadedExam(uploadTitle, user?.uid || 'anonymous-teacher', selectedFile, uploadingType);
+      // Auto-parse questions from Word file (no AI, regex-based)
+      let parsedQuestions: Question[] = [];
+      if (uploadingType === 'word') {
+        try {
+          const mammoth = await import('mammoth');
+          const arrayBuffer = await selectedFile.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          parsedQuestions = parseExamQuestionsFromText(result.value);
+        } catch (e) {
+          console.warn('Word auto-parse failed (non-critical):', e);
+        }
+      }
+
+      const id = await examService.saveUploadedExam(uploadTitle, user?.uid || 'anonymous-teacher', selectedFile, uploadingType, parsedQuestions);
       if (id) {
         // Close modal instantly without waiting for Firestore refetch
         setShowUploadConfirm(false);
@@ -370,10 +471,13 @@ export default function TeacherDashboard() {
           type: 'upload',
           fileUrl: '',
           fileType: uploadingType,
-          questions: [],
+          questions: parsedQuestions,
           createdAt: new Date().toISOString(),
         };
         setExams(prev => [newExam, ...prev.filter(e => e.id !== id)]);
+        if (parsedQuestions.length > 0) {
+          alert(`Đã tải lên và tự động trích xuất ${parsedQuestions.length} câu hỏi!`);
+        }
         // Silently refresh in background
         loadData();
       }

@@ -478,7 +478,7 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
     }
   },
 
-  async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html'): Promise<string> {
+  async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html', questions: Question[] = []): Promise<string> {
     const createdAt = new Date().toISOString();
     const localId = `local_${Date.now()}`;
 
@@ -499,7 +499,7 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
     const localExamData: Exam = {
       id: localId, title, creatorId,
       type: 'upload', fileUrl, fileType,
-      questions: [], createdAt,
+      questions, createdAt,
     };
     try {
       lsSaveExam(localExamData);
@@ -514,7 +514,7 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
       try {
         const docRef = await addDoc(collection(db, 'exams'), {
           title, creatorId, type: 'upload' as const,
-          fileUrl: '', fileType, questions: [], createdAt,
+          fileUrl: '', fileType, questions, createdAt,
         });
         try {
           lsDeleteExam(localId);
