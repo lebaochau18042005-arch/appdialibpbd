@@ -84,15 +84,7 @@ export default function ExamManager({
                     {exam.type === 'ai' ? <Sparkles size={20} /> : <FileText size={20} />}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    {exam.type === 'upload' && (!exam.questions || exam.questions.length === 0) && onExtractQuestions && (
-                      <button 
-                        onClick={() => onExtractQuestions(exam)}
-                        className="p-2 text-slate-400 hover:text-purple-600 transition-colors"
-                        title="Trích xuất câu hỏi bằng AI"
-                      >
-                        <Brain size={20} />
-                      </button>
-                    )}
+
                     {onEditExam && (exam.questions?.length ?? 0) > 0 && (
                       <button
                         onClick={() => onEditExam(exam)}
