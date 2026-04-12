@@ -127,40 +127,147 @@ PHẦN III – TRẢ LỜI NGẮN / ĐIỀN SỐ (6 câu × 0,25đ = 1,5đ):
   - Bình quân lương thực (kg/người): sản_lượng / DS
 `;
 
-      // ===== NỘI DUNG CHƯƠNG TRÌNH PHẢI BÁM SÁT (TT 17/2025/TT-BGDĐT) =====
+      // ===== NỘI DUNG CHƯƠNG TRÌNH PHẢI BÁM SÁT (TT 17/2025/TT-BGDĐT - CTGDPT 2018) =====
       const CHUONG_TRINH_TT17 = `
-=== NỘI DUNG CHƯƠNG TRÌNH ĐỊA LÍ 12 (THEO TT 17/2025/TT-BGDĐT) ===
-KHÔNG ra đề về: Atlat Địa lí (bị bãi bỏ), vùng kinh tế trọng điểm.
-SỬ DỤNG đúng thuật ngữ: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
+=== NỘI DUNG BÀI HỌC CỤ THỂ - ĐỊA LÍ 12 (CTGDPT 2018, TT 17/2025/TT-BGDĐT) ===
+Câu hỏi PHẢI bám sát các bài học sau, KHÔNG hỏi nội dung ngoài chương trình:
 
-Các chủ đề PHẢI được đề cập trong đề:
-1. VỊ TRÍ & LÃNH THỔ: Xác định đặc điểm địa lí theo bản đồ (điểm cực Bắc ở Tuyên Quang, cực Nam ở Cà Mau)
-2. ĐỊA HÌNH: Lãnh thổ phần đất liền đồi núi chiếm 3/4, đồng bằng chiếm 1/4 diện tích
-3. KHÍ HẬU: Mưa mùa, gió mùa, phân hóa Bắc-Nam, Đông-Tây
-4. SÔNG NGÒI: Mạng dày, chảy ra biển phía đông
-5. ĐẤT & SINH VẬT: Phân hóa theo địa hình
-6. BIỂN ĐÔNG: Vùng biển 1 triệu km², quần đảo Hoàng Sa (ĐN) và Trường Sa (Khánh Hòa)
-7. DÂN CƯ: 100+ triệu người, Kinh chiếm 85%, dân số trẻ, lao động đông
-8. ĐÔ THỊ HÓA: Tỉ lệ đô thị hóa ~40%, hệ thống đô thị theo tầng
-9. CHUYỂN DỊCH CƠ CẤU KT: Theo ngành, thành phần, lãnh thổ
-10. NÔNG NGHIỆP: Vùng chuyên canh, trang trại, khu NNCNC
-11. LÂM NGHIỆP: Phát triển bền vững, rừng phòng hộ, đặc dụng
-12. THỦY SẢN: Nuôi trồng + khai thác, xuất khẩu
-13. CÔNG NGHIỆP: Khu công nghiệp, khu công nghệ cao (Hòa Lạc, Đà Nẵng, HCM)
-14. DỊCH VỤ & DU LỊCH: Du lịch bền vững, phân hóa lãnh thổ
-15. CÁC VÙNG:
-   - TRUNG DU & MIỀN NÚI PHÍA BẮC: khoáng sản, thủy điện (Hòa Bình, Sơn La, Lai Châu), cây cận nhiệt/ôn đới, chăn nuôi gia súc lớn
-   - ĐỒNG BẰNG SÔNG HỒNG: CN nặng, dịch vụ, kinh tế biển (Hải Phòng, Quảng Ninh)
-   - BẮC TRUNG BỘ: Du lịch, cảng biển, khai khoáng
-   - NAM TRUNG BỘ: Bô-xít (Gia Lai, Lâm Đồng), thủy điện, kinh tế biển, du lịch
-   - TÂY NGUYÊN: Cà phê, cao su, bô-xít, thủy điện
-   - ĐÔNG NAM BỘ: Kinh tế số 1 VN, CN-DV, cảng biển
-   - ĐỒNG BẰNG SÔNG CỬU LONG: lúa gạo, thủy sản, trái cây xuất khẩu
+A. ĐỊA LÍ TỰ NHIÊN VIỆT NAM:
+Bài 1 - Vị trí địa lí và lãnh thổ VN:
+  • Tọa độ: 8°34'B đến 23°23'B; 102°08'Đ đến 117°20'Đ
+  • 4 điểm cực: Bắc-Tuyên Quang (Lũng Cú), Nam-Cà Mau (Đất Mũi), Tây-Điện Biên (Lũng Pô), Đông-Khánh Hòa (Vạn Thạnh)
+  • Diện tích đất liền 331.000 km², biển 1 triệu km², đường bờ biển 3.260 km
+  • Ý nghĩa vị trí: múi giờ GMT+7, thuận lợi giao thương, đa dạng sinh học
 
-ĐỊA LÍ ĐÔNG NAM Á (Lớp 11 - bắt buộc có trong đề):
-- Đặc điểm tự nhiên, dân cư, kinh tế ĐNÁ
-- ASEAN và hợp tác khu vực
-- So sánh GDP, dân số, cơ cấu kinh tế các nước ĐNÁ
+Bài 2 - Địa hình VN:
+  • Đồi núi 3/4 diện tích (chủ yếu thấp < 1.000m), đồng bằng 1/4
+  • 4 vùng địa hình núi: Đông Bắc, Tây Bắc, Trường Sơn Bắc, Trường Sơn Nam
+  • 2 đồng bằng lớn: ĐBSH (15.000 km²), ĐBSCL (40.000 km²)
+  • Địa hình bờ biển: bồi tụ (Nam), mài mòn (Trung), hải đảo phong phú
+
+Bài 3 - Khí hậu VN:
+  • Nhiệt đới ẩm gió mùa: nền nhiệt cao, mưa nhiều (1.500-2.000 mm/năm)
+  • Gió mùa Đông Bắc (tháng 11-4): lạnh, khô miền Bắc
+  • Gió mùa Tây Nam (tháng 5-10): nóng ẩm, mưa toàn quốc
+  • Phân hóa B-N theo chí tuyến (vùng có/không có mùa đông lạnh)
+
+Bài 4 - Thủy văn VN:
+  • 2.360 sông, 9 hệ thống lớn, mùa lũ (5-10), mùa cạn (11-4)
+  • Sông Hồng: dài 1.126 km (phần VN), hệ thống đê 2.700 km
+  • Sông Mê Kông (Cửu Long): bồi đắp ĐBSCL, 9 cửa sông
+  • Hồ lớn: Hồ Tây (HN), hồ nhân tạo: Hòa Bình, Thác Bà, Trị An
+
+Bài 5 - Đất và sinh vật VN:
+  • Đất feralit đỏ vàng (chiếm 65% diện tích tự nhiên) - vùng đồi núi
+  • Đất phù sa chiếm 24%, phân bố đồng bằng, giá trị nông nghiệp cao
+  • Rừng nhiệt đới ẩm thường xanh; độ che phủ rừng 42% (2023)
+  • HST: rừng nhiệt đới, rừng ngập mặn, rạn san hô
+
+Bài 6 - Biển Đông và tài nguyên biển:
+  • Biển Đông: biển nửa kín, diện tích 3,5 triệu km²
+  • 5 vùng biển VN: nội thủy, lãnh hải, tiếp giáp, EEZ (200 hải lý), thềm lục địa
+  • Quần đảo Hoàng Sa (TP Đà Nẵng), Trường Sa (tỉnh Khánh Hòa)
+  • Tài nguyên: dầu khí, hải sản, muối, cảng biển, du lịch
+
+Bài 7 - Thiên nhiên nhiệt đới ẩm gió mùa:
+  • Biểu hiện: cây xanh quanh năm, nền nhiệt cao, bốc hơi mạnh
+  • Quá trình phong hóa, laterit hóa mạnh → feralit
+  • Thách thức: lũ lụt, hạn hán, xói mòn, bão
+
+Bài 8 - Thiên nhiên phân hóa đa dạng:
+  • Bắc-Nam: Bắc có mùa đông lạnh, Nam không có
+  • Đông-Tây: Đồng bằng, đồi núi, cao nguyên, cao sơn khác nhau
+  • Cao thấp: đai nhiệt đới (< 600-700m Bắc / <900-1000m Nam), đai cận nhiệt/ôn đới núi cao
+
+B. ĐỊA LÍ DÂN CƯ:
+Bài 9 - Dân số và phân bố dân cư:
+  • Dân số 2023: 98,2 triệu người (đứng thứ 15 thế giới, thứ 3 ĐNÁ)
+  • Tỉ lệ tăng tự nhiên dân số: ~0,9‰ (đang giảm dần)
+  • Cơ cấu dân số: dân số vàng (người 15-64 tuổi chiếm >65%)
+  • Phân bố: mật độ 297 người/km², tập trung ĐBSH (1.000+), ĐBSCL
+  • Thành phần dân tộc: 54 dân tộc, Kinh 85,3%, dân tộc thiểu số ở miền núi
+
+Bài 10 - Lao động và việc làm:
+  • Lực lượng lao động: 52 triệu người (2023)
+  • Phân bố lao động: nông-lâm-thủy sản 28%, công nghiệp 33%, dịch vụ 39%
+  • Thách thức: năng suất thấp, chênh lệch trình độ, thiếu lao động kỹ thuật cao
+
+Bài 11 - Đô thị hóa:
+  • Tỉ lệ dân đô thị: 39,5% (2023) - thấp hơn trung bình thế giới
+  • Đô thị đặc biệt: Hà Nội, TP HCM, Hải Phòng, Đà Nẵng, Cần Thơ
+  • Đô thị loại I: Huế, Vinh, Nha Trang, Biên Hòa v.v.
+
+C. ĐỊA LÍ KINH TẾ:
+Bài 12 - Chuyển dịch cơ cấu kinh tế:
+  • Cơ cấu ngành 2023: Nông-lâm-thủy sản 11,7%, CN-XD 37,2%, DV 42,5%
+  • GDP 2023: đạt 430 tỷ USD, tăng 5,05%
+  • Xu hướng: giảm tỉ trọng nông nghiệp, tăng công nghiệp-dịch vụ
+
+Bài 13 - Nông nghiệp VN:
+  • Lúa gạo: ĐBSCL (50% sản lượng), ĐBSH; xuất khẩu đứng thứ 3 thế giới (7-8 triệu tấn/năm)
+  • Cây công nghiệp lâu năm: cà phê (Tây Nguyên, Gia Lai), cao su (ĐNB, Tây Nguyên), chè (Tuyên Quang, Lâm Đồng)
+  • Chăn nuôi: lợn (39 triệu con), gia cầm (550 triệu con), bò sữa (Mộc Châu, Lâm Đồng)
+  • Thủy sản: nuôi trồng (3,9 triệu tấn/năm), khai thác biển; tôm, cá tra xuất khẩu
+
+Bài 14 - Lâm nghiệp:
+  • Diện tích rừng: 14,7 triệu ha (độ che phủ 42%)
+  • Rừng đặc dụng: VQG Phong Nha, Cúc Phương, Côn Đảo, Cát Tiên
+  • Lâm sản ngoài gỗ, chế biến gỗ xuất khẩu (đứng thứ 2 thế giới)
+
+Bài 15 - Công nghiệp VN:
+  • GDP công nghiệp chiếm 37% GDP cả nước (2023)
+  • KCN: cả nước có 414 KCN (2024), tập trung ĐNB (Bình Dương, Đồng Nai, TP HCM)
+  • Khu CNTP: Hòa Lạc (Hà Nội), TP HCM, Đà Nẵng
+  • Ngành trọng điểm: điện tử (Samsung, Intel), dệt may, da giày, chế biến thực phẩm, cơ khí
+  • Năng lượng: điện gió, mặt trời (chiếm 27% công suất điện 2023)
+
+Bài 16 - Dịch vụ và du lịch:
+  • Du lịch: 12,6 triệu khách quốc tế (2023), mục tiêu 15-18 triệu (2024)
+  • Điểm du lịch nổi tiếng: Hạ Long (UNESCO), Phong Nha, Mỹ Sơn, Phố cổ Hội An, Sa Pa, Phú Quốc
+  • Giao thông vận tải: đường bộ (273.000 km), đường sắt (3.200 km), 22 sân bay
+
+D. CÁC VÙNG KINH TẾ - XÃ HỘI (7 vùng theo CTGDPT 2018):
+Vùng 1 - TRUNG DU & MIỀN NÚI PHÍA BẮC:
+  15 tỉnh (sau sáp nhập 2025); diện tích lớn nhất, mật độ dân số thấp
+  Thế mạnh: khoáng sản (than Quảng Ninh, sắt Thái Nguyên, đồng Lào Cai), thủy điện Hòa Bình/Sơn La/Lai Châu, cây ôn đới (chè, hoa Đà Lạt Bắc)
+  Hạn chế: giao thông khó khăn, lũ quét, sạt lở
+
+Vùng 2 - ĐỒNG BẰNG SÔNG HỒNG:
+  10 tỉnh thành (HN, Hải Phòng, Hưng Yên, Ninh Bình v.v.)
+  Thế mạnh: CN nặng, điện tử, dịch vụ cao cấp, cảng biển Hải Phòng, than Quảng Ninh
+  Hạn chế: địa hình thấp, nguy cơ ngập lụt, đất canh tác bị thu hẹp
+
+Vùng 3 - BẮC TRUNG BỘ:
+  6 tỉnh (Thanh Hóa → Thừa Thiên Huế); bờ biển dài, đồi núi ở phía tây
+  Thế mạnh: cảng Nghi Sơn, Vũng Áng; du lịch biển, rừng, di sản (Cố đô Huế, Kim Liên)
+  Khô hạn, gió Lào mùa hè là hạn chế
+
+Vùng 4 - DUYÊN HẢI NAM TRUNG BỘ:
+  8 tỉnh thành (Đà Nẵng → Bình Thuận → sau 2025 gộp thêm)
+  Thế mạnh: du lịch biển đảo (Đà Nẵng, Nha Trang, Phú Quốc), cảng biển Đà Nẵng, thủy sản
+  Bô-xít Gia Lai, Lâm Đồng; đánh bắt xa bờ (Bình Định, Khánh Hòa)
+
+Vùng 5 - TÂY NGUYÊN:
+  5 tỉnh (Kon Tum, Gia Lai, Đắk Lắk, Đắk Nông, Lâm Đồng)
+  Thế mạnh: cà phê (60% sản lượng cả nước), cao su, tiêu, bô-xít (Đắk Nông, Lâm Đồng), thủy điện (Y-a-ly, Sê San)
+  Hạn chế: thiếu nước mùa khô, phá rừng, dân số thưa
+
+Vùng 6 - ĐÔNG NAM BỘ:
+  6 tỉnh thành (TP HCM, Đồng Nai, Tây Ninh, + sau 2025)
+  Thế mạnh: kinh tế số 1 cả nước, CN điện tử, dầu khí (thềm lục địa Bà Rịa-Vũng Tàu → nay thuộc TP HCM), cảng Cát Lái
+  GDP ĐNB chiếm ~40% GDP cả nước; TP HCM là trung tâm kinh tế
+
+Vùng 7 - ĐỒNG BẰNG SÔNG CỬU LONG:
+  13 tỉnh thành; nông nghiệp đặc biệt
+  Thế mạnh: lúa gạo (50% sản lượng), tôm-cá xuất khẩu (Cà Mau, An Giang), trái cây nhiệt đới
+  Thách thức: xâm nhập mặn, sụt lún, biến đổi khí hậu (nước biển dâng)
+
+E. ĐỊA LÍ ĐÔNG NAM Á (Địa 11 - bắt buộc có trong đề):
+  11 quốc gia; diện tích 4,5 triệu km²; dân số 680 triệu (2024)
+  Phân loại: ĐNÁ lục địa (Myanmar, Thái Lan, Lào, Campuchia, VN) và ĐNÁ hải đảo (Indonesia, Philippines, Malaysia, Singapore, Brunei, Đông Timor)
+  Đặc điểm kinh tế: Indonesia GDP lớn nhất, Singapore GDP/người cao nhất, VN tăng trưởng nhanh
+  ASEAN (1967): 10 thành viên, Đông Timor ứng viên, thương mại nội khối 25% tổng thương mại
+  Dữ liệu so sánh phải dùng số liệu 2019-2024 (tránh số liệu trước 2019)
 `;
 
       const systemInstruction = `Bạn là chuyên gia biên soạn đề thi Địa lí THPT Quốc gia cấp Bộ, GIỎI NHẤT Việt Nam.
