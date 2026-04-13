@@ -305,9 +305,10 @@ ${HANH_CHINH_2025}
       Câu 4 Phần II: context bắt buộc có bảng số liệu với đơn vị, 4 mệnh đề phân tích số liệu.
       id 4 statements: "stmt_a", "stmt_b", "stmt_c", "stmt_d"
 
-      LƯU Ý: Điểm cực Bắc VN là Lũng Cú-Hà Giang. Không dùng tên tỉnh đã bị sáp nhập.
+      LƯU Ý: Điểm cực Bắc VN là Lũng Cú thuộc tỉnh TUYÊN QUANG (Hà Giang đã sáp nhập vào Tuyên Quang). Không dùng tên tỉnh đã bị sáp nhập.
 
       ${fileContext ? `=== TÀI LIỆU THAM KHẢO ===\n${fileContext.slice(0, 50000)}` : ''}`;
+
 
       const response = await generateContentWithFallback(prompt, {
         systemInstruction,
@@ -357,37 +358,46 @@ ${HANH_CHINH_2025}
         throw new Error("Dữ liệu đề thi không hợp lệ.");
       }
 
-      // ===== TWO-PASS: Generate missing context for chart-reference questions =====
-      // Gemini may still return context="" for some chart questions despite being required.
-      // For those, call AI separately just to generate the data table.
+      // ===== POST-PROCESSING: Auto-repair missing context for chart questions =====
+      // AI may return context="", context=" ", or null despite prompt rules.
+      // Detect these and call AI to generate a proper data table with unit column.
       const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|lược đồ|hình dưới|số liệu sau/i;
-      const needsContext = examQuestions.filter((q: any) => 
-        CHART_RE.test(q.text || '') && (!q.context || q.context.trim().length < 15)
+      const needsContext = examQuestions.filter((q: any) =>
+        CHART_RE.test(q.text || '') && (!q.context || q.context.trim().length < 20)
       );
 
       if (needsContext.length > 0) {
         await Promise.all(needsContext.map(async (q: any) => {
           try {
-            const ctxPrompt = `Tạo ngay một bảng số liệu Markdown phù hợp với câu hỏi địa lí sau (không giải thích gì thêm, chỉ trả về bảng Markdown):
+            const isSEA = /đông nam á|asean|indonesia|singapore|malaysia|philippines|thái lan|myanmar/i.test(q.text);
+            const ctxPrompt = `Tạo ngay một bảng số liệu Markdown đầy đủ cho câu hỏi địa lí sau.
 
 CÂU HỎI: ${q.text}
 
-YÊU CẦU:
-- Bảng có ít nhất 4 hàng dữ liệu và 3-5 cột
-- Nếu câu hỏi về Đông Nam Á: dùng ít nhất 5 quốc gia ĐNÁ với GDP/dân số từ 2019-2024
-- Nếu câu hỏi về Việt Nam: dùng số liệu kinh tế-xã hội VN từ 2015-2024
-- Số liệu phải nhất quán với nội dung câu hỏi
-- Kết thúc bảng bằng dòng "(Nguồn: ...)"
-- CHỈ trả về bảng Markdown, không có text khác`;
+YÊU CẦU CHÍNH XÁC:
+- Dòng 1: "Biểu đồ: ${isSEA ? 'Cột nhóm' : 'Kết hợp cột và đường'}" (không có gì khác)
+- Dòng 2 trở đi: bảng Markdown với CỘT ĐƠN VỊ bắt buộc:
+  | Chỉ tiêu | Đơn vị | Cột năm 1 | Cột năm 2 | Cột năm 3 |
+  |---|---|---|---|---|
+  | ... | ... | ... | ... | ... |
+- Ít nhất 3 hàng dữ liệu với số liệu thực tế 2019-2024
+- ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể' : 'Dùng số liệu Việt Nam cụ thể theo chủ đề câu hỏi'}
+- Dòng cuối: "(Nguồn: Tổng cục Thống kê / World Bank, 2024)"
+- CHỈ trả về bảng Markdown, không có text, giải thích khác`;
             const ctxRes = await generateContentWithFallback(ctxPrompt);
             const generated = ctxRes.text?.trim() || '';
             if (generated.includes('|') && generated.includes('---')) {
               q.context = generated;
             }
           } catch {
-            // if fails, leave context as-is — warning will show as fallback
+            // If repair fails, leave context — warning shown in UI
           }
         }));
+      }
+
+      // Validate final count — must be 28
+      if (examQuestions.length !== 28) {
+        console.warn(`generateAIExam: Received ${examQuestions.length} questions instead of 28`);
       }
 
       return examQuestions;
