@@ -218,50 +218,12 @@ Bài 15 - Công nghiệp VN:
 Bài 16 - Dịch vụ và du lịch:
   • Phân tích được sự phân hoá lãnh thổ du lịch (các điểm du lịch, khu du lịch), du lịch với sự phát triển bền vững.
 
-D. ĐỊA LÍ CÁC VÙNG KINH TẾ - XÃ HỘI (Giảm còn 6 vùng, KHÔNG tính vùng KTTĐ):
-Vùng 1 - TRUNG DU & MIỀN NÚI PHÍA BẮC:
-  • Chứng minh được các thế mạnh để phát triển kinh tế của vùng về khoáng sản và thuỷ điện, cây trồng có nguồn gốc cận nhiệt và ôn đới (cây công nghiệp, rau quả), chăn nuôi gia súc lớn.
-  
-Vùng 2 - ĐỒNG BẰNG SÔNG HỒNG:
-  • Phân tích được một số vấn đề về phát triển KT-XH của vùng: Vấn đề phát triển công nghiệp, dịch vụ, kinh tế biển (Bổ sung TT17).
-
-Vùng 3 - BẮC TRUNG BỘ:
-  • Đổi tên thành "Phát triển kinh tế - xã hội ở BTB".
-  • Trình bày được một số thế mạnh và tình hình phát triển du lịch của vùng (Bổ sung TT17).
-  
-Vùng 4 - NAM TRUNG BỘ (THAY ĐỔI LỚN NHẤT: GỘP DUYÊN HẢI + TÂY NGUYÊN):
-  • Trình bày vị trí địa lí, lãnh thổ, dân số.
-  • Phân tích thế mạnh, hạn chế phát triển các ngành KT.
-  • Trình bày tình hình phát triển KT biển; thủy điện, khoáng sản (bôxit); cây công nghiệp lâu năm, lâm nghiệp và du lịch.
-  • Phân tích ý nghĩa của phát triển KT-XH với QPAN. Sử dụng bản đồ, số liệu chỉ rõ thế mạnh KT biển.
-
-Vùng 5 - ĐÔNG NAM BỘ:
-  • Trình bày được tình hình phát triển các ngành kinh tế: công nghiệp; dịch vụ; nông nghiệp; kinh tế biển của vùng.
-
-Vùng 6 - ĐỒNG BẰNG SÔNG CỬU LONG:
-  • Phát triển kinh tế gắn với ứng phó biến đổi khí hậu (vùng nông nghiệp lớn nhất). 
-
-
-⚠️ CẤM HOÀN TOÀN — KHÔNG ĐƯỢC RA BẤT KỲ CÂU HỎI NÀO về "Vùng kinh tế trọng điểm" (KTTĐ):
-   TT 17/2025 đã CẮT BỎ HOÀN TOÀN nội dung về: Vùng KTTĐ phía Bắc, Vùng KTTĐ miền Trung,
-   Vùng KTTĐ phía Nam, Vùng KTTĐ ĐBSCL. Bất kỳ câu hỏi nào liên quan đến "vùng kinh tế trọng điểm",
-   "KTTĐ", "tỉnh/thành nào thuộc vùng KTTĐ" đều SAI VỀ CHƯƠNG TRÌNH và BI CẤM TUYỆT ĐỐI.
-
-
-E. ĐỊA LÍ ĐÔNG NAM Á (Địa 11 - bắt buộc có trong đề):
-  11 quốc gia; diện tích 4,5 triệu km²; dân số 680 triệu (2024)
-  Phân loại: ĐNÁ lục địa (Myanmar, Thái Lan, Lào, Campuchia, VN) và ĐNÁ hải đảo (Indonesia, Philippines, Malaysia, Singapore, Brunei, Đông Timor)
-  Đặc điểm kinh tế: Indonesia GDP lớn nhất, Singapore GDP/người cao nhất, VN tăng trưởng nhanh
-  ASEAN (1967): 10 thành viên, Đông Timor ứng viên, thương mại nội khối 25% tổng thương mại
-  Dữ liệu so sánh phải dùng số liệu 2019-2024 (tránh số liệu trước 2019)
-`;
 
       const systemInstruction = `Bạn là chuyên gia biên soạn đề thi Địa lí THPT Quốc gia cấp Bộ, GIỎI NHẤT Việt Nam.
       Nhiệm vụ: Tạo ĐÚNG 28 câu theo MA TRẬN DƯỚI ĐÂY. ĐỌC TOÀN BỘ TRƯỚC KHI SINH CÂU HỎI ĐẦU TIÊN.
 
 ${HANH_CHINH_2025}
 
-${MA_TRAN_DE_THI}
 
       QUY TẮC BIỂU ĐỒ — NGHIÊM NGẶT TUYỆT ĐỐI:
       • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
@@ -282,7 +244,10 @@ ${MA_TRAN_DE_THI}
       ${fileContext ? `G. Ưu tiên dùng TÀI LIỆU THAM KHẢO được cung cấp làm nguồn kiến thức chính.` : ''}`;
 
 
-      const prompt = `Tạo đề thi Địa lí THPT chuẩn Bộ 2025. SINH ĐỦ ĐÚNG 28 CÂU JSON theo MA TRẬN đã cung cấp trong system instruction. TUÂN THỦ THEO ĐÚNG TỪNG VỊ TRÍ DƯỚI ĐÂY:
+      const prompt = `MA TRẬN ĐỀ (tuân thủ nghiêm ngặt):
+${MA_TRAN_DE_THI}
+
+SINH ĐỦ 28 CÂU JSON, TUÂN THỦ THEO ĐÚNG TỪNG VỊ TRÍ DƯỚI ĐÂY:
 
 ═══ PHẦN I — 18 CÂU TRẮC NGHIỆM (type=multiple_choice) ═══
 Câu 1:  topic="Nhận xét biểu đồ"                          cognitiveLevel="Vận dụng"
