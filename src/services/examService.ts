@@ -215,48 +215,59 @@ E. ĐỊA LÍ ĐÔNG NAM Á (Địa 11 - bắt buộc có trong đề):
 `;
 
       const systemInstruction = `Bạn là chuyên gia biên soạn đề thi Địa lí THPT Quốc gia cấp Bộ, GIỎI NHẤT Việt Nam.
-      Nhiệm vụ: tạo đề thi ĐÚNG MA TRẬN chu      B. PHẦN III - correctAnswer PHẦN III PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
-      C. MỌI CÂU HỎi phải có fields: id, type, text, context, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
-      D. Câu hỏi trắc nghiệm: phải có options (4 phương án) và correctAnswerIndex.
-      E. correctAnswerIndex là INDEX (0, 1, 2, 3), KHÔNG phải nhãn A/B/C/D.
-      F. KHÔNG sử dụng tỉnh/thành đã bị sáp nhập làm đáp án đúng tồn tại độc lập.
-      ${fileContext ? `G. Dùng TÀI LIỆU THAM KHẢO được cung cấp là nguồn kiến thức chính.` : ''}`;
+      Nhiệm vụ: Tạo đúng 28 câu hỏi theo MA TRẬN được cung cấp: 18 câu Phần I (multiple_choice), 4 câu Phần II (true_false), 6 câu Phần III (short_answer).
 
-      const prompt = `Hãy tạo ngay một đề thi Địa lí THPT chuẩn Bộ 2025 gồm ĐÚNG 28 câu theo đúng ma trận:
-      - 18 câu Phần I (trắc nghiệm 4 đáp án: 8 Nhận biết + 4 Thông hiểu + 6 Vận dụng, đúng từng chủ đề như MA TRẬN)
-      - 4 câu Phần II (mỗi câu có 4 statements đúng/sai, không có correctAnswerIndex)
-      - 6 câu Phần III (điền số: tất cả là bài tính toán, correctAnswer là số)
+      QUY TẮC BIỂU ĐỒ — NGHIÊM NGẶT TUYỆT ĐỐI:
+      • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
+      • Cột đơn vị BẮT BUỘC: | Chỉ tiêu | Đơn vị | 2015 | 2020 | 2024 |
+      • Dòng đầu context phải ghi: "Biểu đồ: [tên loại]" (cột / đường / tròn / miền / kết hợp)
+      • Câu 1 Phần I và Câu 4 Phần II PHẢI dùng 2 loại biểu đồ KHÁC NHAU.
+      • Số liệu trong bảng PHẢI khớp với phương án đúng / mệnh đề đúng/sai.
+      • Nguồn số liệu: dòng cuối context là "(Nguồn: Tổng cục Thống kê, năm X)"
+      • TUYỆT ĐỐI CẤM context = null/rỗng khi câu hỏi tham chiếu biểu đồ.
 
-         ❌ FORBIDDEN (sẽ gây lỗi hệ thống): { "text": "Cho biểu đồ X...", "context": null }
-          ✅ REQUIRED: { "text": "Cho biểu đồ X...", "context": "| Loại | 2015 | 2020 | 2024 |\n|---|---|---|---|\n..." }
-          🔑 GIẢI PHÁP ĐƠN GIẢN: Nếu không có số liệu → KHÔNG VÀO câu hỏi về biểu đồ/bảng mà hỏi về đặc điểm/nguyên nhân.
+      QUY TẮC KHÁC:
+      A. correctAnswerIndex là số nguyên 0/1/2/3 — KHÔNG phải chữ A/B/C/D.
+      B. Phần III correctAnswer PHẢI là con số (string số hoặc number).
+      C. Mỗi câu phải có: id, type, text, context, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
+      D. Phần II câu 1,2,3: CẤM dùng "biểu đồ"/"bảng"/"số liệu" — chỉ hỏi lý thuyết.
+      E. KHÔNG dùng tỉnh/thành đã sáp nhập làm đáp án đúng độc lập.
+      ${fileContext ? `F. Ưu tiên dùng TÀI LIỆU THAM KHẢO được cung cấp làm nguồn kiến thức chính.` : ''}`;
 
-         CHUẨN BẢNG SỐ LIỆU BẮT BUỘC — phải tuân thủ CHÍNH XÁC:
-         - Hàng 1: header với tên các cột (dùng đơn vị trong ngoốc nếu cần): | Chỉ tiêu | 2015 | 2020 | 2024 |
-         - Hàng 2: dòng phân cách: |---|---|---|---|
-         - Hàng 3+: dữ liệu số, dùng DẤU PHẨY ngăn hàng nghìn phổ thông VN: 1.234,5
-         - Dòng cuối bắt đầu bằng "(Nguồn: ..." để ghi nguồn số liệu
-         - Số liệu PHẢI NHẤT QUÁN với câu text và phương án đúng/sai
+      const prompt = `Tạo đề thi Địa lí THPT chuẩn Bộ 2025 gồm ĐÚNG 28 câu JSON:
+      - 18 câu Phần I (multiple_choice): theo đúng thứ tự chủ đề trong MA TRẬN
+      - 4 câu Phần II (true_false): câu 1-3 lý thuyết, câu 4 nhận xét biểu đồ
+      - 6 câu Phần III (short_answer): 100% bài tính ra CON SỐ
 
-      B. PHẦN III - correctAnswer PHẦN III PHẢI là một CON SỐ (string hoặc number). Bài tính có đủ dữ liệu trong câu text.
-      C. MỌI CÂU HỎI phải có fields: id, type, text, context, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
-      D. Câu hỏi trắc nghiệm: phải có options (4 phương án) và correctAnswerIndex.
-      E. correctAnswerIndex là INDEX (0, 1, 2, 3), KHÔNG phải nhãn A/B/C/D.
-      F. KHÔNG sử dụng tỉnh/thành đã bị sáp nhập làm đáp án đúng tồn tại độc lập.
+      ⚠️ KIỂM TRA TRƯỚC KHI XÁC NHẬN: đếm → phải đủ 18+4+6=28. Mọi câu có "biểu đồ" trong text → context KHÔNG được null.
 
-      YÊU CẦU PHẦN II (ĐÚNG CẤU TRÚC THI TỐT NGHIỆP 2025 — BẮT BUỘC):
-      *** CÂU 1, 2, 3 Phần II: CẤM dùng bất kỳ từ "biểu đồ", "bảng", "số liệu", "hình" trong câu hỏi. ***
-          - 4 mệnh đề Đúng/Sai về kiến thức, khái niệm, đặc điểm địa lí Việt Nam (lý thuyết phân bố theo từng vùng, ngành, tự nhiên VN).
-          - Câu hỏi phải hỏi về khái niệm, đặc điểm, nguyên nhân, ý nghĩa địa lí — KHÔNG hỏi về số liệu.
-          - id 4 statements: "stmt_a", "stmt_b", "stmt_c", "stmt_d"
+      BIỂU ĐỒ — BẮT BUỘC ĐA DẠNG VÀ CÓ ĐƠN VỊ:
+      • Câu 1 Phần I (VD - Nhận xét biểu đồ): bắt buộc chọn 1 loại:
+        - Biểu đồ kết hợp: cột (sản lượng CN) + đường (tốc độ tăng trưởng)
+        - Biểu đồ miền: chuyển dịch cơ cấu lao động theo ngành 2010-2024
+      • Câu 4 Phần II (Nhận xét biểu đồ): bắt buộc chọn loại KHÁC câu 1:
+        - Biểu đồ tròn: cơ cấu GDP theo khu vực kinh tế (%)
+        - Biểu đồ đường: tốc độ tăng trưởng xuất khẩu ĐNÁ 2015-2024
+        - Biểu đồ cột nhóm: so sánh sản lượng lúa ĐBSCL và ĐBSH
 
-      *** CÂU 4 Phần II: BẮT BUỘC về "Nhận xét biểu đồ". context là Markdown table. ***
-          - Phải cung cấp một bảng số liệu (context: bảng Markdown) hoặc text miêu tả biểu đồ.
-          - 4 mệnh đề phân tích số liệu từ bảng/biểu đồ (id: "stmt_a" đến "stmt_d").
+      FORMAT CONTEXT BIỂU ĐỒ BẮT BUỘC:
+      Dòng 1: "Biểu đồ: [Tên loại biểu đồ]"
+      Dòng 2+: Bảng Markdown với CỘT ĐƠN VỊ:
+      | Chỉ tiêu | Đơn vị | 2015 | 2019 | 2024 |
+      |---|---|---|---|---|
+      | Điện sản xuất | Tỷ kWh | 164,3 | 229,5 | 312,0 |
+      | Thép thô | Triệu tấn | 5,6 | 9,4 | 16,2 |
+      (Nguồn: Tổng cục Thống kê, 2024)
 
-      LƯU Ý KHÁC:
-      - Phần III: tính toán dựa theo chủ đề ở ma trận (dân cư, vùng KT, ngành KT, tự nhiên).
-      - Điểm cực Bắc VN: TUYÊN QUANG. Không ra câu hỏi có đáp án tỉnh đã bị sáp nhập.
+      PHẦN III – VÍ DỤ CÂU TÍNH TOÁN HỢP LỆ:
+      • "Dân số VN năm 2024 là 99,5 triệu người, tỉ lệ tăng tự nhiên 0,9‰. Tính dân số tăng thêm (nghìn người)" → correctAnswer: "896"
+      • "GDP VN 2024: 477 tỷ USD, dân số 99,5 triệu. Tính GDP/người (USD, làm tròn nghìn)" → correctAnswer: "4793"
+
+      YÊU CẦU PHẦN II: CÂU 1,2,3 CẤM dùng "biểu đồ"/"bảng"/"số liệu" — 4 mệnh đề lý thuyết Đúng/Sai.
+      Câu 4 Phần II: context bắt buộc có bảng số liệu với đơn vị, 4 mệnh đề phân tích số liệu.
+      id 4 statements: "stmt_a", "stmt_b", "stmt_c", "stmt_d"
+
+      LƯU Ý: Điểm cực Bắc VN là Lũng Cú-Hà Giang. Không dùng tên tỉnh đã bị sáp nhập.
 
       ${fileContext ? `=== TÀI LIỆU THAM KHẢO ===\n${fileContext.slice(0, 50000)}` : ''}`;
 
