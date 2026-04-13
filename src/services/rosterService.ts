@@ -95,7 +95,8 @@ export const rosterService = {
   subscribeToRosters(callback: (rosters: ClassRoster[]) => void): () => void {
     const rostersRef = ref(rtdb, 'rosters');
     const handler = (snap: any) => {
-      if (!snap.exists()) { callback(this.getRosters()); return; }
+      const localRosters = this.getRosters();
+      if (!snap.exists()) { callback(localRosters); return; }
       const list: ClassRoster[] = [];
       snap.forEach((child: any) => {
         const data = child.val();
@@ -109,7 +110,19 @@ export const rosterService = {
           updatedAt: data.updatedAt || '',
         });
       });
-      callback(list);
+
+      // Merge local elements that might have failed to sync to RTDB
+      const merged = [...list];
+      for (const lr of localRosters) {
+        if (!list.some(r => r.className.toLowerCase() === lr.className.toLowerCase())) {
+          merged.push(lr);
+        }
+      }
+
+      // Sort by newest first
+      merged.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+      callback(merged);
     };
     onValue(rostersRef, handler, () => callback(this.getRosters()));
     return () => off(rostersRef, 'value', handler);
