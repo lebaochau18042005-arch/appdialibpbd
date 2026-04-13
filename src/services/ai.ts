@@ -218,6 +218,7 @@ QUY TẮC BẮT BUỘC:
 3. Với câu Đúng/Sai (có các ý a, b, c, d): dùng type "true_false" với 4 statements.
 4. Với câu tự luận/điền số/tính toán ngắn: dùng type "short_answer".
 5. Phải xác định đáp án đúng dựa trên kiến thức Địa lý hoặc ghi chú trong đề. Nếu đề thi đề cập đến tỉnh/thành đã sáp nhập, hãy ghi chú trong explanation về tên mới sau 1/7/2025.
+5b. ⚠️ SAI LẦM THƯỜNG GẶP: TUYỆT ĐỐI KHÔNG ĐƯỢC MẶC ĐỊNH correctAnswerIndex = 0. Đáp án đúng có thế là A(0), B(1), C(2) hoặc D(3). Phải đọc kỹ từng câu hỏi và logic chọn đúng phương án chính xác.
 6. id phải là "q1", "q2", "q3",... theo thứ tự câu trong đề.
 7. KHÔNG thêm câu mới - chỉ chuyển đổi câu có sẵn sang JSON.
 
@@ -239,7 +240,8 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
     "text": "Nội dung câu hỏi?",
     "context": null,
     "options": ["Phương án A", "Phương án B", "Phương án C", "Phương án D"],
-    "correctAnswerIndex": 0,
+    "correctAnswerIndex": 2,
+    "_NOTE_": "Số này là ví dụ (=C). Giá trị thực tế có thể là 0/1/2/3 tùy kiến thức câu hỏi - KHÔNG sao chép giá trị mẫu.",
     "explanation": "Giải thích đáp án đúng"
   },
   {

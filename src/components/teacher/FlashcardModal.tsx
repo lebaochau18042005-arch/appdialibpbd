@@ -24,12 +24,17 @@ function getAnswer(q: Question): string {
 }
 
 export default function FlashcardModal({ exam, onClose }: FlashcardModalProps) {
-  const questions = exam.questions ?? [];
+  // Flashcard mode: exclude true_false (4 sub-statements = too verbose for a flip card)
+  const allQuestions = exam.questions ?? [];
+  const questions = allQuestions.filter(q => q.type !== 'true_false');
+  const filteredCount = allQuestions.length - questions.length;
+
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [direction, setDirection] = useState(0);
 
   const current = questions[index];
+
 
   // Navigate: reset flip state BEFORE changing index so card remounts fresh
   const go = (dir: 1 | -1) => {
