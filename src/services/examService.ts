@@ -281,9 +281,8 @@ ${MA_TRAN_DE_THI}
       F. CẤM TUYỆT ĐỐI ra câu hỏi về "Vùng kinh tế trọng điểm" hoặc "KTTĐ".
       ${fileContext ? `G. Ưu tiên dùng TÀI LIỆU THAM KHẢO được cung cấp làm nguồn kiến thức chính.` : ''}`;
 
-      const prompt = `Tạo đề thi Địa lí THPT chuẩn Bộ 2025. SINH ĐỦ ĐÚNG 28 CÂU JSON, THEO ĐÚNG TỪNG VỊ TRÍ DƯỚI ĐÂY:
 
-${CHUONG_TRINH_TT17}
+      const prompt = `Tạo đề thi Địa lí THPT chuẩn Bộ 2025. SINH ĐỦ ĐÚNG 28 CÂU JSON theo MA TRẬN đã cung cấp trong system instruction. TUÂN THỦ THEO ĐÚNG TỪNG VỊ TRÍ DƯỚI ĐÂY:
 
 ═══ PHẦN I — 18 CÂU TRẮC NGHIỆM (type=multiple_choice) ═══
 Câu 1:  topic="Nhận xét biểu đồ"                          cognitiveLevel="Vận dụng"
