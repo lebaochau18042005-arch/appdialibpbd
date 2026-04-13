@@ -77,18 +77,34 @@ export default function QuizActiveCard({
           {currentQuestion.type === 'multiple_choice' && currentQuestion.options.map((option, idx) => {
             const isSelected = mcAnswer === idx;
             const isCorrect = idx === currentQuestion.correctAnswerIndex;
-            
-            let optionStateClass = "border-slate-200 hover:border-emerald-300 hover:bg-emerald-50";
+
+            // Determine button style based on state
+            let optionClass = '';
+            let badgeClass = '';
+            let textClass = 'text-slate-800'; // ← default: dark readable text
+
             if (isSubmitted) {
               if (isCorrect) {
-                optionStateClass = "border-emerald-500 bg-emerald-50 text-emerald-800";
+                optionClass = 'border-emerald-500 bg-emerald-50';
+                badgeClass = 'border-emerald-500 bg-emerald-500 text-white';
+                textClass = 'text-emerald-800 font-semibold';
               } else if (isSelected) {
-                optionStateClass = "border-rose-500 bg-rose-50 text-rose-800";
+                optionClass = 'border-rose-500 bg-rose-50';
+                badgeClass = 'border-rose-500 bg-rose-500 text-white';
+                textClass = 'text-rose-800 font-semibold';
               } else {
-                optionStateClass = "border-slate-200 bg-slate-50 text-slate-400";
+                optionClass = 'border-slate-200 bg-slate-50';
+                badgeClass = 'border-slate-300 text-slate-400';
+                textClass = 'text-slate-500';
               }
             } else if (isSelected) {
-              optionStateClass = "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500";
+              optionClass = 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400';
+              badgeClass = 'border-emerald-500 bg-emerald-500 text-white';
+              textClass = 'text-emerald-800 font-semibold';
+            } else {
+              optionClass = 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50';
+              badgeClass = 'border-slate-300 text-slate-600';
+              textClass = 'text-slate-800';
             }
 
             return (
@@ -97,24 +113,23 @@ export default function QuizActiveCard({
                 onClick={() => !isSubmitted && setMcAnswer(idx)}
                 disabled={isSubmitted}
                 className={cn(
-                  "w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4 text-slate-800",
-                  optionStateClass
+                  "w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4",
+                  optionClass
                 )}
               >
                 <span className={cn(
                   "flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm",
-                  isSubmitted && isCorrect ? "border-emerald-500 bg-emerald-500 text-white" :
-                  isSubmitted && isSelected && !isCorrect ? "border-rose-500 bg-rose-500 text-white" :
-                  isSelected ? "border-emerald-500 text-emerald-600" : "border-slate-300 text-slate-500"
+                  badgeClass
                 )}>
                   {String.fromCharCode(65 + idx)}
                 </span>
-                <span className="flex-1">{option}</span>
-                {isSubmitted && isCorrect && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
-                {isSubmitted && isSelected && !isCorrect && <XCircle className="w-6 h-6 text-rose-500" />}
+                <span className={cn("flex-1 leading-snug", textClass)}>{option}</span>
+                {isSubmitted && isCorrect && <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0" />}
+                {isSubmitted && isSelected && !isCorrect && <XCircle className="w-6 h-6 text-rose-500 flex-shrink-0" />}
               </button>
             );
           })}
+
 
           {currentQuestion.type === 'true_false' && (
             <div className="space-y-3">
