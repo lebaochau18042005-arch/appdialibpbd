@@ -241,8 +241,7 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
     "context": null,
     "options": ["Phương án A", "Phương án B", "Phương án C", "Phương án D"],
     "correctAnswerIndex": 2,
-    "_NOTE_": "Số này là ví dụ (=C). Giá trị thực tế có thể là 0/1/2/3 tùy kiến thức câu hỏi - KHÔNG sao chép giá trị mẫu.",
-    "explanation": "Giải thích đáp án đúng"
+    "explanation": "Giải thích đáp án đúng — correctAnswerIndex phải được chọn theo kiến thức thực tế, có thể là 0/1/2/3"
   },
   {
     "id": "q2",

@@ -263,8 +263,6 @@ ${HANH_CHINH_2025}
 
 ${MA_TRAN_DE_THI}
 
-${CHUONG_TRINH_TT17}
-
       QUY TẮC BIỂU ĐỒ — NGHIÊM NGẶT TUYỆT ĐỐI:
       • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
       • Cột đơn vị BẮT BUỘC: | Chỉ tiêu | Đơn vị | 2015 | 2020 | 2024 |
@@ -284,6 +282,8 @@ ${CHUONG_TRINH_TT17}
       ${fileContext ? `G. Ưu tiên dùng TÀI LIỆU THAM KHẢO được cung cấp làm nguồn kiến thức chính.` : ''}`;
 
       const prompt = `Tạo đề thi Địa lí THPT chuẩn Bộ 2025. SINH ĐỦ ĐÚNG 28 CÂU JSON, THEO ĐÚNG TỪNG VỊ TRÍ DƯỚI ĐÂY:
+
+${CHUONG_TRINH_TT17}
 
 ═══ PHẦN I — 18 CÂU TRẮC NGHIỆM (type=multiple_choice) ═══
 Câu 1:  topic="Nhận xét biểu đồ"                          cognitiveLevel="Vận dụng"
