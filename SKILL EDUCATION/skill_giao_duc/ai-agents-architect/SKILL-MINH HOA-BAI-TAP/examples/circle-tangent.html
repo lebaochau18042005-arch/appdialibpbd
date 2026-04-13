@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đường tròn - Tiếp tuyến</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraph.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraphcore.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a; color: #e2e8f0;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; padding: 24px;
+        }
+        h1 { font-size: 1.3rem; margin-bottom: 4px; color: #38bdf8; }
+        .subtitle { color: #94a3b8; font-size: 0.88rem; margin-bottom: 16px; text-align: center; max-width: 620px; }
+        .jxgbox { 
+            border-radius: 14px; 
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            background: #1e293b !important;
+        }
+        .info-panel {
+            margin-top: 20px; padding: 18px 24px;
+            background: #1e293b; border-radius: 12px;
+            font-size: 0.9rem; max-width: 660px; width: 100%;
+            border: 1px solid #334155; line-height: 1.7;
+        }
+        .info-panel h3 { color: #f59e0b; margin-bottom: 8px; }
+        .label { color: #94a3b8; }
+        .value { color: #38bdf8; font-weight: 600; font-family: monospace; }
+        .highlight { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>⭕ Đường tròn & Tiếp tuyến</h1>
+    <p class="subtitle">
+        Cho đường tròn (O; R=3), điểm M nằm ngoài đường tròn. 
+        Vẽ 2 tiếp tuyến MA, MB. Kéo điểm M để khám phá!
+    </p>
+    
+    <div id="jxgbox" class="jxgbox" style="width:660px; height:660px;"></div>
+    
+    <div class="info-panel">
+        <h3>📐 Tính chất tiếp tuyến</h3>
+        <p>
+            <span class="label">OM = </span><span class="value" id="om-val">—</span> &nbsp;|&nbsp;
+            <span class="label">MA = MB = </span><span class="value highlight" id="ma-val">—</span>
+        </p>
+        <p>
+            <span class="label">Góc OMA = </span><span class="value" id="angle-val">—</span> &nbsp;|&nbsp;
+            <span class="label">MA² = MO² − R² </span><span class="value" id="check-val">✓</span>
+        </p>
+        <p style="margin-top: 8px; color: #64748b; font-size: 0.82rem;">
+            💡 OA ⊥ MA, OB ⊥ MB &nbsp;|&nbsp; MA = MB (hai tiếp tuyến từ 1 điểm) &nbsp;|&nbsp; OM là phân giác góc AMB
+        </p>
+    </div>
+
+    <script>
+        const board = JXG.JSXGraph.initBoard('jxgbox', {
+            boundingbox: [-8, 8, 8, -8],
+            axis: false, grid: false,
+            showCopyright: false, showNavigation: true,
+            keepAspectRatio: true
+        });
+
+        const R = 3;
+
+        // === TÂM O ===
+        const O = board.create('point', [0, 0], {
+            name: 'O', fixed: true, size: 4,
+            strokeColor: '#a78bfa', fillColor: '#a78bfa',
+            label: { fontSize: 16, color: '#a78bfa', offset: [-15, -15] }
+        });
+
+        // === ĐƯỜNG TRÒN (O; R) ===
+        const circle = board.create('circle', [O, R], {
+            strokeColor: '#a78bfa', strokeWidth: 2.5,
+            fillColor: '#a78bfa08'
+        });
+
+        // === ĐIỂM M (kéo được) ===
+        const M = board.create('point', [6, 3], {
+            name: 'M', size: 6,
+            strokeColor: '#fbbf24', fillColor: '#fbbf24',
+            label: { fontSize: 17, color: '#fbbf24', offset: [10, 10] }
+        });
+
+        // === TÍNH TIẾP TUYẾN ===
+        // Đường tròn phụ đường kính OM → giao với (O;R) tại A, B
+        const midOM = board.create('midpoint', [O, M], { visible: false });
+        const circleOM = board.create('circle', [midOM, O], {
+            strokeColor: '#47556940', strokeWidth: 1, dash: 3
+        });
+
+        // Giao điểm = tiếp điểm
+        const A = board.create('intersection', [circle, circleOM, 0], {
+            name: 'A', size: 5,
+            strokeColor: '#ef4444', fillColor: '#ef4444',
+            label: { fontSize: 16, color: '#ef4444', offset: [-5, 12] }
+        });
+        const B = board.create('intersection', [circle, circleOM, 1], {
+            name: 'B', size: 5,
+            strokeColor: '#ef4444', fillColor: '#ef4444',
+            label: { fontSize: 16, color: '#ef4444', offset: [-5, -18] }
+        });
+
+        // === TIẾP TUYẾN MA, MB ===
+        board.create('segment', [M, A], {
+            strokeColor: '#ef4444', strokeWidth: 2.5
+        });
+        board.create('segment', [M, B], {
+            strokeColor: '#ef4444', strokeWidth: 2.5
+        });
+
+        // === OA, OB (bán kính đến tiếp điểm) ===
+        board.create('segment', [O, A], {
+            strokeColor: '#a78bfa', strokeWidth: 1.5, dash: 2
+        });
+        board.create('segment', [O, B], {
+            strokeColor: '#a78bfa', strokeWidth: 1.5, dash: 2
+        });
+
+        // === OM ===
+        board.create('segment', [O, M], {
+            strokeColor: '#475569', strokeWidth: 1.5, dash: 3
+        });
+
+        // === GÓC VUÔNG tại A và B ===
+        board.create('angle', [M, A, O], {
+            type: 'square', radius: 0.35,
+            strokeColor: '#10b981', fillColor: '#10b98140', strokeWidth: 2
+        });
+        board.create('angle', [O, B, M], {
+            type: 'square', radius: 0.35,
+            strokeColor: '#10b981', fillColor: '#10b98140', strokeWidth: 2
+        });
+
+        // === GÓC AMB ===
+        board.create('angle', [A, M, B], {
+            radius: 0.8, strokeColor: '#f59e0b', fillColor: '#f59e0b30', strokeWidth: 1.5,
+            name: function() {
+                const rad = JXG.Math.Geometry.rad(A, M, B);
+                return (rad * 180 / Math.PI).toFixed(1) + '°';
+            },
+            label: { fontSize: 12, color: '#f59e0b' }
+        });
+
+        // === CẬP NHẬT THÔNG TIN ===
+        board.on('update', () => {
+            const om = O.Dist(M);
+            const ma = M.Dist(A);
+            const mb = M.Dist(B);
+            const angleOMA = Math.acos(R / om) * 180 / Math.PI;
+            
+            document.getElementById('om-val').textContent = om.toFixed(2);
+            document.getElementById('ma-val').textContent = ma.toFixed(2);
+            document.getElementById('angle-val').textContent = isNaN(angleOMA) ? '—' : angleOMA.toFixed(1) + '°';
+            
+            const check = Math.abs(ma * ma - (om * om - R * R));
+            document.getElementById('check-val').textContent = check < 0.01 ? '✓ đúng' : '✗';
+        });
+        board.update();
+    </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "levels": [
+    {
+      "name": "Nhận biết",
+      "code": "NB",
+      "bloom_level": 1,
+      "description": "Nhớ lại kiến thức, nhận dạng công thức, khái niệm cơ bản",
+      "keywords": ["nêu", "liệt kê", "nhận dạng", "xác định", "cho biết"],
+      "percentage_guide": "30-40%"
+    },
+    {
+      "name": "Thông hiểu",
+      "code": "TH",
+      "bloom_level": 2,
+      "description": "Hiểu và giải thích được kiến thức, áp dụng trực tiếp công thức",
+      "keywords": ["giải thích", "tính", "tìm", "biến đổi", "so sánh"],
+      "percentage_guide": "30-40%"
+    },
+    {
+      "name": "Vận dụng",
+      "code": "VD",
+      "bloom_level": 3,
+      "description": "Áp dụng kiến thức vào tình huống mới, giải bài toán nhiều bước",
+      "keywords": ["chứng minh", "giải", "xác định", "thiết lập"],
+      "percentage_guide": "15-20%"
+    },
+    {
+      "name": "Vận dụng cao",
+      "code": "VDC",
+      "bloom_level": 4,
+      "description": "Phân tích, tổng hợp, sáng tạo, giải quyết vấn đề phức tạp",
+      "keywords": ["phân tích", "đánh giá", "tổng hợp", "sáng tạo", "tối ưu"],
+      "percentage_guide": "5-10%"
+    }
+  ]
+}

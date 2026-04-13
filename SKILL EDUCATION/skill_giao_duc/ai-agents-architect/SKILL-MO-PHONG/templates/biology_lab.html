@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧬 Phòng Thí Nghiệm Sinh Học Ảo - Template</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a1a0a;--card:#0f1f0f;--border:#1a3a1a;--primary:#66bb6a;--accent:#ab47bc;--text:#e0e0e0;--text2:#81c784}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1b5e20,#2e7d32);padding:14px 24px;display:flex;align-items:center;gap:16px}
+.header h1{font-size:1.2rem;background:linear-gradient(90deg,#a5d6a7,#66bb6a);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.layout{display:grid;grid-template-columns:1fr 300px;gap:16px;padding:16px;height:calc(100vh - 60px)}
+.canvas-area{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative}
+.canvas-area canvas{width:100%;height:100%}
+.sidebar{display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.panel h3{font-size:.95rem;color:var(--primary);margin-bottom:10px}
+.phase-list{display:flex;flex-direction:column;gap:6px}
+.phase-item{padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:.3s;font-size:.85rem}
+.phase-item:hover{border-color:var(--primary);background:rgba(102,187,106,.08)}
+.phase-item.active{border-color:var(--primary);background:rgba(102,187,106,.15);box-shadow:0 0 10px rgba(102,187,106,.2)}
+.phase-item .phase-name{font-weight:700;margin-bottom:4px}
+.phase-item .phase-desc{font-size:.78rem;color:var(--text2);line-height:1.4}
+.component-label{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;font-size:.78rem;margin:3px;border:1px solid var(--border);cursor:pointer;transition:.2s}
+.component-label:hover{background:rgba(102,187,106,.1);border-color:var(--primary)}
+.component-label .dot{width:10px;height:10px;border-radius:50%}
+.controls{display:flex;gap:8px;margin-top:auto;padding-top:12px}
+.controls button{flex:1;padding:10px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem}
+.btn-prev{background:#374151;color:#fff}
+.btn-next{background:linear-gradient(135deg,#2e7d32,#43a047);color:#fff}
+.btn-auto{background:linear-gradient(135deg,#6a1b9a,#ab47bc);color:#fff}
+.speed-control{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.8rem}
+.speed-control input{flex:1;accent-color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:1.5rem">🧬</span>
+  <h1>Phòng Thí Nghiệm Sinh Học Ảo</h1>
+</div>
+<div class="layout">
+  <div class="canvas-area">
+    <canvas id="bioCanvas"></canvas>
+  </div>
+  <div class="sidebar">
+    <div class="panel">
+      <h3>🔬 Giai Đoạn Nguyên Phân</h3>
+      <div class="phase-list" id="phaseList"></div>
+    </div>
+    <div class="panel">
+      <h3>🏷️ Thành Phần Tế Bào</h3>
+      <div id="componentLabels"></div>
+    </div>
+    <div class="panel">
+      <h3>📖 Mô Tả</h3>
+      <p id="phaseDescription" style="font-size:.85rem;line-height:1.6;color:var(--text2)"></p>
+    </div>
+    <div class="controls">
+      <button class="btn-prev" onclick="prevPhase()">◀ Trước</button>
+      <button class="btn-auto" id="btnAuto" onclick="toggleAuto()">▶ Tự động</button>
+      <button class="btn-next" onclick="nextPhase()">Sau ▶</button>
+    </div>
+    <div class="speed-control">
+      <span>🐢 Chậm</span>
+      <input type="range" min="0.5" max="3" step="0.5" value="1" id="speedSlider">
+      <span>🐇 Nhanh</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// === DỮ LIỆU NGUYÊN PHÂN ===
+const phases = [
+  {
+    id:'interphase', name:'Kỳ trung gian', 
+    desc:'Tế bào chuẩn bị phân chia: ADN nhân đôi, bào quan tăng số lượng. NST ở dạng sợi mảnh (chất nhiễm sắc).',
+    events:['ADN nhân đôi (S)','Tổng hợp protein','Bào quan nhân đôi'],
+    draw: drawInterphase
+  },
+  {
+    id:'prophase', name:'Kỳ đầu',
+    desc:'NST co xoắn dần, mỗi NST gồm 2 crômatit gắn nhau ở tâm động. Màng nhân bắt đầu tiêu biến. Thoi phân bào hình thành.',
+    events:['NST co xoắn → hình chữ X','Màng nhân tan dần','Thoi vô sắc xuất hiện'],
+    draw: drawProphase
+  },
+  {
+    id:'metaphase', name:'Kỳ giữa',
+    desc:'Các NST kép xếp thành 1 hàng ở mặt phẳng xích đạo của tế bào. Thoi vô sắc gắn vào tâm động.',
+    events:['NST xếp 1 hàng ở mp xích đạo','Thoi gắn vào tâm động'],
+    draw: drawMetaphase
+  },
+  {
+    id:'anaphase', name:'Kỳ sau',
+    desc:'Tâm động tách đôi, 2 crômatit tách nhau thành NST đơn, di chuyển về 2 cực tế bào nhờ thoi vô sắc co rút.',
+    events:['Tâm động tách đôi','NST đơn về 2 cực','Tế bào kéo dài'],
+    draw: drawAnaphase
+  },
+  {
+    id:'telophase', name:'Kỳ cuối',
+    desc:'NST dãn xoắn trở lại dạng sợi mảnh. Màng nhân tái lập ở mỗi cực. Tế bào chất phân chia → 2 tế bào con.',
+    events:['NST dãn xoắn','Màng nhân tái lập','Phân chia tế bào chất'],
+    draw: drawTelophase
+  }
+];
+
+let currentPhase = 0;
+let autoPlay = false;
+let autoTimer = null;
+const canvas = document.getElementById('bioCanvas');
+const ctx = canvas.getContext('2d');
+
+function init() {
+  resizeCanvas();
+  renderPhaseList();
+  renderPhase(0);
+}
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+
+function renderPhaseList() {
+  document.getElementById('phaseList').innerHTML = phases.map((p, i) => `
+    <div class="phase-item ${i === currentPhase ? 'active' : ''}" onclick="goToPhase(${i})">
+      <div class="phase-name">${i + 1}. ${p.name}</div>
+      <div class="phase-desc">${p.events[0]}</div>
+    </div>
+  `).join('');
+}
+
+function renderPhase(i) {
+  currentPhase = i;
+  renderPhaseList();
+  document.getElementById('phaseDescription').innerHTML = phases[i].desc + '<br><br><b>Sự kiện chính:</b><ul style="margin-top:4px;padding-left:16px">' + 
+    phases[i].events.map(e => `<li>${e}</li>`).join('') + '</ul>';
+  phases[i].draw();
+}
+
+function goToPhase(i) { renderPhase(i); }
+function nextPhase() { renderPhase((currentPhase + 1) % phases.length); }
+function prevPhase() { renderPhase((currentPhase - 1 + phases.length) % phases.length); }
+function toggleAuto() {
+  autoPlay = !autoPlay;
+  document.getElementById('btnAuto').textContent = autoPlay ? '⏸ Dừng' : '▶ Tự động';
+  if (autoPlay) {
+    autoTimer = setInterval(() => nextPhase(), 3000 / parseFloat(document.getElementById('speedSlider').value));
+  } else { clearInterval(autoTimer); }
+}
+
+// === VẼ CÁC GIAI ĐOẠN ===
+function drawCell(cx, cy, r, options = {}) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Background
+  ctx.fillStyle = '#0a1a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Hiệu ứng kính hiển vi
+  const mgrd = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.8);
+  mgrd.addColorStop(0, 'rgba(102,187,106,0.05)');
+  mgrd.addColorStop(1, 'rgba(0,0,0,0.8)');
+  ctx.fillStyle = mgrd;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Tế bào
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r, r * 0.85, 0, 0, Math.PI * 2);
+  const cellGrad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.1, cx, cy, r);
+  cellGrad.addColorStop(0, 'rgba(200,230,201,0.3)');
+  cellGrad.addColorStop(1, 'rgba(46,125,50,0.15)');
+  ctx.fillStyle = cellGrad;
+  ctx.fill();
+  ctx.strokeStyle = options.dividing ? 'rgba(102,187,106,0.3)' : 'rgba(102,187,106,0.6)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  
+  return {cx, cy, r};
+}
+
+function drawChromosome(x, y, angle, color, paired) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  if (paired) {
+    ctx.beginPath(); ctx.moveTo(-8, -12); ctx.quadraticCurveTo(-12, 0, -8, 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(8, -12); ctx.quadraticCurveTo(12, 0, 8, 12); ctx.stroke();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.quadraticCurveTo(4, 0, 0, 12); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawInterphase() {
+  const {cx, cy, r} = drawCell(canvas.width/2, canvas.height/2, Math.min(canvas.width, canvas.height)*0.3);
+  // Nhân tế bào
+  ctx.beginPath();
+  ctx.arc(cx, cy, r*0.35, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(92,107,192,0.3)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(92,107,192,0.6)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Chất nhiễm sắc (sợi mảnh)
+  ctx.strokeStyle = 'rgba(171,71,188,0.4)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const d = r * 0.15 + Math.random() * r * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a)*d, cy + Math.sin(a)*d);
+    ctx.quadraticCurveTo(cx + Math.cos(a+1)*d*0.8, cy + Math.sin(a+1)*d*0.8, cx + Math.cos(a+2)*d*0.6, cy + Math.sin(a+2)*d*0.6);
+    ctx.stroke();
+  }
+  drawLabel(cx, cy - r - 20, 'KỲ TRUNG GIAN - ADN đang nhân đôi');
+}
+
+function drawProphase() {
+  const {cx, cy, r} = drawCell(canvas.width/2, canvas.height/2, Math.min(canvas.width, canvas.height)*0.3);
+  // Màng nhân mờ dần
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.35, 0, Math.PI*2);
+  ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(92,107,192,0.3)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.setLineDash([]);
+  // NST co xoắn (hình X)
+  const colors = ['#e91e63','#2196f3','#ff9800','#4caf50'];
+  const positions = [[-20,-15],[20,-15],[-20,15],[20,15]];
+  positions.forEach((p, i) => drawChromosome(cx+p[0], cy+p[1], Math.random()*0.5, colors[i], true));
+  drawLabel(cx, cy - r - 20, 'KỲ ĐẦU - NST co xoắn, màng nhân tan dần');
+}
+
+function drawMetaphase() {
+  const {cx, cy, r} = drawCell(canvas.width/2, canvas.height/2, Math.min(canvas.width, canvas.height)*0.3);
+  // Thoi vô sắc
+  ctx.strokeStyle = 'rgba(158,158,158,0.3)'; ctx.lineWidth = 1;
+  for (let i = -1.5; i <= 1.5; i += 0.5) {
+    ctx.beginPath(); ctx.moveTo(cx - r*0.7, cy - r*0.5); ctx.quadraticCurveTo(cx, cy + i*15, cx + r*0.7, cy - r*0.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r*0.7, cy + r*0.5); ctx.quadraticCurveTo(cx, cy + i*15, cx + r*0.7, cy + r*0.5); ctx.stroke();
+  }
+  // Mp xích đạo
+  ctx.setLineDash([4,4]); ctx.strokeStyle = 'rgba(255,235,59,0.3)'; ctx.beginPath();
+  ctx.moveTo(cx, cy - r*0.6); ctx.lineTo(cx, cy + r*0.6); ctx.stroke(); ctx.setLineDash([]);
+  // NST xếp hàng giữa
+  const colors = ['#e91e63','#2196f3','#ff9800','#4caf50'];
+  colors.forEach((c, i) => drawChromosome(cx, cy - 25 + i*17, 0, c, true));
+  drawLabel(cx, cy - r - 20, 'KỲ GIỮA - NST xếp hàng ở mặt phẳng xích đạo');
+}
+
+function drawAnaphase() {
+  const {cx, cy, r} = drawCell(canvas.width/2, canvas.height/2, Math.min(canvas.width, canvas.height)*0.3, {dividing:true});
+  // Tế bào kéo dài
+  ctx.beginPath(); ctx.ellipse(cx, cy, r*1.1, r*0.75, 0, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(102,187,106,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+  // NST kéo về 2 cực
+  const colors = ['#e91e63','#2196f3','#ff9800','#4caf50'];
+  colors.forEach((c, i) => {
+    drawChromosome(cx - r*0.5, cy - 15 + i*12, -0.3, c, false);
+    drawChromosome(cx + r*0.5, cy - 15 + i*12, 0.3, c, false);
+  });
+  // Mũi tên
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '20px sans-serif';
+  ctx.fillText('←', cx - r*0.7, cy + 5); ctx.fillText('→', cx + r*0.55, cy + 5);
+  drawLabel(cx, cy - r - 20, 'KỲ SAU - NST đơn di chuyển về 2 cực');
+}
+
+function drawTelophase() {
+  const {cx, cy, r} = drawCell(canvas.width/2, canvas.height/2, Math.min(canvas.width, canvas.height)*0.3);
+  // 2 tế bào con
+  const r2 = r * 0.55;
+  [cx - r*0.5, cx + r*0.5].forEach(x => {
+    ctx.beginPath(); ctx.arc(x, cy, r2, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(200,230,201,0.15)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(102,187,106,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+    // Nhân mới
+    ctx.beginPath(); ctx.arc(x, cy, r2*0.35, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(92,107,192,0.2)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(92,107,192,0.5)'; ctx.stroke();
+  });
+  // Eo thắt
+  ctx.strokeStyle = 'rgba(255,235,59,0.4)'; ctx.lineWidth = 2; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(cx, cy - r*0.3); ctx.lineTo(cx, cy + r*0.3); ctx.stroke();
+  ctx.setLineDash([]);
+  drawLabel(cx, cy - r - 20, 'KỲ CUỐI - 2 tế bào con (2n) hình thành');
+}
+
+function drawLabel(x, y, text) {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.font = 'bold 14px "Segoe UI"';
+  const w = ctx.measureText(text).width;
+  ctx.fillRect(x - w/2 - 8, y - 12, w + 16, 28);
+  ctx.fillStyle = '#a5d6a7';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, y + 5);
+  ctx.textAlign = 'start';
+}
+
+window.addEventListener('resize', () => { resizeCanvas(); renderPhase(currentPhase); });
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,366 @@
+{
+  "meta": {
+    "version": "1.0",
+    "description": "Danh mục thí nghiệm mô phỏng Vật lý - Hóa học - Sinh học (THCS & THPT Việt Nam)",
+    "total_experiments": 90
+  },
+  "physics": {
+    "co_hoc": [
+      {
+        "id": "PHY_CO_01", "name": "Chuyển động thẳng đều", "grade": 10,
+        "description": "Mô phỏng vật chuyển động đều trên mặt phẳng, đo vận tốc và quãng đường",
+        "sim_type": "canvas_2d", "difficulty": "easy",
+        "params": ["velocity", "time", "distance"],
+        "formulas": ["s = v × t"]
+      },
+      {
+        "id": "PHY_CO_02", "name": "Chuyển động thẳng biến đổi đều", "grade": 10,
+        "description": "Vật chuyển động có gia tốc, vẽ đồ thị v-t và s-t",
+        "sim_type": "canvas_2d", "difficulty": "medium",
+        "params": ["v0", "acceleration", "time"],
+        "formulas": ["v = v0 + at", "s = v0t + ½at²"]
+      },
+      {
+        "id": "PHY_CO_03", "name": "Rơi tự do", "grade": 10,
+        "description": "Thả vật rơi tự do, đo thời gian và gia tốc g",
+        "sim_type": "canvas_2d", "difficulty": "easy",
+        "params": ["height", "gravity", "mass"],
+        "formulas": ["h = ½gt²", "v = gt"]
+      },
+      {
+        "id": "PHY_CO_04", "name": "Chuyển động ném xiên", "grade": 10,
+        "description": "Phóng vật xiên góc, quan sát quỹ đạo parabol",
+        "sim_type": "canvas_2d", "difficulty": "medium",
+        "params": ["v0", "angle", "gravity"],
+        "formulas": ["x = v0.cosα.t", "y = v0.sinα.t - ½gt²"]
+      },
+      {
+        "id": "PHY_CO_05", "name": "Con lắc đơn", "grade": 10,
+        "description": "Dao động con lắc đơn, đo chu kỳ và tần số",
+        "sim_type": "canvas_2d", "difficulty": "medium",
+        "params": ["length", "gravity", "angle"],
+        "formulas": ["T = 2π√(L/g)"]
+      },
+      {
+        "id": "PHY_CO_06", "name": "Con lắc lò xo", "grade": 12,
+        "description": "Dao động điều hòa của con lắc lò xo",
+        "sim_type": "canvas_2d", "difficulty": "medium",
+        "params": ["mass", "spring_constant", "amplitude"],
+        "formulas": ["T = 2π√(m/k)", "x = A.cos(ωt + φ)"]
+      },
+      {
+        "id": "PHY_CO_07", "name": "Va chạm đàn hồi & không đàn hồi", "grade": 10,
+        "description": "Hai vật va chạm, bảo toàn động lượng",
+        "sim_type": "canvas_2d", "difficulty": "hard",
+        "params": ["m1", "m2", "v1", "v2", "collision_type"],
+        "formulas": ["m1v1 + m2v2 = m1v1' + m2v2'"]
+      },
+      {
+        "id": "PHY_CO_08", "name": "Lực ma sát trên mặt phẳng nghiêng", "grade": 10,
+        "description": "Vật trượt trên mặt nghiêng có ma sát",
+        "sim_type": "canvas_2d", "difficulty": "medium",
+        "params": ["mass", "angle", "friction_coeff"],
+        "formulas": ["Fms = μ.N", "a = g(sinα - μcosα)"]
+      }
+    ],
+    "dien_hoc": [
+      {
+        "id": "PHY_DI_01", "name": "Định luật Ohm", "grade": 9,
+        "description": "Mạch điện đơn giản, thay đổi U và R để đo I",
+        "sim_type": "circuit_sim", "difficulty": "easy",
+        "params": ["voltage", "resistance"],
+        "formulas": ["I = U/R"]
+      },
+      {
+        "id": "PHY_DI_02", "name": "Mạch điện nối tiếp - song song", "grade": 9,
+        "description": "Ghép điện trở nối tiếp và song song",
+        "sim_type": "circuit_sim", "difficulty": "medium",
+        "params": ["R1", "R2", "R3", "voltage"],
+        "formulas": ["Rnt = R1+R2", "1/Rss = 1/R1 + 1/R2"]
+      },
+      {
+        "id": "PHY_DI_03", "name": "Cầu Wheatstone (Mét xít cầu)", "grade": 11,
+        "description": "Đo điện trở bằng cầu Wheatstone",
+        "sim_type": "circuit_sim", "difficulty": "hard",
+        "params": ["R1", "R2", "R3", "wire_length"],
+        "formulas": ["Rx = R.(l2/l1)"]
+      },
+      {
+        "id": "PHY_DI_04", "name": "Tụ điện và tích điện", "grade": 11,
+        "description": "Nạp/phóng tụ điện, đồ thị điện áp theo thời gian",
+        "sim_type": "circuit_sim", "difficulty": "medium",
+        "params": ["capacitance", "voltage", "resistance"],
+        "formulas": ["Q = CU", "E = ½CU²"]
+      },
+      {
+        "id": "PHY_DI_05", "name": "Điện phân dung dịch", "grade": 11,
+        "description": "Điện phân nước muối, quan sát khí thoát ra",
+        "sim_type": "canvas_2d_animated", "difficulty": "medium",
+        "params": ["current", "time", "electrolyte"],
+        "formulas": ["m = A.I.t/(n.F)"]
+      }
+    ],
+    "quang_hoc": [
+      {
+        "id": "PHY_QH_01", "name": "Phản xạ ánh sáng", "grade": 7,
+        "description": "Tia sáng phản xạ trên gương phẳng",
+        "sim_type": "ray_tracing", "difficulty": "easy",
+        "params": ["incident_angle"],
+        "formulas": ["i = r (góc tới = góc phản xạ)"]
+      },
+      {
+        "id": "PHY_QH_02", "name": "Khúc xạ ánh sáng", "grade": 9,
+        "description": "Tia sáng đi qua hai môi trường",
+        "sim_type": "ray_tracing", "difficulty": "medium",
+        "params": ["n1", "n2", "incident_angle"],
+        "formulas": ["n1.sinI = n2.sinR"]
+      },
+      {
+        "id": "PHY_QH_03", "name": "Thấu kính hội tụ - phân kỳ", "grade": 9,
+        "description": "Tạo ảnh qua thấu kính, đo tiêu cự",
+        "sim_type": "ray_tracing", "difficulty": "medium",
+        "params": ["focal_length", "object_distance"],
+        "formulas": ["1/f = 1/d + 1/d'"]
+      },
+      {
+        "id": "PHY_QH_04", "name": "Lăng kính và tán sắc ánh sáng", "grade": 12,
+        "description": "Ánh sáng trắng qua lăng kính tách thành quang phổ",
+        "sim_type": "ray_tracing", "difficulty": "hard",
+        "params": ["prism_angle", "refractive_indices"],
+        "formulas": ["D = i1 + i2 - A"]
+      },
+      {
+        "id": "PHY_QH_05", "name": "Giao thoa ánh sáng Young", "grade": 12,
+        "description": "Thí nghiệm hai khe Young tạo vân giao thoa",
+        "sim_type": "wave_sim", "difficulty": "hard",
+        "params": ["wavelength", "slit_distance", "screen_distance"],
+        "formulas": ["i = λD/a"]
+      }
+    ],
+    "song_nhiet": [
+      {
+        "id": "PHY_SN_01", "name": "Sóng dừng trên dây", "grade": 12,
+        "description": "Tạo sóng dừng, quan sát bụng và nút sóng",
+        "sim_type": "wave_sim", "difficulty": "medium",
+        "params": ["frequency", "wavelength", "string_length"],
+        "formulas": ["L = nλ/2"]
+      },
+      {
+        "id": "PHY_SN_02", "name": "Sóng âm và cộng hưởng", "grade": 12,
+        "description": "Ống cộng hưởng, đo vận tốc âm thanh",
+        "sim_type": "wave_sim", "difficulty": "medium",
+        "params": ["frequency", "tube_length"],
+        "formulas": ["v = λf"]
+      },
+      {
+        "id": "PHY_SN_03", "name": "Truyền nhiệt và cân bằng nhiệt", "grade": 8,
+        "description": "Trộn nước nóng và lạnh, đo nhiệt độ cân bằng",
+        "sim_type": "canvas_2d", "difficulty": "easy",
+        "params": ["m1", "t1", "m2", "t2", "c"],
+        "formulas": ["Q_thu = Q_tỏa", "Q = mcΔt"]
+      }
+    ]
+  },
+  "chemistry": {
+    "axit_bazo": [
+      {
+        "id": "CHE_AB_01", "name": "Phản ứng axit + bazơ (Trung hòa)", "grade": 9,
+        "description": "Nhỏ NaOH vào HCl với chỉ thị phenolphtalein, quan sát đổi màu",
+        "sim_type": "lab_drag_drop", "difficulty": "easy",
+        "reactants": ["HCl", "NaOH"],
+        "observable": {"color_change": true, "gas": false, "precipitate": false, "temperature": "exothermic"}
+      },
+      {
+        "id": "CHE_AB_02", "name": "Đo pH dung dịch", "grade": 9,
+        "description": "Dùng giấy pH và chỉ thị để đo pH các dung dịch",
+        "sim_type": "lab_drag_drop", "difficulty": "easy",
+        "reactants": ["pH_paper", "various_solutions"],
+        "observable": {"color_change": true}
+      },
+      {
+        "id": "CHE_AB_03", "name": "Chuẩn độ axit-bazơ", "grade": 11,
+        "description": "Chuẩn độ HCl bằng NaOH với burette, vẽ đường cong chuẩn độ",
+        "sim_type": "titration_sim", "difficulty": "hard",
+        "reactants": ["HCl", "NaOH", "phenolphthalein"],
+        "observable": {"color_change": true, "pH_curve": true}
+      }
+    ],
+    "phan_ung_kim_loai": [
+      {
+        "id": "CHE_KL_01", "name": "Kim loại tác dụng với axit", "grade": 9,
+        "description": "Thả Zn/Fe/Mg vào HCl, quan sát sủi bọt khí H2",
+        "sim_type": "lab_drag_drop", "difficulty": "easy",
+        "reactants": ["Zn", "HCl"],
+        "observable": {"gas": "H2_bubbles", "color_change": true, "temperature": "exothermic"}
+      },
+      {
+        "id": "CHE_KL_02", "name": "Dãy hoạt động hóa học kim loại", "grade": 9,
+        "description": "Nhúng kim loại vào dung dịch muối, quan sát bám kim loại",
+        "sim_type": "lab_drag_drop", "difficulty": "medium",
+        "reactants": ["Fe", "CuSO4"],
+        "observable": {"color_change": true, "precipitate_on_metal": true}
+      },
+      {
+        "id": "CHE_KL_03", "name": "Phản ứng nhiệt nhôm", "grade": 12,
+        "description": "Al phản ứng với Fe2O3 ở nhiệt độ cao",
+        "sim_type": "canvas_2d_animated", "difficulty": "hard",
+        "reactants": ["Al", "Fe2O3"],
+        "observable": {"spark": true, "high_temp": true, "color_change": true}
+      }
+    ],
+    "muoi_oxit": [
+      {
+        "id": "CHE_MO_01", "name": "Muối cacbonat + axit", "grade": 9,
+        "description": "Na2CO3 + HCl → sủi bọt CO2",
+        "sim_type": "lab_drag_drop", "difficulty": "easy",
+        "reactants": ["Na2CO3", "HCl"],
+        "observable": {"gas": "CO2_bubbles", "color_change": false}
+      },
+      {
+        "id": "CHE_MO_02", "name": "Phản ứng tạo kết tủa", "grade": 9,
+        "description": "BaCl2 + Na2SO4 → kết tủa trắng BaSO4",
+        "sim_type": "lab_drag_drop", "difficulty": "easy",
+        "reactants": ["BaCl2", "Na2SO4"],
+        "observable": {"precipitate": "BaSO4_white", "color_change": true}
+      },
+      {
+        "id": "CHE_MO_03", "name": "Phản ứng oxi hóa khử (KMnO4)", "grade": 11,
+        "description": "Chuẩn độ FeSO4 bằng KMnO4, dung dịch mất màu tím",
+        "sim_type": "titration_sim", "difficulty": "hard",
+        "reactants": ["KMnO4", "FeSO4", "H2SO4"],
+        "observable": {"color_change": true, "decolorization": true}
+      }
+    ],
+    "huu_co": [
+      {
+        "id": "CHE_HC_01", "name": "Phản ứng tráng bạc (AgNO3/NH3)", "grade": 12,
+        "description": "Anđehit + AgNO3/NH3 → bạc bám thành ống",
+        "sim_type": "lab_drag_drop", "difficulty": "medium",
+        "reactants": ["CH3CHO", "AgNO3_NH3"],
+        "observable": {"silver_mirror": true, "color_change": true}
+      },
+      {
+        "id": "CHE_HC_02", "name": "Phản ứng este hóa", "grade": 12,
+        "description": "Axit axetic + rượu etylic → este thơm",
+        "sim_type": "lab_drag_drop", "difficulty": "medium",
+        "reactants": ["CH3COOH", "C2H5OH", "H2SO4_catalyst"],
+        "observable": {"smell": true, "layer_separation": true}
+      },
+      {
+        "id": "CHE_HC_03", "name": "Nhận biết tinh bột bằng Iot", "grade": 9,
+        "description": "Nhỏ dung dịch Iot vào tinh bột → màu xanh tím",
+        "sim_type": "lab_drag_drop", "difficulty": "easy",
+        "reactants": ["starch", "I2_solution"],
+        "observable": {"color_change": true, "color_final": "#1a237e"}
+      }
+    ],
+    "dien_hoa": [
+      {
+        "id": "CHE_DH_01", "name": "Pin điện hóa (Pin Đanien)", "grade": 12,
+        "description": "Tạo pin Zn-Cu, đo suất điện động",
+        "sim_type": "circuit_chem", "difficulty": "hard",
+        "reactants": ["Zn_electrode", "Cu_electrode", "ZnSO4", "CuSO4"],
+        "observable": {"voltage": true, "color_change": true, "electrode_change": true}
+      },
+      {
+        "id": "CHE_DH_02", "name": "Điện phân dung dịch NaCl", "grade": 12,
+        "description": "Điện phân nước muối, thu khí Cl2 và NaOH",
+        "sim_type": "canvas_2d_animated", "difficulty": "hard",
+        "reactants": ["NaCl_solution", "electrodes"],
+        "observable": {"gas_cathode": "H2", "gas_anode": "Cl2", "pH_change": true}
+      }
+    ]
+  },
+  "biology": {
+    "te_bao": [
+      {
+        "id": "BIO_TB_01", "name": "Quan sát tế bào thực vật (Hành tây)", "grade": 6,
+        "description": "Xem tế bào biểu bì hành tây qua kính hiển vi",
+        "sim_type": "microscope_sim", "difficulty": "easy",
+        "components": ["cell_wall", "cell_membrane", "nucleus", "cytoplasm", "vacuole"],
+        "magnification": [40, 100, 400]
+      },
+      {
+        "id": "BIO_TB_02", "name": "Quan sát tế bào động vật", "grade": 6,
+        "description": "So sánh tế bào động vật và thực vật",
+        "sim_type": "microscope_sim", "difficulty": "easy",
+        "components": ["cell_membrane", "nucleus", "cytoplasm", "mitochondria"],
+        "magnification": [40, 100, 400]
+      },
+      {
+        "id": "BIO_TB_03", "name": "Thẩm thấu và co/trương nguyên sinh", "grade": 10,
+        "description": "Đặt tế bào trong môi trường ưu/nhược trương",
+        "sim_type": "canvas_2d_animated", "difficulty": "medium",
+        "params": ["solution_concentration", "cell_type"],
+        "observable": {"plasmolysis": true, "turgid": true, "normal": true}
+      }
+    ],
+    "phan_bao": [
+      {
+        "id": "BIO_PB_01", "name": "Nguyên phân (Mitosis)", "grade": 10,
+        "description": "Các giai đoạn: Kỳ đầu → Kỳ giữa → Kỳ sau → Kỳ cuối",
+        "sim_type": "animation_step", "difficulty": "medium",
+        "phases": ["prophase", "metaphase", "anaphase", "telophase"],
+        "chromosome_count": 4
+      },
+      {
+        "id": "BIO_PB_02", "name": "Giảm phân (Meiosis)", "grade": 10,
+        "description": "Giảm phân I và II, tạo 4 tế bào con",
+        "sim_type": "animation_step", "difficulty": "hard",
+        "phases": ["meiosis_I", "meiosis_II"],
+        "chromosome_count": 4
+      }
+    ],
+    "quang_hop": [
+      {
+        "id": "BIO_QH_01", "name": "Quang hợp cần ánh sáng", "grade": 6,
+        "description": "Che lá bằng giấy đen, thử iot → phần có sáng chuyển xanh tím",
+        "sim_type": "lab_drag_drop", "difficulty": "easy",
+        "params": ["light_intensity", "leaf_area"],
+        "observable": {"starch_test": true, "color_change": true}
+      },
+      {
+        "id": "BIO_QH_02", "name": "Quang hợp thải O2", "grade": 6,
+        "description": "Cây thủy sinh trong nước, đếm bọt khí O2",
+        "sim_type": "canvas_2d_animated", "difficulty": "easy",
+        "params": ["light_intensity", "CO2_concentration", "temperature"],
+        "observable": {"O2_bubbles": true, "bubble_rate": "variable"}
+      }
+    ],
+    "di_truyen": [
+      {
+        "id": "BIO_DT_01", "name": "Lai một tính trạng (Mendel)", "grade": 9,
+        "description": "Lai cây hoa đỏ x hoa trắng, đếm F1, F2",
+        "sim_type": "punnett_square", "difficulty": "medium",
+        "params": ["parent1_genotype", "parent2_genotype"],
+        "traits": {"dominant": "red_flower", "recessive": "white_flower"}
+      },
+      {
+        "id": "BIO_DT_02", "name": "Sao chép DNA", "grade": 10,
+        "description": "Mô phỏng quá trình tự nhân đôi DNA theo nguyên tắc bổ sung",
+        "sim_type": "animation_step", "difficulty": "hard",
+        "components": ["helicase", "DNA_polymerase", "primase", "nucleotides"]
+      }
+    ],
+    "giai_phau": [
+      {
+        "id": "BIO_GP_01", "name": "Giải phẫu tim", "grade": 8,
+        "description": "Cấu tạo tim 4 ngăn, đường đi của máu",
+        "sim_type": "interactive_3d", "difficulty": "medium",
+        "components": ["left_atrium", "right_atrium", "left_ventricle", "right_ventricle", "valves", "aorta"]
+      },
+      {
+        "id": "BIO_GP_02", "name": "Giải phẫu hoa", "grade": 6,
+        "description": "Cắt dọc hoa, nhận biết các bộ phận",
+        "sim_type": "interactive_labeled", "difficulty": "easy",
+        "components": ["sepal", "petal", "stamen", "pistil", "ovary", "stigma"]
+      },
+      {
+        "id": "BIO_GP_03", "name": "Hệ tiêu hóa người", "grade": 8,
+        "description": "Đường đi thức ăn qua ống tiêu hóa",
+        "sim_type": "animation_interactive", "difficulty": "medium",
+        "components": ["mouth", "esophagus", "stomach", "small_intestine", "large_intestine", "liver", "pancreas"]
+      }
+    ]
+  }
+}

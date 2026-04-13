@@ -51,7 +51,7 @@ export const examService = {
   },
 
   subscribeToExams(creatorId: string, callback: (exams: Exam[]) => void): Unsubscribe {
-    const q = query(collection(db, 'exams'), where('creatorId', '==', creatorId));
+    const q = collection(db, 'exams'); // Global bank - show all exams
     const unsub = onSnapshot(q, (snapshot) => {
       const fsExams = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
       // Show all local exams not already in Firestore (no creatorId filter — localStorage is device-specific)
@@ -217,7 +217,7 @@ Bài 15 - Công nghiệp VN:
 
 Bài 16 - Dịch vụ và du lịch:
   • Phân tích được sự phân hoá lãnh thổ du lịch (các điểm du lịch, khu du lịch), du lịch với sự phát triển bền vững.
-
+`;
 
       const systemInstruction = `Bạn là chuyên gia biên soạn đề thi Địa lí THPT Quốc gia cấp Bộ, GIỎI NHẤT Việt Nam.
       Nhiệm vụ: Tạo ĐÚNG 28 câu theo MA TRẬN DƯỚI ĐÂY. ĐỌC TOÀN BỘ TRƯỚC KHI SINH CÂU HỎI ĐẦU TIÊN.
@@ -562,14 +562,7 @@ Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế").
   },
 
   async getExamsByCreator(creatorId: string): Promise<Exam[]> {
-    try {
-      const q = query(collection(db, 'exams'), where('creatorId', '==', creatorId));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Exam));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, 'exams');
-      return [];
-    }
+    return this.getAllExams();
   },
 
   async getAllExams(): Promise<Exam[]> {

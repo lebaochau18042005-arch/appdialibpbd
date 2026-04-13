@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Phòng Thí Nghiệm Vật Lý Ảo - Template</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e1a;--card:#111827;--border:#1f2937;--primary:#60a5fa;--accent:#a78bfa;--text:#e5e7eb;--text2:#9ca3af}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,#1e3a5f,#0d47a1);padding:14px 24px;display:flex;align-items:center;gap:16px}
+.header h1{font-size:1.2rem;background:linear-gradient(90deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.layout{display:grid;grid-template-columns:260px 1fr 260px;gap:16px;padding:16px;height:calc(100vh - 60px)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;overflow-y:auto}
+.panel h3{font-size:.95rem;margin-bottom:12px;color:var(--primary)}
+.canvas-wrap{position:relative;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.canvas-wrap canvas{width:100%;height:100%}
+.slider-group{margin-bottom:16px}
+.slider-group label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:4px}
+.slider-group input[type=range]{width:100%;accent-color:var(--primary)}
+.slider-group .value{font-size:.85rem;color:var(--primary);font-weight:700;text-align:right}
+.formula-display{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:8px;padding:12px;margin-bottom:12px;font-family:'Courier New',monospace;font-size:.85rem;line-height:1.6}
+.data-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}
+.data-table th,.data-table td{padding:6px 8px;border:1px solid var(--border);text-align:center}
+.data-table th{background:rgba(96,165,250,.1);color:var(--primary)}
+.btn-row{display:flex;gap:8px;margin-top:12px}
+.btn-row button{flex:1;padding:8px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem;transition:.3s}
+.btn-play{background:linear-gradient(135deg,#2563eb,#60a5fa);color:#fff}
+.btn-pause{background:#374151;color:#fff}
+.btn-reset{background:#dc2626;color:#fff}
+</style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:1.5rem">⚡</span>
+  <h1>Phòng Thí Nghiệm Vật Lý Ảo</h1>
+</div>
+<div class="layout">
+  <!-- PANEL TRÁI: Tham số -->
+  <div class="panel">
+    <h3>⚙️ Tham Số Thí Nghiệm</h3>
+    <div class="formula-display" id="formulaDisplay">
+      <!-- Công thức sẽ được JS điền vào -->
+      s = v₀t + ½at²<br>v = v₀ + at
+    </div>
+    <div id="sliders">
+      <!-- Sliders sẽ được JS tạo động -->
+    </div>
+    <div class="btn-row">
+      <button class="btn-play" id="btnPlay" onclick="toggleSimulation()">▶ Chạy</button>
+      <button class="btn-reset" onclick="resetSimulation()">↻ Reset</button>
+    </div>
+  </div>
+
+  <!-- VÙNG MÔ PHỎNG -->
+  <div class="canvas-wrap">
+    <canvas id="simCanvas"></canvas>
+  </div>
+
+  <!-- PANEL PHẢI: Kết quả -->
+  <div class="panel">
+    <h3>📊 Kết Quả Đo</h3>
+    <div id="measurements"></div>
+    <h3 style="margin-top:16px">📈 Bảng Số Liệu</h3>
+    <table class="data-table" id="dataTable">
+      <thead><tr><th>t (s)</th><th>s (m)</th><th>v (m/s)</th></tr></thead>
+      <tbody id="dataBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// TEMPLATE: Thay đổi phần này cho từng TN
+// ==========================================
+const EXPERIMENT = {
+  name: 'Chuyển động thẳng biến đổi đều',
+  params: [
+    {id: 'v0', label: 'Vận tốc ban đầu v₀', unit: 'm/s', min: 0, max: 20, step: 0.5, default: 5},
+    {id: 'a', label: 'Gia tốc a', unit: 'm/s²', min: -5, max: 5, step: 0.1, default: 2},
+  ],
+  formulas: ['s = v₀t + ½at²', 'v = v₀ + at'],
+  calculate(params, t) {
+    const s = params.v0 * t + 0.5 * params.a * t * t;
+    const v = params.v0 + params.a * t;
+    return { s, v, x: s * 20, y: 0 }; // x scaled for canvas
+  }
+};
+
+// === ENGINE ===
+let running = false, time = 0;
+let params = {};
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+let dataRows = [];
+
+function init() {
+  // Tạo sliders
+  const container = document.getElementById('sliders');
+  container.innerHTML = EXPERIMENT.params.map(p => `
+    <div class="slider-group">
+      <label>${p.label} (${p.unit})</label>
+      <input type="range" id="slider_${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.default}"
+        oninput="updateParam('${p.id}', this.value)">
+      <div class="value" id="val_${p.id}">${p.default} ${p.unit}</div>
+    </div>
+  `).join('');
+  
+  // Init params
+  EXPERIMENT.params.forEach(p => params[p.id] = p.default);
+  
+  // Formulas
+  document.getElementById('formulaDisplay').innerHTML = EXPERIMENT.formulas.join('<br>');
+  
+  resizeCanvas();
+  render();
+}
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+
+function updateParam(id, val) {
+  params[id] = parseFloat(val);
+  const p = EXPERIMENT.params.find(x => x.id === id);
+  document.getElementById(`val_${id}`).textContent = `${val} ${p.unit}`;
+  if (!running) render();
+}
+
+function toggleSimulation() {
+  running = !running;
+  document.getElementById('btnPlay').textContent = running ? '⏸ Tạm dừng' : '▶ Chạy';
+  if (running) loop();
+}
+
+function resetSimulation() {
+  running = false;
+  time = 0;
+  dataRows = [];
+  document.getElementById('btnPlay').textContent = '▶ Chạy';
+  document.getElementById('dataBody').innerHTML = '';
+  render();
+}
+
+function loop() {
+  if (!running) return;
+  time += 1/60;
+  
+  // Record data every 0.5s
+  if (Math.round(time * 60) % 30 === 0) {
+    const result = EXPERIMENT.calculate(params, time);
+    dataRows.push({t: time.toFixed(1), s: result.s.toFixed(2), v: result.v.toFixed(2)});
+    updateDataTable();
+  }
+  
+  render();
+  requestAnimationFrame(loop);
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Nền
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Lưới
+  ctx.strokeStyle = 'rgba(96,165,250,0.08)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += 50) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += 50) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+  
+  // Đường ray
+  const groundY = canvas.height * 0.6;
+  ctx.fillStyle = '#374151';
+  ctx.fillRect(0, groundY, canvas.width, 4);
+  
+  // Thước đo
+  ctx.fillStyle = '#4b5563';
+  for (let x = 0; x < canvas.width; x += 50) {
+    ctx.fillRect(x, groundY + 4, 1, 10);
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '10px monospace';
+    ctx.fillText(`${(x/20).toFixed(0)}m`, x - 6, groundY + 24);
+    ctx.fillStyle = '#4b5563';
+  }
+  
+  // Vật thể
+  const result = EXPERIMENT.calculate(params, time);
+  const objX = 40 + result.x % (canvas.width - 80);
+  const objY = groundY - 20;
+  
+  // Bóng
+  ctx.beginPath();
+  ctx.arc(objX, groundY + 2, 16, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(96,165,250,0.15)';
+  ctx.fill();
+  
+  // Vật
+  const grad = ctx.createRadialGradient(objX - 4, objY - 4, 2, objX, objY, 16);
+  grad.addColorStop(0, '#93c5fd');
+  grad.addColorStop(1, '#2563eb');
+  ctx.beginPath();
+  ctx.arc(objX, objY, 16, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  
+  // Vector vận tốc
+  if (result.v !== 0) {
+    const arrowLen = Math.min(Math.abs(result.v) * 8, 120);
+    const dir = result.v > 0 ? 1 : -1;
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(objX, objY);
+    ctx.lineTo(objX + arrowLen * dir, objY);
+    ctx.stroke();
+    // Mũi tên
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.moveTo(objX + arrowLen * dir, objY);
+    ctx.lineTo(objX + (arrowLen - 10) * dir, objY - 6);
+    ctx.lineTo(objX + (arrowLen - 10) * dir, objY + 6);
+    ctx.fill();
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`v = ${result.v.toFixed(1)} m/s`, objX + arrowLen * dir * 0.3, objY - 24);
+  }
+  
+  // Thông tin
+  ctx.fillStyle = 'rgba(17,24,39,0.8)';
+  ctx.fillRect(10, 10, 200, 80);
+  ctx.strokeStyle = 'rgba(96,165,250,0.3)';
+  ctx.strokeRect(10, 10, 200, 80);
+  ctx.fillStyle = '#e5e7eb';
+  ctx.font = '13px "Segoe UI"';
+  ctx.fillText(`⏱ t = ${time.toFixed(2)} s`, 20, 32);
+  ctx.fillText(`📏 s = ${result.s.toFixed(2)} m`, 20, 52);
+  ctx.fillText(`🏃 v = ${result.v.toFixed(2)} m/s`, 20, 72);
+  
+  // Measurements panel
+  document.getElementById('measurements').innerHTML = `
+    <div style="font-size:.85rem;line-height:2">
+      <div>⏱ Thời gian: <b style="color:var(--primary)">${time.toFixed(2)} s</b></div>
+      <div>📏 Quãng đường: <b style="color:var(--primary)">${result.s.toFixed(3)} m</b></div>
+      <div>🏃 Vận tốc: <b style="color:var(--primary)">${result.v.toFixed(3)} m/s</b></div>
+    </div>
+  `;
+}
+
+function updateDataTable() {
+  const body = document.getElementById('dataBody');
+  body.innerHTML = dataRows.slice(-10).map(r =>
+    `<tr><td>${r.t}</td><td>${r.s}</td><td>${r.v}</td></tr>`
+  ).join('');
+}
+
+window.addEventListener('resize', () => { resizeCanvas(); render(); });
+init();
+</script>
+</body>
+</html>

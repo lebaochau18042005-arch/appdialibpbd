@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hình chóp S.ABCD - 3D tương tác</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraph.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraphcore.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a; color: #e2e8f0;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; padding: 24px;
+        }
+        h1 { font-size: 1.4rem; margin-bottom: 4px; color: #38bdf8; }
+        .subtitle { color: #94a3b8; font-size: 0.88rem; margin-bottom: 16px; text-align: center; max-width: 600px; }
+        .jxgbox { 
+            border-radius: 14px; 
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            background: #1e293b !important;
+        }
+        .info-panel {
+            margin-top: 20px; padding: 20px 28px;
+            background: #1e293b; border-radius: 12px;
+            font-size: 0.92rem; max-width: 700px; width: 100%;
+            border: 1px solid #334155;
+        }
+        .info-panel h3 { color: #f59e0b; margin-bottom: 10px; }
+        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+        .grid-info .item { display: flex; justify-content: space-between; }
+        .grid-info .label { color: #94a3b8; }
+        .grid-info .value { color: #38bdf8; font-weight: 600; font-family: monospace; }
+        .grid-info .value.red { color: #ef4444; }
+        .note { margin-top: 12px; padding-top: 10px; border-top: 1px solid #334155; color: #64748b; font-size: 0.82rem; }
+    </style>
+</head>
+<body>
+    <h1>🔺 Hình chóp tứ giác S.ABCD</h1>
+    <p class="subtitle">
+        Đáy ABCD là hình vuông cạnh a = 4. SA ⊥ (ABCD), SA = 4√2. 
+        Kéo chuột để xoay hình, scroll để zoom.
+    </p>
+    
+    <div id="jxgbox" class="jxgbox" style="width:700px; height:650px;"></div>
+    
+    <div class="info-panel">
+        <h3>📊 Thông số hình chóp</h3>
+        <div class="grid-info">
+            <div class="item"><span class="label">Cạnh đáy a</span><span class="value">4</span></div>
+            <div class="item"><span class="label">SA (chiều cao)</span><span class="value red">4√2 ≈ 5.66</span></div>
+            <div class="item"><span class="label">SB</span><span class="value">√(a² + SA²) ≈ 6.93</span></div>
+            <div class="item"><span class="label">SC (đường chéo)</span><span class="value">√(2a² + SA²) ≈ 8.00</span></div>
+            <div class="item"><span class="label">Diện tích đáy</span><span class="value">a² = 16</span></div>
+            <div class="item"><span class="label">Thể tích</span><span class="value red">⅓·a²·SA ≈ 30.17</span></div>
+        </div>
+        <p class="note">
+            💡 SA ⊥ (ABCD) nên SA ⊥ AB, SA ⊥ AD. Hình chiếu của S lên đáy là A.
+        </p>
+    </div>
+
+    <script>
+        const a = 4;
+        const h = a * Math.sqrt(2);
+
+        const board = JXG.JSXGraph.initBoard('jxgbox', {
+            boundingbox: [-10, 10, 10, -10],
+            axis: false,
+            showcopyright: false,
+            shownavigation: false
+        });
+
+        const view = board.create('view3d', [
+            [-7, -5], [10, 10],
+            [[-1, a + 2], [-1, a + 2], [-1, h + 1]]
+        ], {
+            xPlaneRear: { fillOpacity: 0.1, gradient: null },
+            yPlaneRear: { fillOpacity: 0.1, gradient: null },
+            zPlaneRear: { fillOpacity: 0.1, gradient: null },
+            depthOrderPoints: true
+        });
+
+        // === STYLE ===
+        const basePointStyle = {
+            withLabel: true, size: 4,
+            strokeColor: '#0284c7', fillColor: 'white',
+            gradient: 'radial', gradientSecondColor: '#38bdf8',
+            gradientFX: 0.7, gradientFY: 0.3
+        };
+
+        const apexStyle = {
+            ...basePointStyle,
+            size: 5,
+            strokeColor: '#dc2626',
+            gradientSecondColor: '#ef4444'
+        };
+
+        // === ĐỈNH ===
+        const A = view.create('point3d', [0, 0, 0], { name: 'A', ...basePointStyle });
+        const B = view.create('point3d', [a, 0, 0], { name: 'B', ...basePointStyle });
+        const C = view.create('point3d', [a, a, 0], { name: 'C', ...basePointStyle });
+        const D = view.create('point3d', [0, a, 0], { name: 'D', ...basePointStyle });
+        const S = view.create('point3d', [0, 0, h], { name: 'S', ...apexStyle });
+
+        // === ĐÁY ABCD ===
+        view.create('polygon3d', [A, B, C, D], {
+            fillColor: '#38bdf8', fillOpacity: 0.12,
+            borders: { strokeColor: '#38bdf8', strokeWidth: 2.5 },
+            vertices: { visible: false }
+        });
+
+        // === CẠNH BÊN ===
+        // SA - đường đặc biệt (vuông góc)
+        view.create('line3d', [S, A], {
+            strokeColor: '#ef4444', strokeWidth: 3
+        });
+        // SB, SC, SD
+        view.create('line3d', [S, B], {
+            strokeColor: '#f59e0b', strokeWidth: 2
+        });
+        view.create('line3d', [S, C], {
+            strokeColor: '#f59e0b', strokeWidth: 2
+        });
+        view.create('line3d', [S, D], {
+            strokeColor: '#f59e0b', strokeWidth: 2
+        });
+
+        // === ĐƯỜNG CHÉO ĐÁY (phụ) ===
+        view.create('line3d', [A, C], {
+            strokeColor: '#475569', strokeWidth: 1, dash: 3
+        });
+        view.create('line3d', [B, D], {
+            strokeColor: '#475569', strokeWidth: 1, dash: 3
+        });
+
+        // === TRUNG ĐIỂM O của đáy ===
+        const O = view.create('point3d', [a/2, a/2, 0], {
+            name: 'O', size: 3,
+            withLabel: true,
+            strokeColor: '#10b981', fillColor: 'white',
+            gradient: 'radial', gradientSecondColor: '#10b981',
+            gradientFX: 0.7, gradientFY: 0.3
+        });
+    </script>
+</body>
+</html>

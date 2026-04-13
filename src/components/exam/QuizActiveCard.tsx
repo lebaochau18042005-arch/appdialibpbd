@@ -98,13 +98,13 @@ export default function QuizActiveCard({
                 textClass = 'text-slate-500';
               }
             } else if (isSelected) {
-              optionClass = 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400';
-              badgeClass = 'border-emerald-500 bg-emerald-500 text-white';
-              textClass = 'text-emerald-800 font-semibold';
+              optionClass = 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-400';
+              badgeClass = 'border-indigo-500 bg-indigo-500 text-white';
+              textClass = 'text-indigo-800 font-semibold';
             } else {
-              optionClass = 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50';
-              badgeClass = 'border-slate-300 text-slate-600';
-              textClass = 'text-slate-800';
+              optionClass = 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50';
+              badgeClass = 'border-slate-300 text-slate-700';
+              textClass = 'text-slate-900 font-medium';
             }
 
             return (

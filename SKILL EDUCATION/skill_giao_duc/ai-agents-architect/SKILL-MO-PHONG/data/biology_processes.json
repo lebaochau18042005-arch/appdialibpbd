@@ -1,0 +1,177 @@
+{
+  "meta": {
+    "description": "Dữ liệu quy trình sinh học cho mô phỏng - tế bào, phân bào, quang hợp, di truyền"
+  },
+  "cell_structure": {
+    "plant_cell": {
+      "name": "Tế bào thực vật",
+      "components": [
+        {"id": "cell_wall", "name": "Thành tế bào", "color": "#8bc34a", "shape": "rectangle", "description": "Bảo vệ, tạo hình dạng cố định"},
+        {"id": "cell_membrane", "name": "Màng tế bào", "color": "#aed581", "shape": "inner_rectangle", "description": "Kiểm soát chất ra vào"},
+        {"id": "nucleus", "name": "Nhân tế bào", "color": "#5c6bc0", "shape": "circle", "description": "Chứa ADN, điều khiển hoạt động sống"},
+        {"id": "nucleolus", "name": "Nhân con", "color": "#3949ab", "shape": "small_circle", "description": "Tổng hợp ribosome"},
+        {"id": "cytoplasm", "name": "Tế bào chất", "color": "#e8f5e9", "shape": "fill", "description": "Chứa các bào quan"},
+        {"id": "chloroplast", "name": "Lục lạp", "color": "#2e7d32", "shape": "ellipse", "description": "Quang hợp, chứa diệp lục"},
+        {"id": "mitochondria", "name": "Ti thể", "color": "#ef5350", "shape": "bean", "description": "Hô hấp tế bào, tạo ATP"},
+        {"id": "vacuole", "name": "Không bào", "color": "#bbdefb", "shape": "large_circle", "description": "Chứa dịch tế bào, to ở TV"},
+        {"id": "er", "name": "Lưới nội chất", "color": "#ffcc80", "shape": "wavy_lines", "description": "Vận chuyển chất"},
+        {"id": "golgi", "name": "Bộ máy Golgi", "color": "#ffab40", "shape": "stacked_arcs", "description": "Đóng gói, vận chuyển"}
+      ]
+    },
+    "animal_cell": {
+      "name": "Tế bào động vật",
+      "components": [
+        {"id": "cell_membrane", "name": "Màng tế bào", "color": "#ef9a9a", "shape": "irregular_circle"},
+        {"id": "nucleus", "name": "Nhân tế bào", "color": "#5c6bc0", "shape": "circle"},
+        {"id": "nucleolus", "name": "Nhân con", "color": "#3949ab", "shape": "small_circle"},
+        {"id": "cytoplasm", "name": "Tế bào chất", "color": "#fce4ec", "shape": "fill"},
+        {"id": "mitochondria", "name": "Ti thể", "color": "#ef5350", "shape": "bean"},
+        {"id": "centriole", "name": "Trung thể", "color": "#78909c", "shape": "two_cylinders", "description": "Tham gia phân bào (chỉ có ở ĐV)"},
+        {"id": "lysosome", "name": "Lizôxôm", "color": "#7e57c2", "shape": "small_circle", "description": "Tiêu hóa nội bào"},
+        {"id": "er", "name": "Lưới nội chất", "color": "#ffcc80", "shape": "wavy_lines"},
+        {"id": "golgi", "name": "Bộ máy Golgi", "color": "#ffab40", "shape": "stacked_arcs"},
+        {"id": "ribosome", "name": "Ribôxôm", "color": "#795548", "shape": "dots", "description": "Tổng hợp protein"}
+      ]
+    }
+  },
+  "mitosis": {
+    "name": "Nguyên phân (Mitosis)",
+    "description": "1 tế bào mẹ (2n) → 2 tế bào con (2n)",
+    "phases": [
+      {
+        "id": "interphase", "name": "Kỳ trung gian",
+        "duration_percent": 40,
+        "description": "Tế bào chuẩn bị: ADN nhân đôi (S), tổng hợp protein",
+        "visual": {"nucleus_visible": true, "chromatin": "dispersed", "centrioles_duplicate": true},
+        "key_events": ["ADN nhân đôi", "Bào quan tăng số lượng", "Tế bào lớn lên"]
+      },
+      {
+        "id": "prophase", "name": "Kỳ đầu",
+        "duration_percent": 15,
+        "description": "NST co xoắn, màng nhân tiêu biến, thoi vô sắc hình thành",
+        "visual": {"chromosomes": "condensing", "nuclear_membrane": "dissolving", "spindle": "forming"},
+        "key_events": ["NST co xoắn thành hình chữ X", "Màng nhân tan dần", "Thoi phân bào xuất hiện"]
+      },
+      {
+        "id": "metaphase", "name": "Kỳ giữa",
+        "duration_percent": 10,
+        "description": "NST xếp thành hàng ở mặt phẳng xích đạo",
+        "visual": {"chromosomes": "aligned_center", "spindle": "attached"},
+        "key_events": ["NST xếp 1 hàng ở mp xích đạo", "Thoi vô sắc gắn vào tâm động"]
+      },
+      {
+        "id": "anaphase", "name": "Kỳ sau",
+        "duration_percent": 10,
+        "description": "Các crômatit tách nhau, di chuyển về 2 cực",
+        "visual": {"chromosomes": "separating_to_poles", "spindle": "pulling"},
+        "key_events": ["Tâm động tách đôi", "Cromatit về 2 cực tế bào", "Tế bào kéo dài"]
+      },
+      {
+        "id": "telophase", "name": "Kỳ cuối",
+        "duration_percent": 15,
+        "description": "NST dãn xoắn, màng nhân tái lập, phân chia tế bào chất",
+        "visual": {"chromosomes": "decondensing", "nuclear_membrane": "reforming", "cleavage": true},
+        "key_events": ["NST dãn xoắn", "Màng nhân xuất hiện lại", "Tế bào chất phân chia"]
+      },
+      {
+        "id": "cytokinesis", "name": "Phân chia tế bào chất",
+        "duration_percent": 10,
+        "description": "ĐV: thắt eo ở giữa. TV: vách ngăn giữa",
+        "visual": {"cell_dividing": true, "result": "2_cells"},
+        "key_events": ["Tế bào tách thành 2 tế bào con", "Mỗi TB con có 2n NST"]
+      }
+    ]
+  },
+  "meiosis": {
+    "name": "Giảm phân (Meiosis)",
+    "description": "1 tế bào mẹ (2n) → 4 tế bào con (n)",
+    "meiosis_I": [
+      {"id": "prophase_I", "name": "Kỳ đầu I", "key": "NST kép bắt chéo, trao đổi chéo"},
+      {"id": "metaphase_I", "name": "Kỳ giữa I", "key": "Cặp NST tương đồng xếp 2 hàng ở mp xích đạo"},
+      {"id": "anaphase_I", "name": "Kỳ sau I", "key": "Cặp NST tương đồng tách về 2 cực (GIẢM SỐ)"},
+      {"id": "telophase_I", "name": "Kỳ cuối I", "key": "2 tế bào con, mỗi TB có n NST kép"}
+    ],
+    "meiosis_II": [
+      {"id": "prophase_II", "name": "Kỳ đầu II", "key": "Tương tự nguyên phân"},
+      {"id": "metaphase_II", "name": "Kỳ giữa II", "key": "NST kép xếp 1 hàng"},
+      {"id": "anaphase_II", "name": "Kỳ sau II", "key": "Crômatit tách, n NST đơn về 2 cực"},
+      {"id": "telophase_II", "name": "Kỳ cuối II", "key": "4 tế bào con, mỗi TB có n NST đơn"}
+    ]
+  },
+  "photosynthesis": {
+    "name": "Quang hợp",
+    "equation": "6CO₂ + 6H₂O → (ánh sáng, diệp lục) → C₆H₁₂O₆ + 6O₂",
+    "phases": {
+      "light_reaction": {
+        "name": "Pha sáng",
+        "location": "Màng thylakoid (lục lạp)",
+        "inputs": ["H₂O", "Ánh sáng", "NADP⁺", "ADP + Pi"],
+        "outputs": ["O₂", "NADPH", "ATP"],
+        "description": "Quang phân ly nước, tạo ATP và NADPH"
+      },
+      "dark_reaction": {
+        "name": "Pha tối (Chu trình Calvin)",
+        "location": "Chất nền lục lạp (stroma)",
+        "inputs": ["CO₂", "ATP", "NADPH"],
+        "outputs": ["C₆H₁₂O₆ (Glucose)", "ADP + Pi", "NADP⁺"],
+        "description": "Cố định CO₂ thành đường glucose"
+      }
+    },
+    "simulation_params": {
+      "light_intensity": {"range": [0, 100], "unit": "%", "effect": "Tăng → tăng tốc độ quang hợp (đến bão hòa)"},
+      "CO2_concentration": {"range": [0, 1], "unit": "%", "effect": "Tăng → tăng sản phẩm"},
+      "temperature": {"range": [5, 45], "unit": "°C", "optimal": 30, "effect": "Tối ưu 25-30°C"}
+    }
+  },
+  "genetics": {
+    "mendel_cross": {
+      "name": "Lai một tính trạng (Định luật Mendel I)",
+      "example": {
+        "trait": "Màu hoa",
+        "P": {"father": "AA (Hoa đỏ)", "mother": "aa (Hoa trắng)"},
+        "F1": {"genotype": "Aa", "phenotype": "100% Hoa đỏ", "ratio": ""},
+        "F2": {"genotypes": ["AA", "Aa", "Aa", "aa"], "phenotype_ratio": "3 đỏ : 1 trắng", "genotype_ratio": "1:2:1"}
+      },
+      "punnett_square_js": "function cross(p1, p2) {\n  const alleles1 = p1.split('');\n  const alleles2 = p2.split('');\n  const results = [];\n  for (let a of alleles1) {\n    for (let b of alleles2) {\n      results.push(a < b ? a+b : b+a);\n    }\n  }\n  return results;\n}"
+    },
+    "dna_replication": {
+      "name": "Nhân đôi ADN",
+      "steps": [
+        {"name": "Tháo xoắn", "enzyme": "Helicase", "description": "Enzyme Helicase tách 2 mạch ADN"},
+        {"name": "Tổng hợp mạch mới", "enzyme": "ADN Polymerase", "description": "Gắn nucleotide theo NTBS: A-T, G-X"},
+        {"name": "Nối đoạn Okazaki", "enzyme": "Ligase", "description": "Nối các đoạn trên mạch chậm"}
+      ],
+      "base_pairing": {"A": "T", "T": "A", "G": "X", "X": "G"}
+    }
+  },
+  "digestive_system": {
+    "name": "Hệ tiêu hóa người",
+    "organs": [
+      {"id": "mouth", "name": "Khoang miệng", "y_percent": 5, "action": "Nhai nghiền, enzyme amylase phân giải tinh bột"},
+      {"id": "esophagus", "name": "Thực quản", "y_percent": 15, "action": "Co bóp đẩy thức ăn xuống dạ dày"},
+      {"id": "stomach", "name": "Dạ dày", "y_percent": 30, "action": "HCl + pepsin phân giải protein, co bóp nhào trộn"},
+      {"id": "liver", "name": "Gan", "y_percent": 28, "action": "Tiết mật nhũ tương hóa lipid"},
+      {"id": "pancreas", "name": "Tuyến tụy", "y_percent": 35, "action": "Tiết enzyme lipase, trypsin, amylase"},
+      {"id": "small_intestine", "name": "Ruột non", "y_percent": 50, "action": "Hấp thụ dinh dưỡng chính (nhung mao)"},
+      {"id": "large_intestine", "name": "Ruột già", "y_percent": 75, "action": "Hấp thụ nước, tạo phân"},
+      {"id": "rectum", "name": "Trực tràng", "y_percent": 90, "action": "Tích trữ và thải phân"}
+    ]
+  },
+  "heart_anatomy": {
+    "name": "Cấu tạo tim",
+    "chambers": [
+      {"id": "right_atrium", "name": "Tâm nhĩ phải", "color": "#42a5f5", "description": "Nhận máu nghèo O₂ từ cơ thể"},
+      {"id": "right_ventricle", "name": "Tâm thất phải", "color": "#1e88e5", "description": "Bơm máu lên phổi"},
+      {"id": "left_atrium", "name": "Tâm nhĩ trái", "color": "#ef5350", "description": "Nhận máu giàu O₂ từ phổi"},
+      {"id": "left_ventricle", "name": "Tâm thất trái", "color": "#c62828", "description": "Bơm máu đi nuôi cơ thể"}
+    ],
+    "blood_flow_path": [
+      "Tĩnh mạch chủ → Tâm nhĩ phải",
+      "Tâm nhĩ phải → Tâm thất phải",
+      "Tâm thất phải → Động mạch phổi → PHỔI (trao đổi khí)",
+      "Tĩnh mạch phổi → Tâm nhĩ trái",
+      "Tâm nhĩ trái → Tâm thất trái",
+      "Tâm thất trái → Động mạch chủ → CƠ THỂ"
+    ]
+  }
+}

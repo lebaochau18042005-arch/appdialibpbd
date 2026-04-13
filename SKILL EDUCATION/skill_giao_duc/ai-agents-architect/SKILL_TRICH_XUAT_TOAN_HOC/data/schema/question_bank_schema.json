@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Question Bank Schema v1.0",
+  "description": "Schema chuẩn cho ngân hàng câu hỏi toán học",
+  "type": "object",
+  "required": ["source_file", "questions"],
+  "properties": {
+    "source_file": {"type": "string"},
+    "extraction_date": {"type": "string", "format": "date-time"},
+    "total_questions": {"type": "integer", "minimum": 0},
+    "summary": {
+      "type": "object",
+      "properties": {
+        "multiple_choice": {"type": "integer"},
+        "essay": {"type": "integer"},
+        "with_images": {"type": "integer"},
+        "topics": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "content"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^Q\\d{3}$"},
+          "type": {"type": "string", "enum": ["multiple_choice", "essay"]},
+          "content": {"type": "string", "description": "Nội dung đề bài, giữ nguyên LaTeX"},
+          "content_html": {"type": "string"},
+          "options": {
+            "type": ["object", "null"],
+            "properties": {
+              "A": {"type": "string"},
+              "B": {"type": "string"},
+              "C": {"type": "string"},
+              "D": {"type": "string"}
+            }
+          },
+          "correct_answer": {"type": ["string", "null"], "enum": ["A","B","C","D", null]},
+          "solution": {"type": ["string", "null"]},
+          "images": {"type": "array", "items": {"type": "string"}},
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "subject": {"type": "string", "default": "Toán học"},
+              "grade": {"type": "string"},
+              "topic": {"type": "string"},
+              "subtopic": {"type": "string"},
+              "difficulty": {"type": "string", "enum": ["Nhận biết","Thông hiểu","Vận dụng","Vận dụng cao"]},
+              "bloom_level": {"type": "integer", "minimum": 1, "maximum": 6},
+              "tags": {"type": "array", "items": {"type": "string"}},
+              "exam_source": {"type": "string"},
+              "points": {"type": "number"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

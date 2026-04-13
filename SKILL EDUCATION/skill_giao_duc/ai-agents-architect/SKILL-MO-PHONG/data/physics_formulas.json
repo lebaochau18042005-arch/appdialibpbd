@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "description": "Công thức và tham số vật lý cho mô phỏng thí nghiệm",
+    "units": "SI (kg, m, s, A, K, mol)"
+  },
+  "constants": {
+    "g": {"value": 9.81, "unit": "m/s²", "name": "Gia tốc trọng trường"},
+    "G": {"value": 6.674e-11, "unit": "N·m²/kg²", "name": "Hằng số hấp dẫn"},
+    "c": {"value": 3e8, "unit": "m/s", "name": "Tốc độ ánh sáng"},
+    "k_boltzmann": {"value": 1.38e-23, "unit": "J/K", "name": "Hằng số Boltzmann"},
+    "e": {"value": 1.6e-19, "unit": "C", "name": "Điện tích electron"},
+    "k_coulomb": {"value": 9e9, "unit": "N·m²/C²", "name": "Hằng số Coulomb"},
+    "R": {"value": 8.314, "unit": "J/(mol·K)", "name": "Hằng số khí"},
+    "F_faraday": {"value": 96485, "unit": "C/mol", "name": "Hằng số Faraday"},
+    "pi": {"value": 3.14159265, "unit": "", "name": "Số Pi"}
+  },
+  "formulas": {
+    "co_hoc": {
+      "chuyen_dong_thang_deu": {
+        "formula": "s = v * t",
+        "params": {"s": "quãng đường (m)", "v": "vận tốc (m/s)", "t": "thời gian (s)"},
+        "js_code": "const s = v * t;",
+        "slider_ranges": {"v": [0, 20, 0.1], "t": [0, 30, 0.1]}
+      },
+      "chuyen_dong_bien_doi_deu": {
+        "formulas": ["v = v0 + a*t", "s = v0*t + 0.5*a*t*t", "v*v = v0*v0 + 2*a*s"],
+        "params": {"v0": "vận tốc ban đầu (m/s)", "a": "gia tốc (m/s²)", "t": "thời gian (s)"},
+        "js_code": "const v = v0 + a * t;\nconst s = v0 * t + 0.5 * a * t * t;",
+        "slider_ranges": {"v0": [0, 20, 0.5], "a": [-5, 5, 0.1], "t": [0, 20, 0.1]}
+      },
+      "roi_tu_do": {
+        "formulas": ["h = 0.5*g*t*t", "v = g*t"],
+        "params": {"h": "độ cao (m)", "g": "gia tốc trọng trường (m/s²)", "t": "thời gian (s)"},
+        "js_code": "const h = 0.5 * g * t * t;\nconst v = g * t;",
+        "slider_ranges": {"h": [0.5, 50, 0.5]}
+      },
+      "nem_xien": {
+        "formulas": ["x = v0*cos(alpha)*t", "y = v0*sin(alpha)*t - 0.5*g*t*t", "tmax = v0*sin(alpha)/g", "L = v0*v0*sin(2*alpha)/g"],
+        "js_code": "const rad = alpha * Math.PI / 180;\nconst x = v0 * Math.cos(rad) * t;\nconst y = v0 * Math.sin(rad) * t - 0.5 * g * t * t;",
+        "slider_ranges": {"v0": [5, 50, 1], "alpha": [0, 90, 1]}
+      },
+      "con_lac_don": {
+        "formulas": ["T = 2*PI*sqrt(L/g)", "theta(t) = theta0*cos(omega*t)", "omega = sqrt(g/L)"],
+        "js_code": "const omega = Math.sqrt(g / L);\nconst T = 2 * Math.PI / omega;\nconst theta = theta0 * Math.cos(omega * t);",
+        "slider_ranges": {"L": [0.1, 2, 0.05], "theta0": [1, 30, 1]}
+      },
+      "con_lac_lo_xo": {
+        "formulas": ["T = 2*PI*sqrt(m/k)", "x(t) = A*cos(omega*t + phi)", "omega = sqrt(k/m)"],
+        "js_code": "const omega = Math.sqrt(k / m);\nconst x = A * Math.cos(omega * t + phi);",
+        "slider_ranges": {"m": [0.1, 5, 0.1], "k": [1, 100, 1], "A": [0.01, 0.2, 0.01]}
+      },
+      "luc_ma_sat": {
+        "formulas": ["F_ms = mu*N", "F_ms = mu*m*g*cos(alpha)", "a = g*(sin(alpha) - mu*cos(alpha))"],
+        "js_code": "const rad = alpha * Math.PI / 180;\nconst a = g * (Math.sin(rad) - mu * Math.cos(rad));",
+        "slider_ranges": {"mu": [0, 1, 0.01], "alpha": [0, 60, 1], "m": [0.1, 10, 0.1]}
+      }
+    },
+    "dien_hoc": {
+      "dinh_luat_ohm": {
+        "formula": "I = U / R",
+        "js_code": "const I = U / R;",
+        "slider_ranges": {"U": [0, 24, 0.5], "R": [1, 1000, 1]}
+      },
+      "cong_suat_dien": {
+        "formulas": ["P = U*I", "P = I*I*R", "P = U*U/R"],
+        "js_code": "const P = U * I;"
+      },
+      "tu_dien": {
+        "formulas": ["Q = C*U", "E = 0.5*C*U*U"],
+        "js_code": "const Q = C * U;\nconst E = 0.5 * C * U * U;",
+        "slider_ranges": {"C": [1e-6, 1000e-6, 1e-6], "U": [0, 50, 1]}
+      },
+      "dien_phan": {
+        "formula": "m = A*I*t/(n*F)",
+        "js_code": "const m = (A * I * t) / (n * F);",
+        "slider_ranges": {"I": [0.1, 10, 0.1], "t": [60, 3600, 60]}
+      }
+    },
+    "quang_hoc": {
+      "phan_xa": {
+        "formula": "i = r (góc tới = góc phản xạ)",
+        "js_code": "const reflectionAngle = incidentAngle;",
+        "slider_ranges": {"incidentAngle": [0, 89, 1]}
+      },
+      "khuc_xa": {
+        "formula": "n1*sin(i) = n2*sin(r)",
+        "js_code": "const r = Math.asin(n1 * Math.sin(i * Math.PI / 180) / n2) * 180 / Math.PI;",
+        "slider_ranges": {"i": [0, 89, 1], "n1": [1, 2.5, 0.01], "n2": [1, 2.5, 0.01]},
+        "refractive_indices": {
+          "không khí": 1.0, "nước": 1.33, "thủy tinh": 1.52, "kim cương": 2.42, "ethanol": 1.36
+        }
+      },
+      "thau_kinh": {
+        "formula": "1/f = 1/d + 1/d_prime",
+        "js_code": "const d_prime = (f * d) / (d - f);\nconst k = -d_prime / d;",
+        "slider_ranges": {"f": [-50, 50, 1], "d": [5, 200, 1]}
+      },
+      "giao_thoa_young": {
+        "formula": "i = lambda*D/a",
+        "js_code": "const fringeSpacing = (lambda * D) / a;",
+        "slider_ranges": {"lambda": [380e-9, 780e-9, 10e-9], "D": [0.5, 3, 0.1], "a": [0.1e-3, 2e-3, 0.1e-3]}
+      }
+    },
+    "song_nhiet": {
+      "song_dung": {
+        "formula": "L = n*lambda/2",
+        "js_code": "const wavelength = 2 * L / n;\nconst frequency = v_sound / wavelength;"
+      },
+      "can_bang_nhiet": {
+        "formula": "m1*c1*(t_cb - t1) = m2*c2*(t2 - t_cb)",
+        "js_code": "const t_cb = (m1*c1*t1 + m2*c2*t2) / (m1*c1 + m2*c2);"
+      }
+    }
+  }
+}

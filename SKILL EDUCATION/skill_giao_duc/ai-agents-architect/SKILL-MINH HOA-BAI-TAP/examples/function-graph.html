@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đồ thị hàm số - Khảo sát</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraph.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraphcore.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a; color: #e2e8f0;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; padding: 24px;
+        }
+        h1 { font-size: 1.4rem; margin-bottom: 4px; color: #38bdf8; }
+        .subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px; }
+        .jxgbox { 
+            border-radius: 14px; 
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            background: #1e293b !important;
+        }
+        .controls {
+            margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+        }
+        .controls label { color: #94a3b8; font-size: 0.85rem; }
+        .controls input[type=range] { width: 120px; accent-color: #38bdf8; }
+        .controls .val { color: #38bdf8; font-weight: 600; font-family: monospace; min-width: 36px; display: inline-block; }
+        .info-panel {
+            margin-top: 16px; padding: 18px 24px;
+            background: #1e293b; border-radius: 12px;
+            font-size: 0.88rem; max-width: 700px; width: 100%;
+            border: 1px solid #334155;
+        }
+        .info-panel h3 { color: #f59e0b; margin-bottom: 8px; font-size: 1rem; }
+        .props { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
+        .props .label { color: #94a3b8; }
+        .props .value { color: #a78bfa; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <h1>📈 Khảo sát hàm số bậc 3</h1>
+    <p class="subtitle">y = x³ − 3x² + 2 &nbsp;|&nbsp; Kéo chuột trên đồ thị để khám phá</p>
+    
+    <div id="jxgbox" class="jxgbox" style="width:700px; height:550px;"></div>
+
+    <div class="info-panel">
+        <h3>📋 Bảng biến thiên</h3>
+        <div class="props">
+            <div><span class="label">y'= </span><span class="value">3x² − 6x = 3x(x − 2)</span></div>
+            <div><span class="label">y'= 0 ⇔ </span><span class="value">x = 0 hoặc x = 2</span></div>
+            <div><span class="label">Cực đại: </span><span class="value">y(0) = 2 → (0; 2)</span></div>
+            <div><span class="label">Cực tiểu: </span><span class="value">y(2) = -2 → (2; -2)</span></div>
+            <div><span class="label">Điểm uốn: </span><span class="value">(1; 0)</span></div>
+            <div><span class="label">Tiệm cận: </span><span class="value">Không có</span></div>
+        </div>
+    </div>
+
+    <script>
+        const board = JXG.JSXGraph.initBoard('jxgbox', {
+            boundingbox: [-4, 6, 6, -6],
+            axis: true,
+            showCopyright: false,
+            showNavigation: true,
+            keepAspectRatio: true,
+            defaultAxes: {
+                x: {
+                    strokeColor: '#475569', strokeWidth: 1,
+                    ticks: { strokeColor: '#334155', label: { color: '#64748b', fontSize: 11 } }
+                },
+                y: {
+                    strokeColor: '#475569', strokeWidth: 1,
+                    ticks: { strokeColor: '#334155', label: { color: '#64748b', fontSize: 11 } }
+                }
+            }
+        });
+
+        // Hàm số: y = x³ - 3x² + 2
+        const f = (x) => x * x * x - 3 * x * x + 2;
+        const fPrime = (x) => 3 * x * x - 6 * x;
+
+        // === ĐỒ THỊ HÀM SỐ ===
+        const graph = board.create('functiongraph', [f, -4, 6], {
+            strokeColor: '#38bdf8', strokeWidth: 3,
+            highlight: false
+        });
+
+        // === ĐẠO HÀM (nét đứt) ===
+        const derivGraph = board.create('functiongraph', [fPrime, -4, 6], {
+            strokeColor: '#a78bfa', strokeWidth: 1.5, dash: 4,
+            highlight: false
+        });
+
+        // === ĐIỂM CỰC TRỊ ===
+        // Cực đại (0, 2)
+        const maxPt = board.create('point', [0, 2], {
+            name: 'CĐ(0;2)', size: 5,
+            strokeColor: '#ef4444', fillColor: '#ef4444',
+            label: { fontSize: 13, color: '#ef4444', offset: [10, 10] },
+            fixed: true
+        });
+
+        // Cực tiểu (2, -2)
+        const minPt = board.create('point', [2, -2], {
+            name: 'CT(2;-2)', size: 5,
+            strokeColor: '#10b981', fillColor: '#10b981',
+            label: { fontSize: 13, color: '#10b981', offset: [10, -15] },
+            fixed: true
+        });
+
+        // === ĐIỂM UỐN (1, 0) ===
+        const inflPt = board.create('point', [1, 0], {
+            name: 'Uốn(1;0)', size: 4,
+            strokeColor: '#f59e0b', fillColor: '#f59e0b',
+            label: { fontSize: 12, color: '#f59e0b', offset: [10, 8] },
+            fixed: true
+        });
+
+        // === ĐƯỜNG TIẾP TUYẾN TẠI ĐIỂM UỐN ===
+        // y - 0 = f'(1)(x - 1) → y = -3(x-1) = -3x + 3
+        board.create('functiongraph', [(x) => -3 * x + 3, -4, 6], {
+            strokeColor: '#f59e0b', strokeWidth: 1.5, dash: 2,
+            highlight: false
+        });
+
+        // === GLIDER - ĐIỂM TRƯỢT TRÊN ĐỒ THỊ ===
+        const glider = board.create('glider', [3, f(3), graph], {
+            name: 'P', size: 6,
+            strokeColor: '#fbbf24', fillColor: '#fbbf24',
+            label: { fontSize: 14, color: '#fbbf24', offset: [12, 12] }
+        });
+
+        // Đường tiếp tuyến tại P
+        const tangent = board.create('tangent', [glider], {
+            strokeColor: '#fbbf2480', strokeWidth: 2, dash: 3
+        });
+
+        // Đường chiếu xuống trục x
+        const projX = board.create('point', [
+            () => glider.X(), () => 0
+        ], { visible: false });
+        board.create('segment', [glider, projX], {
+            strokeColor: '#64748b', strokeWidth: 1, dash: 2
+        });
+
+        // Hiển thị toạ độ P
+        board.create('text', [
+            () => glider.X() + 0.3,
+            () => glider.Y() + 0.5,
+            () => `(${glider.X().toFixed(2)}; ${glider.Y().toFixed(2)})`
+        ], { fontSize: 12, color: '#94a3b8' });
+
+        // === CHÚ THÍCH ===
+        board.create('text', [-3.5, 5.2, 'y = x³ − 3x² + 2'], {
+            fontSize: 15, color: '#38bdf8', fontWeight: 'bold'
+        });
+        board.create('text', [-3.5, 4.4, "y' = 3x² − 6x"], {
+            fontSize: 12, color: '#a78bfa', fontStyle: 'italic'
+        });
+    </script>
+</body>
+</html>

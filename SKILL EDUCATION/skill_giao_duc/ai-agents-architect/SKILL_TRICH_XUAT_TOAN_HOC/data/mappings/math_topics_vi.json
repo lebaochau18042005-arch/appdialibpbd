@@ -1,0 +1,30 @@
+{
+  "Toán 10": {
+    "Đại số": ["Mệnh đề - Tập hợp", "Hàm số bậc hai", "Phương trình - Hệ phương trình", "Bất phương trình", "Thống kê", "Xác suất"],
+    "Hình học": ["Vectơ", "Tích vô hướng", "Hệ trục tọa độ", "Đường thẳng", "Đường tròn", "Elip"]
+  },
+  "Toán 11": {
+    "Đại số": ["Hàm số lượng giác", "Phương trình lượng giác", "Dãy số - Cấp số", "Giới hạn", "Đạo hàm"],
+    "Hình học": ["Phép biến hình", "Đường cong bậc hai", "Đường thẳng và mặt phẳng trong không gian"]
+  },
+  "Toán 12": {
+    "Giải tích": ["Ứng dụng đạo hàm", "Hàm số mũ - logarit", "Nguyên hàm - Tích phân", "Số phức"],
+    "Hình học": ["Khối đa diện", "Mặt cầu - Mặt trụ - Mặt nón", "Phương pháp tọa độ trong không gian"]
+  },
+  "Toán 6": {
+    "Số học": ["Số tự nhiên", "Số nguyên", "Phân số", "Số thập phân"],
+    "Hình học": ["Các hình phẳng", "Tính chu vi - diện tích", "Đối xứng"]
+  },
+  "Toán 7": {
+    "Đại số": ["Số hữu tỉ", "Số thực", "Biểu thức đại số", "Thống kê"],
+    "Hình học": ["Tam giác", "Đường thẳng song song", "Quan hệ giữa các yếu tố"]
+  },
+  "Toán 8": {
+    "Đại số": ["Phép nhân đa thức", "Phân thức đại số", "Phương trình bậc nhất", "Bất phương trình bậc nhất"],
+    "Hình học": ["Tứ giác", "Diện tích đa giác", "Hình hộp chữ nhật", "Thể tích"]
+  },
+  "Toán 9": {
+    "Đại số": ["Căn bậc hai - Căn bậc ba", "Hàm số bậc nhất", "Hệ phương trình", "Hàm số bậc hai"],
+    "Hình học": ["Đường tròn", "Góc với đường tròn", "Hình trụ - Hình nón - Hình cầu"]
+  }
+}

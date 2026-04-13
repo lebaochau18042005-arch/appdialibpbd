@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔬 Phòng Thí Nghiệm Hóa Học Ảo - Phản Ứng Axit Bazơ</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1729;--card:#1a2332;--border:#2a3a4e;--primary:#4fc3f7;--accent:#7c4dff;--success:#66bb6a;--danger:#ef5350;--text:#e0e0e0;--text2:#90a4ae}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#1a237e,#4a148c);padding:12px 24px;display:flex;align-items:center;gap:16px;box-shadow:0 2px 20px rgba(0,0,0,.4)}
+.header h1{font-size:1.2rem;font-weight:600;background:linear-gradient(90deg,#4fc3f7,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .mode-btns{display:flex;gap:8px;margin-left:auto}
+.header .mode-btns button{padding:6px 16px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text);cursor:pointer;font-size:.85rem;transition:.3s}
+.header .mode-btns button.active{background:var(--primary);color:#000;border-color:var(--primary)}
+.status-bar{background:rgba(33,150,243,.1);border:1px solid rgba(33,150,243,.3);margin:12px 16px;padding:10px 16px;border-radius:8px;display:flex;align-items:center;gap:8px;font-size:.9rem}
+.status-bar .icon{font-size:1.2rem}
+.main{display:grid;grid-template-columns:1fr 280px;gap:16px;padding:0 16px 16px;height:calc(100vh - 160px)}
+.lab-area{background:var(--card);border:1px solid var(--border);border-radius:12px;position:relative;overflow:hidden}
+.lab-area canvas{width:100%;height:100%;cursor:grab}
+.sidebar{display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.panel h3{font-size:.95rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.chemical-list{display:flex;flex-direction:column;gap:6px}
+.chemical-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:grab;border:1px solid transparent;transition:.2s;background:rgba(255,255,255,.03)}
+.chemical-item:hover{border-color:var(--primary);background:rgba(79,195,247,.08)}
+.chemical-item.selected{border-color:var(--accent);background:rgba(124,77,255,.1);box-shadow:0 0 12px rgba(124,77,255,.2)}
+.chem-dot{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);flex-shrink:0}
+.chem-info{flex:1}
+.chem-name{font-size:.85rem;font-weight:600}
+.chem-formula{font-size:.75rem;color:var(--text2)}
+.category-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.category-tabs button{padding:4px 10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.75rem;cursor:pointer;transition:.2s}
+.category-tabs button.active{background:var(--primary);color:#000;border-color:var(--primary)}
+.log-area{background:var(--card);border:1px solid var(--border);border-radius:12px;margin:0 16px 16px;padding:12px 16px;max-height:150px;overflow-y:auto}
+.log-area h3{font-size:.9rem;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.log-entry{font-size:.8rem;padding:3px 0;color:var(--text2);border-bottom:1px solid rgba(255,255,255,.03)}
+.log-entry .time{color:var(--primary);margin-right:8px}
+.log-entry.reaction{color:var(--success);font-weight:500}
+.log-entry.equation{color:#ffb74d;font-family:monospace}
+.controls{display:flex;gap:8px;padding:0 16px 16px;flex-wrap:wrap}
+.controls button{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;transition:.3s}
+.btn-start{background:linear-gradient(135deg,#43a047,#66bb6a);color:#fff}
+.btn-reset{background:linear-gradient(135deg,#e53935,#ef5350);color:#fff}
+.btn-clear{background:var(--border);color:var(--text)}
+.controls button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+@keyframes bubble{0%{transform:translateY(0) scale(1);opacity:.7}100%{transform:translateY(-80px) scale(.3);opacity:0}}
+@keyframes glow{0%,100%{box-shadow:0 0 5px var(--primary)}50%{box-shadow:0 0 20px var(--primary)}}
+</style>
+</head>
+<body>
+<div class="header">
+  <span style="font-size:1.5rem">🔬</span>
+  <h1>Phòng Thí Nghiệm Hóa Học Ảo</h1>
+  <div class="mode-btns">
+    <button class="active">Chế độ Trực quan</button>
+    <button>Chế độ 3D</button>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <span class="icon">ℹ️</span>
+  <span id="statusText">Chọn hóa chất từ kệ bên phải, sau đó nhấp vào ống nghiệm để thêm vào.</span>
+</div>
+
+<div class="main">
+  <div class="lab-area">
+    <canvas id="labCanvas"></canvas>
+  </div>
+  <div class="sidebar">
+    <div class="panel">
+      <h3>🧪 Kệ Hóa Chất</h3>
+      <div class="category-tabs">
+        <button class="active" onclick="filterChemicals('all')">Tất cả</button>
+        <button onclick="filterChemicals('acid')">🔴 Axit</button>
+        <button onclick="filterChemicals('base')">🔵 Bazơ</button>
+        <button onclick="filterChemicals('salt')">🟡 Muối</button>
+        <button onclick="filterChemicals('indicator')">🟣 Chỉ thị</button>
+      </div>
+      <div class="chemical-list" id="chemList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-start" onclick="startExperiment()">▶️ Trộn & Phản ứng</button>
+  <button class="btn-reset" onclick="resetExperiment()">🔄 Đặt lại</button>
+  <button class="btn-clear" onclick="clearLog()">🧹 Xóa nhật ký</button>
+</div>
+
+<div class="log-area">
+  <h3>📋 Nhật Ký Thí Nghiệm <span style="margin-left:auto;font-size:.75rem;color:var(--text2)" id="logCount">0 mục</span></h3>
+  <div id="logEntries"></div>
+</div>
+
+<script>
+// === DỮ LIỆU HÓA CHẤT ===
+const chemicals = [
+  {id:'HCl',name:'Axit Clohidric',formula:'HCl',type:'acid',color:'#e3f2fd',conc:'1M',desc:'Axit mạnh, không màu'},
+  {id:'H2SO4',name:'Axit Sunfuric',formula:'H₂SO₄',type:'acid',color:'#e3f2fd',conc:'1M',desc:'Axit mạnh'},
+  {id:'NaOH',name:'Natri Hidroxit',formula:'NaOH',type:'base',color:'#e3f2fd',conc:'1M',desc:'Bazơ mạnh'},
+  {id:'KOH',name:'Kali Hidroxit',formula:'KOH',type:'base',color:'#e3f2fd',conc:'0.5M',desc:'Bazơ mạnh'},
+  {id:'Na2CO3',name:'Natri Cacbonat',formula:'Na₂CO₃',type:'salt',color:'#e8eaf6',conc:'0.5M',desc:'Muối'},
+  {id:'CuSO4',name:'Đồng Sunfat',formula:'CuSO₄',type:'salt',color:'#1565c0',conc:'0.5M',desc:'Muối, màu xanh dương'},
+  {id:'AgNO3',name:'Bạc Nitrat',formula:'AgNO₃',type:'salt',color:'#e3f2fd',conc:'0.1M',desc:'Muối'},
+  {id:'BaCl2',name:'Bari Clorua',formula:'BaCl₂',type:'salt',color:'#e3f2fd',conc:'0.5M',desc:'Muối'},
+  {id:'phenolphthalein',name:'Phenolphtalein',formula:'C₂₀H₁₄O₄',type:'indicator',color:'#fce4ec',desc:'Hồng trong bazơ'},
+];
+
+// === CSDL PHẢN ỨNG ===
+const reactions = {
+  'HCl+NaOH':{eq:'HCl + NaOH → NaCl + H₂O',type:'Trung hòa',color:'#e3f2fd',gas:false,precip:false,temp:'tỏa nhiệt',anim:'neutralization'},
+  'HCl+Na2CO3':{eq:'Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑',type:'Tạo khí',color:'#e3f2fd',gas:'CO₂',precip:false,temp:'hơi tỏa nhiệt',anim:'bubbles'},
+  'H2SO4+NaOH':{eq:'H₂SO₄ + 2NaOH → Na₂SO₄ + 2H₂O',type:'Trung hòa',color:'#e3f2fd',gas:false,precip:false,temp:'tỏa nhiệt',anim:'neutralization'},
+  'AgNO3+HCl':{eq:'AgNO₃ + HCl → AgCl↓ + HNO₃',type:'Tạo kết tủa',color:'#f5f5f5',gas:false,precip:'AgCl trắng',temp:'không đổi',anim:'precipitate'},
+  'BaCl2+H2SO4':{eq:'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',type:'Tạo kết tủa',color:'#ffffff',gas:false,precip:'BaSO₄ trắng',temp:'không đổi',anim:'precipitate'},
+};
+
+// === STATE ===
+let selectedChemical = null;
+let testTubes = [];
+const NUM_TUBES = 7;
+let bubbles = [];
+let precipitateParticles = [];
+let logEntries = [];
+let animationRunning = false;
+
+// === CANVAS SETUP ===
+const canvas = document.getElementById('labCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  initTubes();
+  render();
+}
+
+function initTubes() {
+  testTubes = [];
+  const spacing = canvas.width / (NUM_TUBES + 1);
+  for (let i = 0; i < NUM_TUBES; i++) {
+    testTubes.push({
+      x: spacing * (i + 1),
+      y: canvas.height * 0.25,
+      width: 36,
+      height: 160,
+      contents: [],
+      fillLevel: 0,
+      fillColor: '#e3f2fd',
+      label: `Ống ${i + 1}`,
+      reacted: false,
+      animState: null
+    });
+  }
+}
+
+// === RENDER ===
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Bàn thí nghiệm
+  const tableY = canvas.height * 0.75;
+  ctx.fillStyle = '#2d3748';
+  ctx.fillRect(0, tableY, canvas.width, canvas.height - tableY);
+  ctx.fillStyle = '#4a5568';
+  ctx.fillRect(0, tableY, canvas.width, 6);
+  
+  // Vẽ ống nghiệm
+  testTubes.forEach((tube, i) => {
+    drawTestTube(tube, i);
+  });
+  
+  // Vẽ bọt khí
+  bubbles.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${b.opacity})`;
+    ctx.fill();
+  });
+  
+  // Vẽ kết tủa
+  precipitateParticles.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${p.opacity})`;
+    ctx.fill();
+  });
+}
+
+function drawTestTube(tube, index) {
+  const {x, y, width, height, fillLevel, fillColor, label, contents} = tube;
+  const tubeX = x - width/2;
+  
+  // Dung dịch bên trong
+  if (fillLevel > 0) {
+    const liquidH = height * fillLevel;
+    const liquidY = y + height - liquidH;
+    ctx.fillStyle = fillColor;
+    ctx.beginPath();
+    ctx.roundRect(tubeX + 3, liquidY, width - 6, liquidH - 10, [0, 0, 8, 8]);
+    ctx.fill();
+    
+    // Hiệu ứng sáng
+    const grad = ctx.createLinearGradient(tubeX, liquidY, tubeX + width, liquidY);
+    grad.addColorStop(0, 'rgba(255,255,255,0.15)');
+    grad.addColorStop(0.5, 'rgba(255,255,255,0)');
+    grad.addColorStop(1, 'rgba(255,255,255,0.05)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+  
+  // Thành ống
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(tubeX, y, width, height, [2, 2, 10, 10]);
+  ctx.stroke();
+  
+  // Miệng ống
+  ctx.fillStyle = '#90a4ae';
+  ctx.fillRect(tubeX - 4, y - 4, width + 8, 8);
+  
+  // Nhãn
+  ctx.fillStyle = '#b0bec5';
+  ctx.font = '11px "Segoe UI"';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x, y + height + 22);
+  
+  // Tên hóa chất trong ống
+  if (contents.length > 0) {
+    contents.forEach((c, ci) => {
+      ctx.fillStyle = '#ffb74d';
+      ctx.font = 'bold 10px "Segoe UI"';
+      ctx.fillText(c.formula || c.name, x, y + height + 36 + ci * 14);
+    });
+  }
+}
+
+// === TƯƠNG TÁC ===
+function renderChemList(filter = 'all') {
+  const list = document.getElementById('chemList');
+  const filtered = filter === 'all' ? chemicals : chemicals.filter(c => c.type === filter);
+  list.innerHTML = filtered.map(c => `
+    <div class="chemical-item ${selectedChemical?.id === c.id ? 'selected' : ''}" 
+         onclick="selectChemical('${c.id}')" draggable="true">
+      <div class="chem-dot" style="background:${c.color};${c.color === '#e3f2fd' ? 'border-color:rgba(33,150,243,.5)' : ''}"></div>
+      <div class="chem-info">
+        <div class="chem-name">${c.name}</div>
+        <div class="chem-formula">${c.formula} · ${c.conc || ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterChemicals(type) {
+  document.querySelectorAll('.category-tabs button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderChemList(type);
+}
+
+function selectChemical(id) {
+  selectedChemical = chemicals.find(c => c.id === id);
+  renderChemList();
+  updateStatus(`Đang cầm ${selectedChemical.name} (${selectedChemical.formula}) – Nhấp vào ống nghiệm để nhỏ vào.`);
+}
+
+canvas.addEventListener('click', (e) => {
+  if (!selectedChemical) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+  
+  testTubes.forEach((tube, i) => {
+    if (mx > tube.x - tube.width/2 - 10 && mx < tube.x + tube.width/2 + 10 &&
+        my > tube.y - 10 && my < tube.y + tube.height + 10) {
+      addChemicalToTube(i, selectedChemical);
+    }
+  });
+});
+
+function addChemicalToTube(tubeIndex, chemical) {
+  const tube = testTubes[tubeIndex];
+  if (tube.contents.length >= 3) {
+    updateStatus('⚠️ Ống nghiệm đã đầy! Tối đa 3 chất.');
+    return;
+  }
+  tube.contents.push({...chemical});
+  tube.fillLevel = Math.min(tube.fillLevel + 0.3, 0.85);
+  
+  // Trộn màu
+  if (tube.contents.length === 1) {
+    tube.fillColor = chemical.color;
+  } else {
+    tube.fillColor = mixColors(tube.contents.map(c => c.color));
+  }
+  
+  addLog(`Thêm ${chemical.name} vào ${tube.label}`);
+  render();
+  
+  // Tự động kiểm tra phản ứng
+  if (tube.contents.length >= 2) {
+    checkReaction(tubeIndex);
+  }
+}
+
+function checkReaction(tubeIndex) {
+  const tube = testTubes[tubeIndex];
+  if (tube.contents.length < 2 || tube.reacted) return;
+  
+  const ids = tube.contents.map(c => c.id).sort();
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const key = ids[i] + '+' + ids[j];
+      const rxn = reactions[key];
+      if (rxn) {
+        tube.reacted = true;
+        addLog(`${tube.label}: Có hiện tượng ${rxn.type}!`, 'reaction');
+        addLog(`Phương trình: ${rxn.eq}`, 'equation');
+        
+        // Animation
+        if (rxn.anim === 'bubbles') startBubbles(tube);
+        if (rxn.anim === 'precipitate') startPrecipitate(tube, rxn.color);
+        if (rxn.color !== '#e3f2fd') {
+          animateColorChange(tube, rxn.color);
+        }
+        
+        updateStatus(`✅ ${tube.label}: ${rxn.type} - ${rxn.eq}`);
+        return;
+      }
+    }
+  }
+}
+
+// === ANIMATION ===
+function startBubbles(tube) {
+  animationRunning = true;
+  let frame = 0;
+  const maxFrames = 180;
+  
+  function animate() {
+    if (frame > maxFrames) { animationRunning = false; bubbles = []; render(); return; }
+    
+    if (frame % 4 === 0) {
+      bubbles.push({
+        x: tube.x + (Math.random() - 0.5) * 20,
+        y: tube.y + tube.height * 0.7,
+        r: 2 + Math.random() * 4,
+        vy: -1 - Math.random() * 2,
+        opacity: 0.6 + Math.random() * 0.3
+      });
+    }
+    
+    bubbles = bubbles.filter(b => {
+      b.y += b.vy;
+      b.x += (Math.random() - 0.5) * 0.5;
+      b.opacity -= 0.008;
+      return b.opacity > 0 && b.y > tube.y;
+    });
+    
+    render();
+    frame++;
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+function startPrecipitate(tube, color) {
+  animationRunning = true;
+  let frame = 0;
+  const maxFrames = 150;
+  
+  function animate() {
+    if (frame > maxFrames) { animationRunning = false; precipitateParticles = []; render(); return; }
+    
+    if (frame % 3 === 0 && frame < 90) {
+      precipitateParticles.push({
+        x: tube.x + (Math.random() - 0.5) * 24,
+        y: tube.y + tube.height * 0.3 + Math.random() * tube.height * 0.2,
+        r: 1 + Math.random() * 2,
+        vy: 0.3 + Math.random() * 0.5,
+        opacity: 0.8
+      });
+    }
+    
+    precipitateParticles.forEach(p => {
+      p.y += p.vy;
+      p.vy *= 0.99;
+      if (p.y > tube.y + tube.height * 0.85) { p.y = tube.y + tube.height * 0.85; p.vy = 0; }
+    });
+    
+    render();
+    frame++;
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+function animateColorChange(tube, targetColor) {
+  let step = 0;
+  const steps = 60;
+  const startColor = tube.fillColor;
+  
+  function animate() {
+    if (step >= steps) return;
+    const t = step / steps;
+    tube.fillColor = lerpColor(startColor, targetColor, t);
+    render();
+    step++;
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// === UTILS ===
+function mixColors(colors) {
+  if (colors.length === 0) return '#e3f2fd';
+  if (colors.length === 1) return colors[0];
+  let r=0,g=0,b=0;
+  colors.forEach(c => { const rgb = hexToRgb(c); r+=rgb.r; g+=rgb.g; b+=rgb.b; });
+  r = Math.round(r/colors.length); g = Math.round(g/colors.length); b = Math.round(b/colors.length);
+  return `rgb(${r},${g},${b})`;
+}
+
+function hexToRgb(hex) {
+  if (hex.startsWith('rgb')) { const m = hex.match(/\d+/g); return {r:+m[0],g:+m[1],b:+m[2]}; }
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return {r,g,b};
+}
+
+function lerpColor(c1, c2, t) {
+  const a = hexToRgb(c1), b = hexToRgb(c2);
+  const r = Math.round(a.r + (b.r - a.r)*t);
+  const g = Math.round(a.g + (b.g - a.g)*t);
+  const bl = Math.round(a.b + (b.b - a.b)*t);
+  return `rgb(${r},${g},${bl})`;
+}
+
+function updateStatus(msg) {
+  document.getElementById('statusText').textContent = msg;
+}
+
+function addLog(text, type = '') {
+  const now = new Date();
+  const time = now.toLocaleTimeString('vi-VN');
+  logEntries.unshift({time, text, type});
+  const el = document.getElementById('logEntries');
+  el.innerHTML = logEntries.map(e =>
+    `<div class="log-entry ${e.type}"><span class="time">[${e.time}]</span>${e.text}</div>`
+  ).join('');
+  document.getElementById('logCount').textContent = `${logEntries.length} mục`;
+}
+
+function startExperiment() {
+  testTubes.forEach((tube, i) => {
+    if (tube.contents.length >= 2 && !tube.reacted) checkReaction(i);
+  });
+}
+
+function resetExperiment() {
+  bubbles = [];
+  precipitateParticles = [];
+  initTubes();
+  render();
+  addLog('🔄 Đã đặt lại thí nghiệm');
+  updateStatus('Chọn hóa chất từ kệ bên phải, sau đó nhấp vào ống nghiệm để thêm vào.');
+}
+
+function clearLog() {
+  logEntries = [];
+  document.getElementById('logEntries').innerHTML = '';
+  document.getElementById('logCount').textContent = '0 mục';
+}
+
+// === INIT ===
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+renderChemList();
+addLog('Phòng thí nghiệm đã sẵn sàng. Hãy chọn hóa chất và bắt đầu thí nghiệm!');
+</script>
+</body>
+</html>

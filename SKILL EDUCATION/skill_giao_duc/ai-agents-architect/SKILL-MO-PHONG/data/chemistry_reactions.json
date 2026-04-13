@@ -1,0 +1,158 @@
+{
+  "meta": {
+    "description": "Cơ sở dữ liệu phản ứng hóa học cho mô phỏng phòng thí nghiệm ảo",
+    "usage": "Tra cứu bằng key = reactant1_id + '+' + reactant2_id (sắp alphabet)"
+  },
+  "chemicals": {
+    "HCl": {"name": "Axit Clohidric", "name_vi": "Axit Clohidric", "formula": "HCl", "state": "aq", "type": "acid", "color": "#e3f2fd", "concentration": "1M", "hazard": "corrosive", "description": "Axit mạnh, không màu, mùi xốc"},
+    "H2SO4": {"name": "Axit Sunfuric", "formula": "H2SO4", "state": "aq", "type": "acid", "color": "#e3f2fd", "concentration": "1M", "hazard": "corrosive"},
+    "HNO3": {"name": "Axit Nitric", "formula": "HNO3", "state": "aq", "type": "acid", "color": "#e3f2fd", "concentration": "1M", "hazard": "corrosive"},
+    "CH3COOH": {"name": "Axit Axetic", "formula": "CH₃COOH", "state": "aq", "type": "weak_acid", "color": "#e3f2fd", "concentration": "1M", "hazard": "irritant"},
+    "NaOH": {"name": "Natri Hidroxit", "formula": "NaOH", "state": "aq", "type": "base", "color": "#e3f2fd", "concentration": "1M", "hazard": "corrosive"},
+    "KOH": {"name": "Kali Hidroxit", "formula": "KOH", "state": "aq", "type": "base", "color": "#e3f2fd", "concentration": "1M", "hazard": "corrosive"},
+    "Ca(OH)2": {"name": "Canxi Hidroxit", "formula": "Ca(OH)₂", "state": "aq", "type": "base", "color": "#f5f5f5", "concentration": "saturated", "hazard": "irritant"},
+    "Na2CO3": {"name": "Natri Cacbonat", "formula": "Na₂CO₃", "state": "aq", "type": "salt", "color": "#e3f2fd", "concentration": "0.5M"},
+    "CaCO3": {"name": "Canxi Cacbonat", "formula": "CaCO₃", "state": "s", "type": "salt", "color": "#ffffff", "description": "Đá vôi, bột trắng"},
+    "NaCl": {"name": "Natri Clorua", "formula": "NaCl", "state": "aq", "type": "salt", "color": "#e3f2fd", "concentration": "1M"},
+    "CuSO4": {"name": "Đồng Sunfat", "formula": "CuSO₄", "state": "aq", "type": "salt", "color": "#1565c0", "concentration": "0.5M"},
+    "FeSO4": {"name": "Sắt (II) Sunfat", "formula": "FeSO₄", "state": "aq", "type": "salt", "color": "#c8e6c9", "concentration": "0.5M"},
+    "AgNO3": {"name": "Bạc Nitrat", "formula": "AgNO₃", "state": "aq", "type": "salt", "color": "#e3f2fd", "concentration": "0.1M"},
+    "BaCl2": {"name": "Bari Clorua", "formula": "BaCl₂", "state": "aq", "type": "salt", "color": "#e3f2fd", "concentration": "0.5M"},
+    "Na2SO4": {"name": "Natri Sunfat", "formula": "Na₂SO₄", "state": "aq", "type": "salt", "color": "#e3f2fd", "concentration": "0.5M"},
+    "KMnO4": {"name": "Kali Pemanganat", "formula": "KMnO₄", "state": "aq", "type": "oxidizer", "color": "#7b1fa2", "concentration": "0.1M"},
+    "Zn": {"name": "Kẽm", "formula": "Zn", "state": "s", "type": "metal", "color": "#bdbdbd"},
+    "Fe": {"name": "Sắt", "formula": "Fe", "state": "s", "type": "metal", "color": "#78909c"},
+    "Cu": {"name": "Đồng", "formula": "Cu", "state": "s", "type": "metal", "color": "#e65100"},
+    "Mg": {"name": "Magie", "formula": "Mg", "state": "s", "type": "metal", "color": "#e0e0e0"},
+    "Al": {"name": "Nhôm", "formula": "Al", "state": "s", "type": "metal", "color": "#e0e0e0"},
+    "phenolphthalein": {"name": "Phenolphtalein", "formula": "C₂₀H₁₄O₄", "state": "l", "type": "indicator", "color_acid": "#e3f2fd", "color_base": "#e91e63"},
+    "quỳ_tím": {"name": "Quỳ tím", "type": "indicator", "color_acid": "#f44336", "color_base": "#1565c0", "color_neutral": "#7b1fa2"},
+    "I2": {"name": "Dung dịch Iot", "formula": "I₂", "state": "aq", "type": "reagent", "color": "#6d4c41"}
+  },
+  "reactions": {
+    "HCl+NaOH": {
+      "id": "rxn_001", "name": "Trung hòa HCl bằng NaOH", "type": "acid_base",
+      "equation": "HCl + NaOH → NaCl + H₂O",
+      "balanced_equation": "HCl + NaOH → NaCl + H₂O",
+      "reactants": [{"id": "HCl", "coefficient": 1}, {"id": "NaOH", "coefficient": 1}],
+      "products": [{"name": "NaCl", "state": "aq"}, {"name": "H₂O", "state": "l"}],
+      "observable": {
+        "color_initial": "#e3f2fd", "color_final": "#e3f2fd",
+        "indicator_phenolphthalein": {"before": "pink_in_base", "after": "colorless_at_neutral"},
+        "gas_produced": null, "precipitate": null,
+        "temperature_change": "exothermic", "temp_delta": 5
+      },
+      "animation": {"type": "neutralization", "speed": "medium", "particles": false}
+    },
+    "CaCO3+HCl": {
+      "id": "rxn_002", "name": "Đá vôi tác dụng với axit HCl", "type": "gas_evolution",
+      "equation": "CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑",
+      "reactants": [{"id": "CaCO3", "coefficient": 1}, {"id": "HCl", "coefficient": 2}],
+      "products": [{"name": "CaCl₂", "state": "aq"}, {"name": "H₂O", "state": "l"}, {"name": "CO₂", "state": "g"}],
+      "observable": {
+        "color_initial": "#ffffff", "color_final": "#e3f2fd",
+        "gas_produced": {"formula": "CO₂", "visual": "bubbles", "bubble_rate": "fast", "test": "làm đục nước vôi trong"},
+        "precipitate": null, "solid_dissolves": true,
+        "temperature_change": "slightly_exothermic"
+      },
+      "animation": {"type": "bubbles_and_dissolve", "speed": "fast", "particles": true}
+    },
+    "Fe+CuSO4": {
+      "id": "rxn_003", "name": "Sắt đẩy đồng ra khỏi dung dịch", "type": "displacement",
+      "equation": "Fe + CuSO₄ → FeSO₄ + Cu↓",
+      "reactants": [{"id": "Fe", "coefficient": 1}, {"id": "CuSO4", "coefficient": 1}],
+      "products": [{"name": "FeSO₄", "state": "aq", "color": "#c8e6c9"}, {"name": "Cu", "state": "s", "color": "#e65100"}],
+      "observable": {
+        "color_initial": "#1565c0", "color_final": "#c8e6c9",
+        "gas_produced": null,
+        "precipitate_on_metal": {"color": "#e65100", "description": "Lớp đồng đỏ bám trên thanh sắt"},
+        "solution_color_change": {"from": "#1565c0", "to": "#c8e6c9"}
+      },
+      "animation": {"type": "metal_deposition", "speed": "slow", "particles": false}
+    },
+    "Zn+HCl": {
+      "id": "rxn_004", "name": "Kẽm tác dụng với axit HCl", "type": "gas_evolution",
+      "equation": "Zn + 2HCl → ZnCl₂ + H₂↑",
+      "reactants": [{"id": "Zn", "coefficient": 1}, {"id": "HCl", "coefficient": 2}],
+      "products": [{"name": "ZnCl₂", "state": "aq"}, {"name": "H₂", "state": "g"}],
+      "observable": {
+        "gas_produced": {"formula": "H₂", "visual": "bubbles", "bubble_rate": "medium", "flammable": true},
+        "solid_dissolves": true, "temperature_change": "exothermic"
+      },
+      "animation": {"type": "bubbles_and_dissolve", "speed": "medium", "particles": true}
+    },
+    "BaCl2+Na2SO4": {
+      "id": "rxn_005", "name": "Phản ứng tạo kết tủa BaSO4", "type": "precipitation",
+      "equation": "BaCl₂ + Na₂SO₄ → BaSO₄↓ + 2NaCl",
+      "reactants": [{"id": "BaCl2", "coefficient": 1}, {"id": "Na2SO4", "coefficient": 1}],
+      "products": [{"name": "BaSO₄", "state": "s", "color": "#ffffff"}, {"name": "NaCl", "state": "aq"}],
+      "observable": {
+        "precipitate": {"formula": "BaSO₄", "color": "#ffffff", "description": "Kết tủa trắng lắng xuống đáy"},
+        "gas_produced": null, "color_change": false
+      },
+      "animation": {"type": "precipitate_forming", "speed": "fast", "particles": true}
+    },
+    "AgNO3+NaCl": {
+      "id": "rxn_006", "name": "Phản ứng tạo kết tủa AgCl", "type": "precipitation",
+      "equation": "AgNO₃ + NaCl → AgCl↓ + NaNO₃",
+      "reactants": [{"id": "AgNO3", "coefficient": 1}, {"id": "NaCl", "coefficient": 1}],
+      "products": [{"name": "AgCl", "state": "s", "color": "#f5f5f5"}, {"name": "NaNO₃", "state": "aq"}],
+      "observable": {
+        "precipitate": {"formula": "AgCl", "color": "#f5f5f5", "description": "Kết tủa trắng, hóa đen ngoài ánh sáng"},
+        "gas_produced": null
+      },
+      "animation": {"type": "precipitate_forming", "speed": "fast"}
+    },
+    "Mg+HCl": {
+      "id": "rxn_007", "name": "Magie tác dụng với axit HCl", "type": "gas_evolution",
+      "equation": "Mg + 2HCl → MgCl₂ + H₂↑",
+      "reactants": [{"id": "Mg", "coefficient": 1}, {"id": "HCl", "coefficient": 2}],
+      "products": [{"name": "MgCl₂", "state": "aq"}, {"name": "H₂", "state": "g"}],
+      "observable": {
+        "gas_produced": {"formula": "H₂", "visual": "vigorous_bubbles", "bubble_rate": "very_fast"},
+        "solid_dissolves": true, "temperature_change": "exothermic"
+      },
+      "animation": {"type": "vigorous_bubbles", "speed": "fast"}
+    },
+    "Na2CO3+HCl": {
+      "id": "rxn_008", "name": "Natri cacbonat + axit HCl", "type": "gas_evolution",
+      "equation": "Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑",
+      "reactants": [{"id": "Na2CO3", "coefficient": 1}, {"id": "HCl", "coefficient": 2}],
+      "products": [{"name": "NaCl", "state": "aq"}, {"name": "H₂O", "state": "l"}, {"name": "CO₂", "state": "g"}],
+      "observable": {
+        "gas_produced": {"formula": "CO₂", "visual": "bubbles", "bubble_rate": "fast"},
+        "temperature_change": "slightly_exothermic"
+      },
+      "animation": {"type": "bubbles", "speed": "fast"}
+    }
+  },
+  "animation_types": {
+    "bubbles": {
+      "description": "Bọt khí nổi lên từ vùng phản ứng",
+      "css_keyframe": "bubble_rise",
+      "canvas_method": "drawBubbles(ctx, x, y, rate, size)"
+    },
+    "precipitate_forming": {
+      "description": "Hạt rắn hình thành và lắng xuống đáy",
+      "css_keyframe": "particle_fall",
+      "canvas_method": "drawPrecipitate(ctx, x, y, color, density)"
+    },
+    "color_change": {
+      "description": "Dung dịch chuyển màu từ từ",
+      "css_keyframe": "color_transition",
+      "canvas_method": "animateColorChange(ctx, fromColor, toColor, duration)"
+    },
+    "neutralization": {
+      "description": "Kết hợp đổi màu chỉ thị + tỏa nhiệt",
+      "canvas_method": "animateNeutralization(ctx, indicator, volume)"
+    },
+    "metal_deposition": {
+      "description": "Kim loại bám dần lên bề mặt",
+      "canvas_method": "animateDeposition(ctx, metalColor, rate)"
+    },
+    "vigorous_bubbles": {
+      "description": "Sủi bọt mạnh liệt (phản ứng nhanh)",
+      "canvas_method": "drawVigorousBubbles(ctx, x, y)"
+    }
+  }
+}
