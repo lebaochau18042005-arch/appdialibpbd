@@ -149,9 +149,9 @@ function CommentModal({ attempt, onClose, onSaved }: { attempt: QuizAttempt; onC
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl"><X size={18} className="text-slate-400" /></button>
         </div>
         <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Nhận xét cho học sinh..." rows={4}
-          className="w-full p-4 border border-slate-200 rounded-2xl resize-none focus:ring-2 focus:ring-indigo-400 outline-none text-sm font-medium" />
+          className="w-full p-4 border border-slate-200 rounded-2xl resize-none focus:ring-2 focus:ring-indigo-400 outline-none text-sm font-bold text-indigo-700" />
         <input value={progress} onChange={e => setProgress(e.target.value)} placeholder="Đánh giá tiến độ (VD: Xuất sắc, Tốt, Cần cố gắng...)"
-          className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none text-sm font-medium" />
+          className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none text-sm font-bold text-indigo-700" />
         <div className="flex gap-3 justify-end">
           <button onClick={onClose} className="px-4 py-2 text-sm text-slate-500 border border-slate-200 rounded-xl font-bold hover:bg-slate-50">Hủy</button>
           <button onClick={handleSave} disabled={!comment.trim() || saving}

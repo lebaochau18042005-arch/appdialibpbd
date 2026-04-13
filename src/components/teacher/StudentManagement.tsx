@@ -298,13 +298,13 @@ function StudentDetailPanel({ student, onClose, onRefresh }: DetailPanelProps) {
                       onChange={e => setComment(e.target.value)}
                       placeholder="Nhập nhận xét cho học sinh..."
                       rows={3}
-                      className="w-full p-3 text-xs border border-slate-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-400 outline-none"
+                      className="w-full p-3 text-xs border border-slate-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-400 outline-none font-bold text-indigo-700"
                     />
                     <input
                       value={progress}
                       onChange={e => setProgress(e.target.value)}
                       placeholder="Đánh giá tiến độ (VD: Xuất sắc, Tốt, Cần cố gắng...)"
-                      className="w-full p-3 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none"
+                      className="w-full p-3 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none font-bold text-indigo-700"
                     />
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => { setCommentingId(null); setComment(''); setProgress(''); }} className="px-3 py-2 text-xs text-slate-500 border border-slate-200 rounded-lg font-bold hover:bg-slate-50">
