@@ -85,7 +85,7 @@ export default function QuizActiveCard({
               } else if (isSelected) {
                 optionStateClass = "border-rose-500 bg-rose-50 text-rose-800";
               } else {
-                optionStateClass = "border-slate-100 opacity-50";
+                optionStateClass = "border-slate-200 bg-slate-50 text-slate-400";
               }
             } else if (isSelected) {
               optionStateClass = "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500";
@@ -97,7 +97,7 @@ export default function QuizActiveCard({
                 onClick={() => !isSubmitted && setMcAnswer(idx)}
                 disabled={isSubmitted}
                 className={cn(
-                  "w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4",
+                  "w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4 text-slate-800",
                   optionStateClass
                 )}
               >
