@@ -71,28 +71,64 @@ export const examService = {
       // model is selected automatically by generateContentWithFallback
       // ===== KHỐI KIẾN THỨC HÀNH CHÍNH BẮT BUỘC (sau sáp nhập 1/7/2025) =====
       const HANH_CHINH_2025 = `
-=== DANH SÁCH 34 ĐƠN VỊ HÀNH CHÍNH CẤP TỈNH HIỆN HÀNH (sau NQ202/2025/QH15 có hiệu lực 1/7/2025) ===
-BỎ HOÀN TOÀN 29 tỉnh cũ đã sáp nhập. KHÔNG BAO GIỜ dùng tên "Hà Giang", "Hải Dương", "Bắc Kạn", "Yên Bái",
-"Vĩnh Phúc", "Hòa Bình", "Bắc Giang", "Hà Nam", "Nam Định", "Thái Bình", "Quảng Bình", "Quảng Nam",
-"Kon Tum", "Bình Định", "Ninh Thuận", "Đắk Nông", "Bình Thuận", "Bình Dương", "Bà Rịa-Vũng Tàu",
-"Hậu Giang", "Sóc Trăng", "Kiên Giang", "Bạc Liêu" là một tỉnh độc lập.
+=== ĐƠN VỊ HÀNH CHÍNH VIỆT NAM SAU SÁP NHẬP (NQ 202/2025/QH15, hiệu lực 1/7/2025) ===
+Việt Nam hiện có ĐÚNG 34 tỉnh/thành phố trực thuộc TW. TUYỆT ĐỐI CẤM dùng tên tỉnh cũ đã bị xóa.
 
-6 THÀNH PHỐ TRỰC THUỘC TW:
-1. Hà Nội | 2. TP Huế | 3. Hải Phòng (= HP cũ + Hải Dương)
-4. Đà Nẵng (= ĐN cũ + Quảng Nam) | 5. TP Hồ Chí Minh (= HCM + Bình Dương + Bà Rịa-Vũng Tàu)
-6. Cần Thơ (= CT cũ + Hậu Giang + Sóc Trăng)
+DANH SÁCH ĐẦY ĐỦ 34 ĐƠN VỊ (chỉ được dùng những tên này):
+--- 6 THÀNH PHỐ TRỰC THUỘC TW ---
+1. Hà Nội
+2. TP Huế (mới - nâng cấp từ tỉnh Thừa Thiên Huế)
+3. Hải Phòng (= Hải Phòng + Hải Dương cũ)
+4. Đà Nẵng (= Đà Nẵng + Quảng Nam cũ)
+5. TP Hồ Chí Minh (= HCM + Bình Dương cũ + Bà Rịa-Vũng Tàu cũ)
+6. Cần Thơ (= Cần Thơ + Hậu Giang cũ + Sóc Trăng cũ)
 
-28 TỈNH:
-Tuyên Quang (= TQ+Hà Giang), Lào Cai (= LC+Yên Bái), Cao Bằng, Lạng Sơn, Lai Châu, Điện Biên, Sơn La
-Thái Nguyên (= TN+Bắc Kạn), Phú Thọ (= PT+Hòa Bình+Vĩnh Phúc), Bắc Ninh (= BN+Bắc Giang)
-Hưng Yên (= HY+Thái Bình), Quảng Ninh, Ninh Bình (= NB+Hà Nam+Nam Định)
-Thanh Hóa, Nghệ An, Hà Tĩnh, Quảng Trị (= QT+Quảng Bình)
-Quảng Ngãi (= QN+Kon Tum), Gia Lai (= GL+Bình Định), Khánh Hòa (= KH+Ninh Thuận)
-Đắk Lắk, Lâm Đồng (= LĐ+Đắk Nông+Bình Thuận), Đồng Nai, Tây Ninh, Vĩnh Long, Đồng Tháp
-An Giang (= AG+Kiên Giang), Cà Mau (= CM+Bạc Liêu)
+--- 28 TỈNH ---
+7. Tuyên Quang (= Tuyên Quang + Hà Giang cũ) → Điểm cực Bắc VN (Lũng Cú) nay thuộc TUYÊN QUANG
+8. Lào Cai (= Lào Cai + Yên Bái cũ)
+9. Cao Bằng
+10. Lạng Sơn
+11. Lai Châu
+12. Điện Biên
+13. Sơn La
+14. Thái Nguyên (= Thái Nguyên + Bắc Kạn cũ)
+15. Phú Thọ (= Phú Thọ + Hòa Bình cũ + Vĩnh Phúc cũ)
+16. Bắc Ninh (= Bắc Ninh + Bắc Giang cũ)
+17. Hưng Yên (= Hưng Yên + Thái Bình cũ)
+18. Quảng Ninh
+19. Ninh Bình (= Ninh Bình + Hà Nam cũ + Nam Định cũ)
+20. Thanh Hóa
+21. Nghệ An
+22. Hà Tĩnh
+23. Quảng Trị (= Quảng Trị + Quảng Bình cũ)
+24. Quảng Ngãi (= Quảng Ngãi + Kon Tum cũ)
+25. Gia Lai (= Gia Lai + Bình Định cũ)
+26. Khánh Hòa (= Khánh Hòa + Ninh Thuận cũ)
+27. Đắk Lắk
+28. Lâm Đồng (= Lâm Đồng + Đắk Nông cũ + Bình Thuận cũ)
+29. Đồng Nai
+30. Tây Ninh
+31. Vĩnh Long
+32. Đồng Tháp
+33. An Giang (= An Giang + Kiên Giang cũ)
+34. Cà Mau (= Cà Mau + Bạc Liêu cũ)
 
-VÍ DỤ ĐÚNG về điểm cực Bắc: "Điểm cực Bắc nằm tại tỉnh Cao Bằng hoặc Lũng Cú, Tuyên Quang" (Lũng Cú nay thuộc Tuyên Quang vì Hà Giang đã sáp nhập)
+CÁC TÊN TỈNH ĐÃ XÓA BỎ — TUYỆT ĐỐI KHÔNG ĐƯỢC DÙNG LÀM ĐÁP ÁN ĐÚNG ĐỘC LẬP:
+Hà Giang, Hải Dương, Bắc Kạn, Yên Bái, Vĩnh Phúc, Hòa Bình, Bắc Giang, Hà Nam, Nam Định,
+Thái Bình, Quảng Bình, Quảng Nam, Kon Tum, Bình Định, Ninh Thuận, Đắk Nông, Bình Thuận,
+Bình Dương, Bà Rịa-Vũng Tàu, Hậu Giang, Sóc Trăng, Kiên Giang, Bạc Liêu,
+Thừa Thiên Huế (đã đổi thành TP Huế)
+
+SỰ KIỆN ĐỊA LÍ QUAN TRỌNG SAU SÁP NHẬP (phải dùng đúng khi ra câu hỏi):
+• Điểm cực Bắc VN (Lũng Cú): thuộc tỉnh TUYÊN QUANG (không phải Hà Giang)
+• Điểm cực Tây VN (Apáchải): thuộc tỉnh ĐIỆN BIÊN (không đổi)
+• Điểm cực Nam VN (Mũi Cà Mau): thuộc tỉnh CÀ MAU (không đổi)
+• Điểm cực Đông VN (Mũi Đôi): thuộc tỉnh KHÁNH HÒA
+• Sapa: thuộc tỉnh LÀO CAI (không đổi)
+• Vịnh Hạ Long: thuộc tỉnh QUẢNG NINH (không đổi)
+• Bắc Ninh là tỉnh có mật độ dân số cao nhất (sau sáp nhập Bắc Giang)
 `;
+
 
       // ===== MA TRẬN ĐỀ THI CHUẨN BỘ GDĐT 2025 BÁM SÁT ĐỀ THAM KHẢO =====
       const MA_TRAN_DE_THI = `
@@ -216,6 +252,8 @@ E. ĐỊA LÍ ĐÔNG NAM Á (Địa 11 - bắt buộc có trong đề):
 
       const systemInstruction = `Bạn là chuyên gia biên soạn đề thi Địa lí THPT Quốc gia cấp Bộ, GIỎI NHẤT Việt Nam.
       Nhiệm vụ: Tạo đúng 28 câu hỏi theo MA TRẬN được cung cấp: 18 câu Phần I (multiple_choice), 4 câu Phần II (true_false), 6 câu Phần III (short_answer).
+
+${HANH_CHINH_2025}
 
       QUY TẮC BIỂU ĐỒ — NGHIÊM NGẶT TUYỆT ĐỐI:
       • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
