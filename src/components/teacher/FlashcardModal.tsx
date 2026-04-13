@@ -15,7 +15,7 @@ function getAnswer(q: Question): string {
     return `${label}. ${q.options?.[q.correctAnswerIndex] ?? ''}`;
   }
   if (q.type === 'true_false' && q.statements) {
-    return q.statements.map((s, i) => `${i + 1}. ${s.text} → ${s.isTrue ? 'Đúng ✓' : 'Sai ✗'}`).join('\n');
+    return q.statements.map((s, i) => `${['a','b','c','d'][i]}. ${s.text} → ${s.isTrue ? 'Đúng ✓' : 'Sai ✗'}`).join('\n');
   }
   if (q.type === 'short_answer') {
     return `${q.correctAnswer}${q.unit ? ' ' + q.unit : ''}`;
@@ -31,10 +31,15 @@ export default function FlashcardModal({ exam, onClose }: FlashcardModalProps) {
 
   const current = questions[index];
 
+  // Navigate: reset flip state BEFORE changing index so card remounts fresh
   const go = (dir: 1 | -1) => {
-    setDirection(dir);
+    const next = Math.max(0, Math.min(questions.length - 1, index + dir));
+    if (next === index) return;
     setFlipped(false);
-    setIndex(i => Math.max(0, Math.min(questions.length - 1, i + dir)));
+    setDirection(dir);
+    // Delay index change slightly so flip=false renders first, preventing
+    // the back-face of the OLD card from bleeding through on the new card
+    setTimeout(() => setIndex(next), 50);
   };
 
   const typeLabel: Record<string, string> = {
@@ -83,7 +88,7 @@ export default function FlashcardModal({ exam, onClose }: FlashcardModalProps) {
           </div>
         </div>
 
-        {/* Card */}
+        {/* Card — key={index} forces remount on navigation, preventing stale flip state */}
         <div className="px-8 pb-2">
           <div
             className="cursor-pointer select-none"
@@ -91,11 +96,13 @@ export default function FlashcardModal({ exam, onClose }: FlashcardModalProps) {
             style={{ perspective: 1000 }}
           >
             <motion.div
+              key={index}
+              initial={{ rotateY: 0 }}
               animate={{ rotateY: flipped ? 180 : 0 }}
-              transition={{ duration: 0.5, type: 'spring', stiffness: 200, damping: 25 }}
+              transition={{ duration: 0.45, type: 'spring', stiffness: 220, damping: 28 }}
               style={{ transformStyle: 'preserve-3d', position: 'relative', minHeight: 220 }}
             >
-              {/* Front */}
+              {/* Front — question */}
               <div
                 style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                 className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-3xl border-2 border-purple-100"
@@ -107,15 +114,17 @@ export default function FlashcardModal({ exam, onClose }: FlashcardModalProps) {
                 )}
               </div>
 
-              {/* Back */}
+              {/* Back — answer */}
               <div
                 style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl border-2 border-emerald-200"
               >
                 <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4">ĐÁP ÁN</div>
-                <pre className="text-emerald-800 font-bold text-lg leading-relaxed text-center whitespace-pre-wrap font-sans">{getAnswer(current)}</pre>
+                <pre className="text-emerald-800 font-bold text-lg leading-relaxed text-center whitespace-pre-wrap font-sans">
+                  {getAnswer(current)}
+                </pre>
                 {current.explanation && (
-                  <p className="mt-4 text-slate-500 text-sm italic text-center">{current.explanation}</p>
+                  <p className="mt-4 text-slate-500 text-sm italic text-center line-clamp-3">{current.explanation}</p>
                 )}
               </div>
             </motion.div>
