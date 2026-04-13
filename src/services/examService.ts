@@ -150,7 +150,8 @@ PHẦN I – TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN (18 câu × 0,25đ = 4,5đ) G�
   Câu 12: Phát triển công nghiệp (NB)
   Câu 13: Dân số (NB)
   Câu 14: Lao động và việc làm (NB)
-  Câu 15: PT kinh tế & ANQP vùng biển đảo/BTB/TDMNPB (NB)
+  Câu 15: Phát triển kinh tế gắn với bảo vệ chủ quyền biển đảo / Bắc Trung Bộ / TD&MNPB (NB)
+         [KHÔNG hỏi "Vùng KTTĐ" — nội dung đó đã bị TT17 bãi bỏ hoàn toàn]
   Câu 16: Phân hóa đa dạng của thiên nhiên (VD)
   Câu 17: Đông Nam Bộ (VD)
   Câu 18: Nông-lâm-thủy sản (khái quát/Trồng trọt) (TH)
@@ -256,63 +257,94 @@ E. ĐỊA LÍ ĐÔNG NAM Á (Địa 11 - bắt buộc có trong đề):
 `;
 
       const systemInstruction = `Bạn là chuyên gia biên soạn đề thi Địa lí THPT Quốc gia cấp Bộ, GIỎI NHẤT Việt Nam.
-      Nhiệm vụ: Tạo đúng 28 câu hỏi theo MA TRẬN được cung cấp: 18 câu Phần I (multiple_choice), 4 câu Phần II (true_false), 6 câu Phần III (short_answer).
+      Nhiệm vụ: Tạo ĐÚNG 28 câu theo MA TRẬN DƯỚI ĐÂY. ĐỌC TOÀN BỘ TRƯỚC KHI SINH CÂU HỎI ĐẦU TIÊN.
 
 ${HANH_CHINH_2025}
+
+${MA_TRAN_DE_THI}
+
+${CHUONG_TRINH_TT17}
 
       QUY TẮC BIỂU ĐỒ — NGHIÊM NGẶT TUYỆT ĐỐI:
       • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
       • Cột đơn vị BẮT BUỘC: | Chỉ tiêu | Đơn vị | 2015 | 2020 | 2024 |
       • Dòng đầu context phải ghi: "Biểu đồ: [tên loại]" (cột / đường / tròn / miền / kết hợp)
-      • Câu 1 Phần I và Câu 4 Phần II PHẢI dùng 2 loại biểu đồ KHÁC NHAU.
+      • Câu 1 và Câu II.4 PHẢI dùng 2 loại biểu đồ KHÁC NHAU.
       • Số liệu trong bảng PHẢI khớp với phương án đúng / mệnh đề đúng/sai.
       • Nguồn số liệu: dòng cuối context là "(Nguồn: Tổng cục Thống kê, năm X)"
-      • TUYỆT ĐỐI CẤM context = null/rỗng khi câu hỏi tham chiếu biểu đồ.
+      • TUYỆT ĐỐI CẤM context = null/rỗng/chuỗi "null" khi câu tham chiếu biểu đồ.
 
       QUY TẮC KHÁC:
       A. correctAnswerIndex là số nguyên 0/1/2/3 — KHÔNG phải chữ A/B/C/D.
       B. Phần III correctAnswer PHẢI là con số (string số hoặc number).
       C. Mỗi câu phải có: id, type, text, context, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
-      D. Phần II câu 1,2,3: CẤM dùng "biểu đồ"/"bảng"/"số liệu" — chỉ hỏi lý thuyết.
+      D. Phần II câu I/II/III: CẤM dùng "biểu đồ"/"bảng"/"số liệu" — chỉ hỏi lý thuyết.
       E. KHÔNG dùng tỉnh/thành đã sáp nhập làm đáp án đúng độc lập.
-      ${fileContext ? `F. Ưu tiên dùng TÀI LIỆU THAM KHẢO được cung cấp làm nguồn kiến thức chính.` : ''}`;
+      F. CẤM TUYỆT ĐỐI ra câu hỏi về "Vùng kinh tế trọng điểm" hoặc "KTTĐ".
+      ${fileContext ? `G. Ưu tiên dùng TÀI LIỆU THAM KHẢO được cung cấp làm nguồn kiến thức chính.` : ''}`;
 
-      const prompt = `Tạo đề thi Địa lí THPT chuẩn Bộ 2025 gồm ĐÚNG 28 câu JSON:
-      - 18 câu Phần I (multiple_choice): theo đúng thứ tự chủ đề trong MA TRẬN
-      - 4 câu Phần II (true_false): câu 1-3 lý thuyết, câu 4 nhận xét biểu đồ
-      - 6 câu Phần III (short_answer): 100% bài tính ra CON SỐ
+      const prompt = `Tạo đề thi Địa lí THPT chuẩn Bộ 2025. SINH ĐỦ ĐÚNG 28 CÂU JSON, THEO ĐÚNG TỪNG VỊ TRÍ DƯỚI ĐÂY:
 
-      ⚠️ KIỂM TRA TRƯỚC KHI XÁC NHẬN: đếm → phải đủ 18+4+6=28. Mọi câu có "biểu đồ" trong text → context KHÔNG được null.
+═══ PHẦN I — 18 CÂU TRẮC NGHIỆM (type=multiple_choice) ═══
+Câu 1:  topic="Nhận xét biểu đồ"                          cognitiveLevel="Vận dụng"
+        → context BẮT BUỘC: bảng Markdown + cột Đơn vị + dòng "Biểu đồ: Kết hợp cột và đường"
+Câu 2:  topic="Thiên tai và biện pháp phòng chống"         cognitiveLevel="Nhận biết"
+Câu 3:  topic="Dịch vụ GTVT/BCVT"                         cognitiveLevel="Thông hiểu"
+Câu 4:  topic="Đồng bằng sông Cửu Long"                   cognitiveLevel="Vận dụng"
+Câu 5:  topic="Dịch vụ Thương mại/Du lịch"                cognitiveLevel="Nhận biết"
+Câu 6:  topic="Nam Trung Bộ"                               cognitiveLevel="Thông hiểu"
+Câu 7:  topic="Vị trí địa lí và phạm vi lãnh thổ"         cognitiveLevel="Nhận biết"
+Câu 8:  topic="Thiên nhiên nhiệt đới ẩm gió mùa"           cognitiveLevel="Vận dụng"
+Câu 9:  topic="Nông nghiệp lâm nghiệp thủy sản"           cognitiveLevel="Nhận biết"
+Câu 10: topic="Đồng bằng sông Hồng"                       cognitiveLevel="Vận dụng"
+Câu 11: topic="Chuyển dịch cơ cấu kinh tế"               cognitiveLevel="Thông hiểu"
+Câu 12: topic="Phát triển công nghiệp"                    cognitiveLevel="Nhận biết"
+Câu 13: topic="Dân số Việt Nam"                           cognitiveLevel="Nhận biết"
+Câu 14: topic="Lao động và việc làm"                      cognitiveLevel="Nhận biết"
+Câu 15: topic="Kinh tế biển đảo/Bắc Trung Bộ/TD&MNPB"    cognitiveLevel="Nhận biết"
+        [TUYỆT ĐỐI CẤM hỏi Vùng KTTĐ]
+Câu 16: topic="Phân hóa đa dạng của thiên nhiên"          cognitiveLevel="Vận dụng"
+Câu 17: topic="Đông Nam Bộ"                               cognitiveLevel="Vận dụng"
+Câu 18: topic="Nông lâm thủy sản khái quát/Trồng trọt"   cognitiveLevel="Thông hiểu"
 
-      BIỂU ĐỒ — BẮT BUỘC ĐA DẠNG VÀ CÓ ĐƠN VỊ:
-      • Câu 1 Phần I (VD - Nhận xét biểu đồ): bắt buộc chọn 1 loại:
-        - Biểu đồ kết hợp: cột (sản lượng CN) + đường (tốc độ tăng trưởng)
-        - Biểu đồ miền: chuyển dịch cơ cấu lao động theo ngành 2010-2024
-      • Câu 4 Phần II (Nhận xét biểu đồ): bắt buộc chọn loại KHÁC câu 1:
-        - Biểu đồ tròn: cơ cấu GDP theo khu vực kinh tế (%)
-        - Biểu đồ đường: tốc độ tăng trưởng xuất khẩu ĐNÁ 2015-2024
-        - Biểu đồ cột nhóm: so sánh sản lượng lúa ĐBSCL và ĐBSH
+═══ PHẦN II — 4 CÂU ĐÚNG/SAI (type=true_false, mỗi câu 4 statements) ═══
+Câu II.1: topic="Địa lí các vùng KT-XH Việt Nam"
+          stmt_a→cognitiveLevel="Vận dụng"  stmt_b→"Nhận biết"  stmt_c→"Thông hiểu"  stmt_d→"Nhận biết"
+          [CẤM đề cập biểu đồ/bảng số liệu]
+Câu II.2: topic="Địa lí các ngành kinh tế Việt Nam"
+          stmt_a→"Thông hiểu"  stmt_b→"Nhận biết"  stmt_c→"Vận dụng"  stmt_d→"Nhận biết"
+          [CẤM đề cập biểu đồ/bảng số liệu]
+Câu II.3: topic="Địa lí tự nhiên Việt Nam"
+          stmt_a→"Vận dụng"  stmt_b→"Thông hiểu"  stmt_c→"Nhận biết"  stmt_d→"Nhận biết"
+          [CẤM đề cập biểu đồ/bảng số liệu]
+Câu II.4: topic="Nhận xét biểu đồ"
+          stmt_a→"Nhận biết"  stmt_b→"Thông hiểu"  stmt_c→"Nhận biết"  stmt_d→"Vận dụng"
+          → context BẮT BUỘC: bảng Markdown + cột Đơn vị, dùng loại biểu đồ KHÁC Câu 1
 
-      FORMAT CONTEXT BIỂU ĐỒ BẮT BUỘC:
-      Dòng 1: "Biểu đồ: [Tên loại biểu đồ]"
-      Dòng 2+: Bảng Markdown với CỘT ĐƠN VỊ:
-      | Chỉ tiêu | Đơn vị | 2015 | 2019 | 2024 |
-      |---|---|---|---|---|
-      | Điện sản xuất | Tỷ kWh | 164,3 | 229,5 | 312,0 |
-      | Thép thô | Triệu tấn | 5,6 | 9,4 | 16,2 |
-      (Nguồn: Tổng cục Thống kê, 2024)
+═══ PHẦN III — 6 CÂU TÍNH TOÁN (type=short_answer) ═══
+[Tất cả 6 câu PHẢI là bài TỰ TÍNH ra số, correctAnswer là CON SỐ]
+Câu III.1: topic="Địa lí dân cư Việt Nam"          cognitiveLevel="Thông hiểu"
+Câu III.2: topic="Địa lí các ngành kinh tế VN"     cognitiveLevel="Vận dụng"
+Câu III.3: topic="Địa lí tự nhiên Việt Nam"        cognitiveLevel="Thông hiểu"
+Câu III.4: topic="Địa lí các vùng KT VN"           cognitiveLevel="Vận dụng"
+Câu III.5: topic="Địa lí các ngành kinh tế VN"     cognitiveLevel="Thông hiểu"
+Câu III.6: topic="Địa lí tự nhiên Việt Nam"        cognitiveLevel="Thông hiểu"
 
-      PHẦN III – VÍ DỤ CÂU TÍNH TOÁN HỢP LỆ:
-      • "Dân số VN năm 2024 là 99,5 triệu người, tỉ lệ tăng tự nhiên 0,9‰. Tính dân số tăng thêm (nghìn người)" → correctAnswer: "896"
-      • "GDP VN 2024: 477 tỷ USD, dân số 99,5 triệu. Tính GDP/người (USD, làm tròn nghìn)" → correctAnswer: "4793"
+─── VÍ DỤ CÂU TÍNH HỢP LỆ ───
+"Dân số VN 2024: 99,5 triệu, tỉ lệ tăng tự nhiên 0,9‰ → Tính số tăng thêm (nghìn người)" → correctAnswer: "896"
+"GDP VN 2024: 477 tỷ USD, dân số 99,5 triệu → Tính GDP/người (USD, làm tròn nghìn)" → correctAnswer: "4793"
 
-      YÊU CẦU PHẦN II: CÂU 1,2,3 CẤM dùng "biểu đồ"/"bảng"/"số liệu" — 4 mệnh đề lý thuyết Đúng/Sai.
-      Câu 4 Phần II: context bắt buộc có bảng số liệu với đơn vị, 4 mệnh đề phân tích số liệu.
-      id 4 statements: "stmt_a", "stmt_b", "stmt_c", "stmt_d"
+─── FORMAT CONTEXT BIỂU ĐỒ ───
+Dòng 1: "Biểu đồ: [Tên loại]"
+Dòng 2+: | Chỉ tiêu | Đơn vị | 2015 | 2019 | 2024 |
+         |---|---|---|---|---|
+         | ... | ... | ... | ... | ... |
+         (Nguồn: Tổng cục Thống kê, 2024)
 
-      LƯU Ý: Điểm cực Bắc VN là Lũng Cú thuộc tỉnh TUYÊN QUANG (Hà Giang đã sáp nhập vào Tuyên Quang). Không dùng tên tỉnh đã bị sáp nhập.
+⚠️ KIỂM TRA CUỐI: đếm phải đủ 18+4+6=28. Câu có "biểu đồ" → context ≠ null. Câu 15 không hỏi KTTĐ.
 
       ${fileContext ? `=== TÀI LIỆU THAM KHẢO ===\n${fileContext.slice(0, 50000)}` : ''}`;
+
 
 
       const response = await generateContentWithFallback(prompt, {
