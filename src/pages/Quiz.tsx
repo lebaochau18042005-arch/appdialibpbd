@@ -14,6 +14,7 @@ import { questions } from '../data';
 import { Question, QuestionType, QuizAttempt, UserProfile } from '../types';
 import { getExplanation } from '../services/ai';
 import { cn } from '../utils/cn';
+import { isShortAnswerCorrect, getPoints, calcMaxScore, DEFAULT_BGD_SCORING, ScoringConfig } from '../utils/scoreUtils';
 import QuizActiveCard from '../components/exam/QuizActiveCard';
 import QuizResultCard from '../components/exam/QuizResultCard';
 import ExamReviewCard from '../components/exam/ExamReviewCard';
@@ -46,6 +47,7 @@ export default function Quiz() {
   const [isFinished, setIsFinished] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [startTime, setStartTime] = useState(0);
+  const [scoringConfig, setScoringConfig] = useState<ScoringConfig>(DEFAULT_BGD_SCORING);
   
   // Timer states (50 minutes = 3000 seconds)
   const [timeLeft, setTimeLeft] = useState(3000);
@@ -78,6 +80,7 @@ export default function Quiz() {
           const data = await res.json();
           if (data.success) {
             setQuizQuestions(data.exam.questions);
+            if (data.exam.scoringConfig) setScoringConfig(data.exam.scoringConfig);
           } else {
             alert(data.error || 'Không tìm thấy đề thi!');
             navigate('/exam');
@@ -224,7 +227,7 @@ export default function Quiz() {
     if (currentQuestion.type === 'multiple_choice') {
       isCorrect = mcAnswer === currentQuestion.correctAnswerIndex;
       userAnswerForAi = mcAnswer;
-      if (isCorrect) pointsEarned = 0.25;
+      pointsEarned = getPoints('multiple_choice', isCorrect, 0, scoringConfig);
     } else if (currentQuestion.type === 'true_false') {
       let correctCount = 0;
       currentQuestion.statements.forEach(stmt => {
@@ -232,17 +235,12 @@ export default function Quiz() {
       });
       isCorrect = correctCount === currentQuestion.statements.length;
       userAnswerForAi = tfAnswer;
-      
-      // Official scoring for TF
-      if (correctCount === 1) pointsEarned = 0.1;
-      else if (correctCount === 2) pointsEarned = 0.25;
-      else if (correctCount === 3) pointsEarned = 0.5;
-      else if (correctCount === 4) pointsEarned = 1.0;
+      pointsEarned = getPoints('true_false', isCorrect, correctCount, scoringConfig);
       
     } else if (currentQuestion.type === 'short_answer') {
-      isCorrect = saAnswer.trim() === currentQuestion.correctAnswer.toString();
+      isCorrect = isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer);
       userAnswerForAi = saAnswer.trim();
-      if (isCorrect) pointsEarned = 0.25;
+      pointsEarned = getPoints('short_answer', isCorrect, 0, scoringConfig);
     }
     
     setScore(s => s + pointsEarned);
@@ -313,12 +311,10 @@ export default function Quiz() {
     await examService.saveAttempt(attempt);
   };
 
-  const maxScore = quizQuestions.reduce((acc, q) => {
-    if (q.type === 'multiple_choice') return acc + 0.25;
-    if (q.type === 'true_false') return acc + 1.0;
-    if (q.type === 'short_answer') return acc + 0.25;
-    return acc;
-  }, 0);
+  const mcQs = quizQuestions.filter(q => q.type === 'multiple_choice').length;
+  const tfQs = quizQuestions.filter(q => q.type === 'true_false').length;
+  const saQs = quizQuestions.filter(q => q.type === 'short_answer').length;
+  const maxScore = calcMaxScore(mcQs, tfQs, saQs, scoringConfig);
 
   if (isGenerating) {
     return (
@@ -349,7 +345,7 @@ export default function Quiz() {
         const ans = answersForReview[idx];
         if (q.type === 'multiple_choice') return ans === (q as any).correctAnswerIndex;
         if (q.type === 'true_false') return ans ? (q as any).statements.every((s: any) => ans[s.id] === s.isTrue) : false;
-        if (q.type === 'short_answer') return ans ? ans.toString().trim().toLowerCase() === (q as any).correctAnswer.toString().toLowerCase() : false;
+        if (q.type === 'short_answer') return ans ? isShortAnswerCorrect(ans.toString(), (q as any).correctAnswer) : false;
         return false;
       };
       const isStatementCorrectFn = (qIdx: number, stmtId: string) => {

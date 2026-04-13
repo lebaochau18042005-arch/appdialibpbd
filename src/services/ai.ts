@@ -64,7 +64,7 @@ Nghị quyết 202/2025/QH15 của Quốc hội (hiệu lực 1/7/2025) sắp x�
 LƯU Ý: Khi giải thích bất kỳ câu hỏi nào về tỉnh thành, vùng kinh tế, dân cư, kinh tế địa phương — PHẢI dùng tên và dữ liệu THEO ĐƠN VỊ HÀNH CHÍNH MỚI SAU 1/7/2025. Không dùng tên tỉnh cũ đã sáp nhập như một đơn vị độc lập (ví dụ: không nói "tỉnh Hải Dương" mà nói "khu vực Hải Dương thuộc TP Hải Phòng").
 `;
 
-export async function generateContentWithFallback(prompt: string, config: any = {}) {
+export async function generateContentWithFallback(prompt: any, config: any = {}) {
   // @ts-ignore
   const apiKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
   if (!apiKey) {
@@ -294,6 +294,111 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
     const msg = error instanceof Error ? error.message : String(error);
     console.error('Lỗi trích xuất câu hỏi:', msg);
     throw new Error(msg);
+  }
+}
+
+function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string, mimeType: string } }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      resolve({
+        inlineData: {
+          data: base64,
+          mimeType: file.type
+        }
+      });
+    };
+    reader.onerror = error => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function extractQuestionsFromImage(file: File): Promise<Question[]> {
+  const imagePart = await fileToGenerativePart(file);
+  const promptText = `Bạn là một chuyên gia phân tích tài liệu và cấu trúc đề thi. Hãy đọc MỌI CÂU HỎI TRONG ẢNH cung cấp và trích xuất TOÀN BỘ ra thành danh sách JSON.
+
+${KIEN_THUC_HANH_CHINH_2025_EXPORT}
+
+QUY TẮC BẮT BUỘC:
+1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong ảnh - KHÔNG BỎ SÓT câu nào.
+2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice".
+3. Với câu Đúng/Sai (có các ý a, b, c, d): dùng type "true_false" với 4 statements.
+4. Với câu tự luận/điền số/tính toán ngắn: dùng type "short_answer".
+5. ⚠️ NẾU TRONG ĐỀ KHÔNG CÓ ĐÁP ÁN (Bản thân thí sinh phải tự giải): 
+   - Với multiple_choice: để "correctAnswerIndex": -1
+   - Với true_false: để tất cả "isTrue": false (kèm ghi chú ở explanation "Cần tạo đáp án")
+   - Với short_answer: để "correctAnswer": ""
+6. NẾU TRONG ĐỀ CÓ ĐÁP ÁN, hãy trích xuất chính xác đáp án đó.
+7. id phải là "q_img_1", "q_img_2",... theo thứ tự câu.
+
+Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương tự cấu trúc sau, CHỈ BAO GỒM mảng JSON, không có code block quotes hay văn bản nào khác.
+[
+  {
+    "id": "q1",
+    "type": "multiple_choice",
+    "topic": "Địa lý",
+    "text": "Nội dung câu hỏi?",
+    "context": null,
+    "options": ["Phương án A", "Phương án B", "Phương án C", "Phương án D"],
+    "correctAnswerIndex": -1,
+    "explanation": ""
+  }
+]`;
+
+  try {
+    const response = await generateContentWithFallback([promptText, imagePart]);
+    let text = response.text.trim();
+    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
+    text = text.replace(/\s*```\s*$/i, '').trim();
+    
+    const startIdx = text.indexOf('[');
+    const endIdx = text.lastIndexOf(']');
+    if (startIdx === -1) {
+      throw new Error("AI không trả về mảng JSON.");
+    }
+    text = text.substring(startIdx, endIdx !== -1 ? endIdx + 1 : undefined);
+    if (!text.endsWith(']')) text += ']';
+
+    return JSON.parse(text) as Question[];
+  } catch (error) {
+    console.error("Lỗi trích xuất ảnh:", error);
+    throw new Error("Không thể trích xuất ảnh. Đảm bảo ảnh rõ nét và thử lại.");
+  }
+}
+
+export async function generateAnswersForQuestions(questions: Question[]): Promise<Question[]> {
+  const prompt = `Dưới đây là một danh sách câu hỏi Địa lý (định dạng JSON). Danh sách này HIỆN CHƯA CÓ ĐÁP ÁN HOẶC LỜI GIẢI ĐẦY ĐỦ. Hãy đóng vai một chuyên gia giáo dục Địa lý 12, giải TẤT CẢ các câu hỏi này.
+
+${KIEN_THUC_HANH_CHINH_2025_EXPORT}
+
+Nhiệm vụ của bạn: Trả lại NGUYÊN BẢN mảng JSON này, nhưng:
+- Cập nhật "correctAnswerIndex" (từ 0 đến 3) cho các câu multiple_choice.
+- Cập nhật "isTrue" (true/false) chính xác cho từng ý statements trong câu true_false.
+- Cập nhật "correctAnswer" cho các câu short_answer.
+- THÊM "explanation": Lời giải thích rất chi tiết và kiến thức cần nhớ cho mỗi câu. Lời giải rất quan trọng.
+
+Dữ liệu JSON đầu vào:
+${JSON.stringify(questions, null, 2)}
+
+Chỉ xuất ra mảng JSON cập nhật, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], KHÔNG chứa văn bản xung quanh hay khối mã (không dùng \`\`\`json).`;
+
+  try {
+    const response = await generateContentWithFallback(prompt);
+    let text = response.text.trim();
+    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
+    text = text.replace(/\s*```\s*$/i, '').trim();
+    
+    const startIdx = text.indexOf('[');
+    const endIdx = text.lastIndexOf(']');
+    text = text.substring(startIdx, endIdx !== -1 ? endIdx + 1 : undefined);
+    if (!text.endsWith(']')) text += ']';
+
+    return JSON.parse(text) as Question[];
+  } catch (error) {
+    console.error("Lỗi tạo đáp án:", error);
+    throw new Error("Có lỗi xảy ra khi tạo đáp án. Vui lòng thử lại.");
   }
 }
 

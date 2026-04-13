@@ -5,6 +5,7 @@ import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 import RichContent from './RichContent';
 import DataTableChart from './DataTableChart';
+import { isShortAnswerCorrect } from '../../utils/scoreUtils';
 
 interface QuizActiveCardProps {
   currentQuestion: Question;
@@ -255,31 +256,40 @@ export default function QuizActiveCard({
 
           {currentQuestion.type === 'short_answer' && (
             <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Nhập đáp án của bạn:</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Nhập đáp án của bạn:
+              </label>
+              {currentQuestion.unit && !isSubmitted && (
+                <p className="text-xs text-slate-400 mb-2 font-medium">
+                  💡 Đơn vị tham khảo: <strong>{currentQuestion.unit}</strong> — không cần gõ đơn vị vào ô. Dùng dấu phẩy cho số thập phân (VD: <strong>3,14</strong>)
+                </p>
+              )}
               <div className="flex items-center gap-3">
                 <input
                   type="text"
                   value={saAnswer}
                   onChange={(e) => setSaAnswer(e.target.value)}
                   disabled={isSubmitted}
-                  placeholder="Nhập số..."
+                  placeholder="Ví dụ: 1234 hoặc 3,14"
                   className={cn(
                     "flex-1 p-4 rounded-xl border-2 outline-none transition-shadow text-lg font-medium",
-                    isSubmitted && saAnswer.trim() === currentQuestion.correctAnswer.toString() ? "border-emerald-500 bg-emerald-50 text-emerald-800" :
-                    isSubmitted && saAnswer.trim() !== currentQuestion.correctAnswer.toString() ? "border-rose-500 bg-rose-50 text-rose-800 font-bold" :
+                    isSubmitted && isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer) ? "border-emerald-500 bg-emerald-50 text-emerald-800" :
+                    isSubmitted && !isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer) ? "border-rose-500 bg-rose-50 text-rose-800 font-bold" :
                     "border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 bg-white text-indigo-700 font-bold"
                   )}
                 />
-                {currentQuestion.unit && <span className="text-slate-500 font-medium">{currentQuestion.unit}</span>}
+                {currentQuestion.unit && (
+                  <span className="text-slate-400 font-medium text-sm bg-slate-100 px-2 py-1 rounded-lg">{currentQuestion.unit}</span>
+                )}
               </div>
               {isSubmitted && (
                 <div className="mt-4">
-                  {saAnswer.trim() === currentQuestion.correctAnswer.toString() ? (
+                  {isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer) ? (
                     <span className="text-emerald-600 flex items-center gap-1 font-medium"><CheckCircle2 className="w-5 h-5"/> Chính xác!</span>
                   ) : (
                     <div className="text-rose-600 font-medium">
                       <span className="flex items-center gap-1 mb-1"><XCircle className="w-5 h-5"/> Sai rồi.</span>
-                      <span className="text-slate-700">Đáp án đúng là: <strong className="text-emerald-600">{currentQuestion.correctAnswer}</strong></span>
+                      <span className="text-slate-700">Đáp án đúng là: <strong className="text-emerald-600">{currentQuestion.correctAnswer}</strong>{currentQuestion.unit ? ` ${currentQuestion.unit}` : ''}</span>
                     </div>
                   )}
                 </div>

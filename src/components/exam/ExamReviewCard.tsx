@@ -6,6 +6,7 @@ import { Question } from '../../types';
 import { cn } from '../../utils/cn';
 import RichContent from './RichContent';
 import DataTableChart from './DataTableChart';
+import { normalizeShortAnswer } from '../../utils/scoreUtils';
 
 
 // Note: QuestionTextBlock replaced by shared RichContent (supports LaTeX + GFM tables)
@@ -183,14 +184,18 @@ export default function ExamReviewCard({
                     <div className="space-y-2">
                       <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
                         <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest block mb-1">Đáp án đúng</span>
-                        <span className="text-lg font-bold text-emerald-700">{q.correctAnswer} {q.unit}</span>
+                        <span className="text-lg font-bold text-emerald-700">
+                          {q.correctAnswer}{q.unit ? <span className="text-sm font-medium text-emerald-500 ml-1">{q.unit}</span> : null}
+                        </span>
                       </div>
                       <div className={cn(
                         "p-4 rounded-xl border",
                         isCorrect(idx) ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
                       )}>
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Bạn trả lời</span>
-                        <span className="text-lg font-bold text-slate-700">{answers[idx] || '(Bỏ trống)'}</span>
+                        <span className="text-lg font-bold text-slate-700">
+                          {answers[idx] ? normalizeShortAnswer(answers[idx]) : '(Bỏ trống)'}
+                        </span>
                       </div>
                     </div>
                   )}

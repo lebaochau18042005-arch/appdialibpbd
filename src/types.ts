@@ -2,6 +2,12 @@ export type QuestionType = 'multiple_choice' | 'true_false' | 'short_answer';
 export type CognitiveLevel = 'Nhận biết' | 'Thông hiểu' | 'Vận dụng';
 export type UserRole = 'student' | 'teacher';
 
+export interface ScoringConfig {
+  mcPointsEach: number;       // Phần I – Trắc nghiệm
+  tfPointsPerLevel: number[]; // Phần II – Đúng/Sai [1 đúng, 2 đúng, 3 đúng, 4 đúng]
+  saPointsEach: number;       // Phần III – Trả lời ngắn
+}
+
 export interface BaseQuestion {
   id: string;
   type: QuestionType;
@@ -47,10 +53,11 @@ export interface Exam {
   creatorId: string;
   type: 'ai' | 'upload' | 'assignment';
   fileUrl?: string;
-  fileType?: 'word' | 'pdf' | 'html';
+  fileType?: 'word' | 'pdf' | 'html' | 'image';
   questions: Question[];
   createdAt: string;
   description?: string;
+  scoringConfig?: ScoringConfig;
 }
 
 export interface ExamAssignment {

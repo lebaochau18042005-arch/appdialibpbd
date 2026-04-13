@@ -6,7 +6,7 @@ import { examService } from '../services/examService';
 import { QuizAttempt, Exam, Question } from '../types';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
-import { generateExamFromContext } from '../services/ai';
+import { generateExamFromContext, extractQuestionsFromImage, generateAnswersForQuestions } from '../services/ai';
 import TeacherStats from '../components/teacher/TeacherStats';
 import ExamManager from '../components/teacher/ExamManager';
 import HistoryTable from '../components/teacher/HistoryTable';
@@ -152,7 +152,7 @@ export default function TeacherDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('All');
   const [viewingExam, setViewingExam] = useState<Exam | null>(null);
-  const [uploadingType, setUploadingType] = useState<'word' | 'pdf' | 'html' | null>(null);
+  const [uploadingType, setUploadingType] = useState<'word' | 'pdf' | 'html' | 'image' | null>(null);
   const [isUploadDropdownOpen, setIsUploadDropdownOpen] = useState(false);
   const [shouldTriggerClick, setShouldTriggerClick] = useState(false);
   
@@ -165,6 +165,10 @@ export default function TeacherDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
+  
+  // AI Answer Prompt States
+  const [showAIAnswerPrompt, setShowAIAnswerPrompt] = useState(false);
+  const [pendingImageQuestions, setPendingImageQuestions] = useState<Question[]>([]);
 
   const [examSearchTerm, setExamSearchTerm] = useState('');
 
@@ -197,8 +201,19 @@ export default function TeacherDashboard() {
   const handleEditExam = (exam: Exam) => setEditingExam(exam);
 
   const handleSaveEditedExam = async (updated: Exam) => {
-    await examService.updateExam(updated);
-    setExams(prev => prev.map(e => e.id === updated.id ? updated : e));
+    if (updated.id === 'temp_upload') {
+      const { id, ...saveData } = updated;
+      const newId = await examService.saveExam(saveData);
+      if (newId) {
+        setExams(prev => [{...saveData, id: newId}, ...prev]);
+        alert('Đã lưu đề thi mới thành công!');
+      } else {
+        alert('Có lỗi khi lưu đề thi mới!');
+      }
+    } else {
+      await examService.updateExam(updated);
+      setExams(prev => prev.map(e => e.id === updated.id ? updated : e));
+    }
     setEditingExam(null);
   };
 
@@ -422,7 +437,7 @@ export default function TeacherDashboard() {
     }
   }, [shouldTriggerClick]);
 
-  const handleTriggerUpload = (type: 'word' | 'pdf' | 'html') => {
+  const handleTriggerUpload = (type: 'word' | 'pdf' | 'html' | 'image') => {
     setUploadingType(type);
     setIsUploadDropdownOpen(false);
     setShouldTriggerClick(true);
@@ -442,6 +457,38 @@ export default function TeacherDashboard() {
 
     setIsUploading(true);
     try {
+      if (uploadingType === 'image') {
+        const parsedQuestions = await extractQuestionsFromImage(selectedFile);
+        
+        // Check if any question is missing answers
+        const needsAnswers = parsedQuestions.some(q => 
+          (q.type === 'multiple_choice' && q.correctAnswerIndex === -1) ||
+          (q.type === 'short_answer' && !q.correctAnswer) ||
+          (q.type === 'true_false' && q.statements.every(s => !s.isTrue)) // Just a heuristic
+        );
+
+        setShowUploadConfirm(false);
+
+        if (needsAnswers && parsedQuestions.length > 0) {
+          setPendingImageQuestions(parsedQuestions);
+          setShowAIAnswerPrompt(true);
+        } else {
+          // Open editor directly if no missing answers
+          const newExam: Exam = {
+            id: 'temp_upload',
+            title: uploadTitle,
+            creatorId: user?.uid || 'anonymous-teacher',
+            type: 'upload',
+            fileType: 'image',
+            questions: parsedQuestions,
+            createdAt: new Date().toISOString(),
+          };
+          setEditingExam(newExam);
+        }
+        setIsUploading(false);
+        return; // Exit early since we handle saving through the Editor
+      }
+
       // Auto-parse questions from Word file (no AI, regex-based)
       let parsedQuestions: Question[] = [];
       if (uploadingType === 'word') {
@@ -453,6 +500,23 @@ export default function TeacherDashboard() {
         } catch (e) {
           console.warn('Word auto-parse failed (non-critical):', e);
         }
+      }
+
+      // ─── Check if any question is missing answers ─────────────────────────────
+      const needsAnswers = parsedQuestions.length > 0 && parsedQuestions.some(q =>
+        (q.type === 'multiple_choice' && (q.correctAnswerIndex === -1 || q.correctAnswerIndex === undefined)) ||
+        (q.type === 'short_answer' && !q.correctAnswer) ||
+        (q.type === 'true_false' && q.statements?.every(s => !s.isTrue))
+      );
+
+      if (needsAnswers) {
+        // Don't save yet — ask teacher if AI should generate answers first
+        setShowUploadConfirm(false);
+        setPendingImageQuestions(parsedQuestions);
+        // Store temp exam info for later saving
+        setShowAIAnswerPrompt(true);
+        setIsUploading(false);
+        return;
       }
 
       const id = await examService.saveUploadedExam(uploadTitle, user?.uid || 'anonymous-teacher', selectedFile, uploadingType, parsedQuestions);
@@ -516,6 +580,42 @@ export default function TeacherDashboard() {
 
   const classes = Array.from(new Set(attempts.map(a => a.className || 'Chưa xác định'))) as string[];
 
+  const handleGenerateAnswersOption = async (generate: boolean) => {
+    setShowAIAnswerPrompt(false);
+    
+    let finalQuestions = pendingImageQuestions;
+    if (generate) {
+      setIsUploading(true);
+      try {
+        finalQuestions = await generateAnswersForQuestions(pendingImageQuestions);
+        alert('Tạo đáp án và lời giải chi tiết thành công!');
+      } catch (err) {
+        console.error(err);
+        alert('Lỗi tạo đáp án. Bạn có thể tự chỉnh sửa qua giao diện.');
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
+    const currentType = uploadingType;
+    const newExam: Exam = {
+      id: 'temp_upload',
+      title: uploadTitle,
+      creatorId: user?.uid || 'anonymous-teacher',
+      type: 'upload',
+      fileType: currentType ?? 'word',
+      questions: finalQuestions,
+      createdAt: new Date().toISOString(),
+    };
+    
+    setEditingExam(newExam);
+    setPendingImageQuestions([]);
+    setUploadingType(null);
+    setSelectedFile(null);
+    setUploadTitle('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Header Section */}
@@ -564,6 +664,13 @@ export default function TeacherDashboard() {
                   <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center"><FileText size={18} /></div>
                   File HTML (.html)
                 </button>
+                <button 
+                  onClick={() => handleTriggerUpload('image')} 
+                  className="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl flex items-center gap-3 font-medium text-slate-700 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center"><FileText size={18} /></div>
+                  File Ảnh (.png, .jpg)
+                </button>
               </div>
             )}
             
@@ -571,7 +678,7 @@ export default function TeacherDashboard() {
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept={uploadingType === 'word' ? '.doc,.docx' : uploadingType === 'pdf' ? '.pdf' : '.html'}
+              accept={uploadingType === 'word' ? '.doc,.docx' : uploadingType === 'pdf' ? '.pdf' : uploadingType === 'html' ? '.html' : 'image/*'}
               onChange={handleUploadFile}
             />
           </div>
@@ -736,6 +843,41 @@ export default function TeacherDashboard() {
                     )}
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Generate Answers Prompt Modal */}
+      <AnimatePresence>
+        {showAIAnswerPrompt && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[95] p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl border border-white/20 p-8 text-center space-y-6"
+            >
+              <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-amber-100">
+                <Brain size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Cần Tạo Đáp Án AI?</h3>
+              <p className="text-slate-500 font-medium">Hệ thống phát hiện có thể đề thi chưa có đầy đủ đáp án. Bạn có muốn AI phân tích và tự động tạo đáp án, lời giải chi tiết cho các câu hỏi này không?</p>
+              
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <button 
+                  onClick={() => handleGenerateAnswersOption(false)}
+                  className="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                >
+                  Bỏ qua
+                </button>
+                <button 
+                  onClick={() => handleGenerateAnswersOption(true)}
+                  className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
+                >
+                  Có, Tạo Chi Tiết
+                </button>
               </div>
             </motion.div>
           </div>
