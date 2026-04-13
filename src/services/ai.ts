@@ -5,8 +5,6 @@ const FALLBACK_MODELS = [
   'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b'
 ];
 
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -99,9 +97,14 @@ export async function generateContentWithFallback(prompt: string, config: any = 
       return response;
     } catch (error: any) {
       const msg = error?.message || String(error);
-      console.warn(`[AI Fallback] Model ${model} failed:`, msg);
+      const code = error?.code || error?.status || '';
+      console.warn(`[AI Fallback] Model ${model} failed (${code}):`, msg);
       if (!firstError) firstError = `${model}: ${msg}`;
       lastError = error;
+      // For 503 (server overload), wait 2s before trying next model
+      if (String(code) === '503' || msg.includes('UNAVAILABLE') || msg.includes('overloaded')) {
+        await new Promise(r => setTimeout(r, 2000));
+      }
     }
   }
 
