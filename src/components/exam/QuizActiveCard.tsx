@@ -251,8 +251,8 @@ export default function QuizActiveCard({
                   className={cn(
                     "flex-1 p-4 rounded-xl border-2 outline-none transition-shadow text-lg font-medium",
                     isSubmitted && saAnswer.trim() === currentQuestion.correctAnswer.toString() ? "border-emerald-500 bg-emerald-50 text-emerald-800" :
-                    isSubmitted && saAnswer.trim() !== currentQuestion.correctAnswer.toString() ? "border-rose-500 bg-rose-50 text-rose-800" :
-                    "border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 bg-white"
+                    isSubmitted && saAnswer.trim() !== currentQuestion.correctAnswer.toString() ? "border-rose-500 bg-rose-50 text-rose-800 font-bold" :
+                    "border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 bg-white text-indigo-700 font-bold"
                   )}
                 />
                 {currentQuestion.unit && <span className="text-slate-500 font-medium">{currentQuestion.unit}</span>}
