@@ -39,6 +39,54 @@ function renderQText(text: string) {
   return <span className="text-slate-800 font-bold text-base leading-relaxed">{parts}</span>;
 }
 
+// ── Mảng trợ giúp chuyển đổi HTML Word (giữ lại bảng + hình ảnh) ─────────────
+function htmlToMarkdownWord(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  function processNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      if (el.tagName === 'IMG') {
+        const src = (el as HTMLImageElement).src;
+        // Bọc thành 1 dòng phân biệt biệt qua prefix ![chart]
+        return `\n![chart](${src})\n`;
+      }
+      if (el.tagName === 'TABLE') {
+        let md = '\n';
+        el.querySelectorAll('tr').forEach((tr, i) => {
+          let row = '|';
+          tr.querySelectorAll('td, th').forEach(cell => {
+            row += ` ${cell.textContent?.trim().replace(/\n/g, ' ')} |`;
+          });
+          md += row + '\n';
+          if (i === 0) {
+            let sep = '|';
+            tr.querySelectorAll('td, th').forEach(() => { sep += '---|'; });
+            md += sep + '\n';
+          }
+        });
+        return md + '\n';
+      }
+      if (['P', 'DIV', 'H1', 'H2', 'H3'].includes(el.tagName)) {
+        let inner = '';
+        el.childNodes.forEach(child => inner += processNode(child));
+        return `\n${inner}\n`;
+      }
+      if (el.tagName === 'BR') return '\n';
+      
+      let inner = '';
+      el.childNodes.forEach(child => inner += processNode(child));
+      return inner;
+    }
+    return '';
+  }
+
+  const result = processNode(doc.body);
+  return result.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 // ── Regex-based Word exam question parser (no AI) ───────────────────────────
 function parseExamQuestionsFromText(rawText: string): Question[] {
   const questions: Question[] = [];
@@ -69,9 +117,25 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
     const options: string[] = [];
     const statements: { id: string; text: string; isTrue: boolean }[] = [];
     let buildingText = true;
+    let imageUrl = '';
+    let contextStr = '';
 
     for (let i = 1; i < block.length; i++) {
       const line = block[i];
+      
+      // Bắt hình ảnh
+      const imgMatch = line.match(/!\[.*?\]\((data:image\/[a-zA-Z]+;base64,[^)]+)\)/);
+      if (imgMatch) {
+         imageUrl = imgMatch[1];
+         continue; // Không nhét ảnh raw base64 đứt đoạn vào qText
+      }
+      
+      // Bắt bảng (markdown table format)
+      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+         contextStr += line + '\n';
+         continue; 
+      }
+      
       const mc = line.match(mcOptRe);
       const tf = line.match(tfOptRe);
       if (mc) {
@@ -81,35 +145,45 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
         buildingText = false;
         statements.push({ id: `stmt_${tf[1]}`, text: tf[2].trim(), isTrue: false });
       } else if (buildingText && !/^(phần|câu|I\.|II\.|III\.)/i.test(line)) {
-        qText += (qText ? ' ' : '') + line;
+        qText += (qText ? '\n' : '') + line;
       }
     }
 
     if (!qText.trim()) return;
     const correctIdx = answerMap[qNum] ?? 0;
 
+    let parsedQuestion: Partial<Question> = {
+      id: `q_up_${Date.now()}_${qNum}`,
+      text: qText,
+      explanation: '',
+      topic: '',
+      lesson: '',
+      ...(imageUrl && { imageUrl }),
+      ...(contextStr && { context: contextStr.trim() })
+    };
+
     if (options.length >= 2) {
       const opts = [...options];
       while (opts.length < 4) opts.push('');
       questions.push({
-        id: `q_up_${Date.now()}_${qNum}`,
-        type: 'multiple_choice', text: qText, options: opts,
+        ...parsedQuestion,
+        type: 'multiple_choice', options: opts,
         correctAnswerIndex: correctIdx >= 0 ? correctIdx : 0,
-        explanation: '', cognitiveLevel: 'Nhận biết', topic: '', lesson: '',
-      });
+        cognitiveLevel: 'Nhận biết'
+      } as Question);
     } else if (statements.length >= 2) {
       questions.push({
-        id: `q_up_${Date.now()}_${qNum}`,
-        type: 'true_false', text: qText, statements,
-        explanation: '', cognitiveLevel: 'Thông hiểu', topic: '', lesson: '',
-      });
+        ...parsedQuestion,
+        type: 'true_false', statements,
+        cognitiveLevel: 'Thông hiểu'
+      } as Question);
     } else {
       questions.push({
-        id: `q_up_${Date.now()}_${qNum}`,
-        type: 'short_answer', text: qText,
+        ...parsedQuestion,
+        type: 'short_answer', 
         correctAnswer: '',
-        explanation: '', cognitiveLevel: 'Vận dụng', topic: '', lesson: '',
-      });
+        cognitiveLevel: 'Vận dụng'
+      } as Question);
     }
   };
 
@@ -495,10 +569,12 @@ export default function TeacherDashboard() {
         try {
           const mammoth = await import('mammoth');
           const arrayBuffer = await selectedFile.arrayBuffer();
-          const result = await mammoth.extractRawText({ arrayBuffer });
-          parsedQuestions = parseExamQuestionsFromText(result.value);
+          // Sử dụng convertToHtml để bảo lưu được images và tables
+          const result = await mammoth.convertToHtml({ arrayBuffer });
+          const markdownText = htmlToMarkdownWord(result.value);
+          parsedQuestions = parseExamQuestionsFromText(markdownText);
         } catch (e) {
-          console.warn('Word auto-parse failed (non-critical):', e);
+          console.warn('Word auto-parse failed:', e);
         }
       }
 

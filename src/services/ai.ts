@@ -369,7 +369,13 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
 }
 
 export async function generateAnswersForQuestions(questions: Question[]): Promise<Question[]> {
-  const prompt = `Dưới đây là một danh sách câu hỏi Địa lý (định dạng JSON). Danh sách này HIỆN CHƯA CÓ ĐÁP ÁN HOẶC LỜI GIẢI ĐẦY ĐỦ. Hãy đóng vai một chuyên gia giáo dục Địa lý 12, giải TẤT CẢ các câu hỏi này.
+  // Loại bỏ imageUrl đầy base64 để không làm phình JSON text
+  const cleanQuestions = questions.map(q => {
+    const { imageUrl, ...rest } = q;
+    return rest;
+  });
+
+  const promptText = `Dưới đây là một danh sách câu hỏi Địa lý (định dạng JSON). Danh sách này HIỆN CHƯA CÓ ĐÁP ÁN HOẶC LỜI GIẢI ĐẦY ĐỦ. Hãy đóng vai một chuyên gia giáo dục Địa lý 12, giải TẤT CẢ các câu hỏi này.
 
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
@@ -380,12 +386,30 @@ Nhiệm vụ của bạn: Trả lại NGUYÊN BẢN mảng JSON này, nhưng:
 - THÊM "explanation": Lời giải thích rất chi tiết và kiến thức cần nhớ cho mỗi câu. Lời giải rất quan trọng.
 
 Dữ liệu JSON đầu vào:
-${JSON.stringify(questions, null, 2)}
+${JSON.stringify(cleanQuestions, null, 2)}
 
 Chỉ xuất ra mảng JSON cập nhật, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], KHÔNG chứa văn bản xung quanh hay khối mã (không dùng \`\`\`json).`;
 
+  const promptParts: any[] = [promptText];
+
+  questions.forEach(q => {
+    if (q.imageUrl && q.imageUrl.startsWith('data:image/')) {
+      const match = q.imageUrl.match(/^data:(image\/[a-zA-Z0-9+-.]+);base64,(.+)$/);
+      if (match) {
+        promptParts.push(`\nẢnh minh họa phía trên thuộc về câu hỏi có id: "${q.id}":`);
+        promptParts.push({
+          inlineData: {
+            mimeType: match[1],
+            data: match[2]
+          }
+        });
+      }
+    }
+  });
+
   try {
-    const response = await generateContentWithFallback(prompt);
+    // Generate relying on text + image array
+    const response = await generateContentWithFallback(promptParts);
     let text = response.text.trim();
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
