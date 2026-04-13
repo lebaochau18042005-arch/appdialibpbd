@@ -139,13 +139,13 @@ export default function RosterUploader({ onRosterChange }: Props) {
             <input
               type="text" value={className} onChange={e => setClassName(e.target.value)}
               placeholder="Tên lớp (VD: 12C1)"
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none font-medium text-sm"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none font-bold text-indigo-700 text-sm"
             />
             <textarea
               value={manualText} onChange={e => setManualText(e.target.value)}
               placeholder={"Mỗi tên trên một dòng:\nNguyễn Văn A\nTrần Thị B\nLê Văn C"}
               rows={8}
-              className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none text-sm font-mono leading-loose resize-none"
+              className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none text-sm font-mono font-bold text-indigo-700 leading-loose resize-none"
             />
             <button
               onClick={handleManualSave}
