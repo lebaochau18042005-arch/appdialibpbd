@@ -20,6 +20,13 @@ interface ExamActiveCardProps {
   isQuestionAnswered: (idx: number) => boolean;
 }
 
+// Helper: true when context has real renderable content
+function hasValidContext(ctx: string | null | undefined): boolean {
+  if (!ctx) return false;
+  const trimmed = ctx.trim();
+  return trimmed.length > 5 && !['null', 'undefined', 'none', 'n/a'].includes(trimmed.toLowerCase());
+}
+
 export default function ExamActiveCard({
   currentQuestion,
   currentIndex,
@@ -30,6 +37,9 @@ export default function ExamActiveCard({
   setShowQuestionMap,
   isQuestionAnswered
 }: ExamActiveCardProps) {
+  const contextValid = hasValidContext(currentQuestion.context);
+  const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|số liệu|hình dưới/i;
+
   return (
     <motion.div
       key={currentIndex}
@@ -65,15 +75,16 @@ export default function ExamActiveCard({
           </div>
         )}
 
-        {currentQuestion.context && (
+        {/* Render DataTableChart only when context is genuinely valid */}
+        {contextValid && (
           <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200">
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">📊 Bảng số liệu &amp; Biểu đồ tham khảo</p>
-            <DataTableChart content={currentQuestion.context} />
+            <DataTableChart content={currentQuestion.context!} />
           </div>
         )}
 
-        {/* Warn when question mentions chart/table but context is missing */}
-        {!currentQuestion.context && /biểu đồ|bảng số liệu|bảng dưới đây|số liệu|hình dưới/i.test(currentQuestion.text) && (
+        {/* Warn when question mentions chart/table but context is missing/invalid */}
+        {!contextValid && CHART_RE.test(currentQuestion.text) && (
           <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-start gap-3">
             <span className="text-amber-500 text-xl shrink-0">⚠️</span>
             <div>
@@ -101,9 +112,7 @@ export default function ExamActiveCard({
                 answer === idx 
                   ? "border-emerald-500 bg-emerald-500 text-white" 
                   : "border-slate-200 text-slate-400 group-hover:border-emerald-300"
-              )}>
-                {String.fromCharCode(65 + idx)}
-              </span>
+              )}>{String.fromCharCode(65 + idx)}</span>
               <span className="text-lg">{option}</span>
             </button>
           ))}
@@ -134,9 +143,7 @@ export default function ExamActiveCard({
                       <span className={cn(
                         'flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center font-black text-sm mt-0.5',
                         answered ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-600'
-                      )}>
-                        {label}
-                      </span>
+                      )}>{label}</span>
                       <p className="flex-1 text-base font-medium text-slate-800 leading-relaxed">{stmt.text}</p>
                     </div>
                     <div className="flex border-t border-slate-100">
@@ -146,18 +153,14 @@ export default function ExamActiveCard({
                           'flex-1 py-3 text-sm font-black transition-all flex items-center justify-center gap-1.5 border-r border-slate-100',
                           isTrueSelected ? 'bg-emerald-500 text-white' : 'bg-white text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'
                         )}
-                      >
-                        ✓ Đúng
-                      </button>
+                      >✓ Đúng</button>
                       <button
                         onClick={() => handleAnswer({ ...(answer || {}), [stmt.id]: false })}
                         className={cn(
                           'flex-1 py-3 text-sm font-black transition-all flex items-center justify-center gap-1.5',
                           isFalseSelected ? 'bg-rose-500 text-white' : 'bg-white text-slate-500 hover:bg-rose-50 hover:text-rose-600'
                         )}
-                      >
-                        ✗ Sai
-                      </button>
+                      >✗ Sai</button>
                     </div>
                   </div>
                 );

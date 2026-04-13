@@ -240,7 +240,12 @@ Vùng 5 - ĐÔNG NAM BỘ:
 Vùng 6 - ĐỒNG BẰNG SÔNG CỬU LONG:
   • Phát triển kinh tế gắn với ứng phó biến đổi khí hậu (vùng nông nghiệp lớn nhất). 
 
-LƯU Ý CUỐI CÙNG: Cấm hỏi "Kể tên các tỉnh vùng KT trọng điểm phía Nam", do Bộ đã bãi bỏ mục Vùng KTTĐ.
+
+⚠️ CẤM HOÀN TOÀN — KHÔNG ĐƯỢC RA BẤT KỲ CÂU HỎI NÀO về "Vùng kinh tế trọng điểm" (KTTĐ):
+   TT 17/2025 đã CẮT BỎ HOÀN TOÀN nội dung về: Vùng KTTĐ phía Bắc, Vùng KTTĐ miền Trung,
+   Vùng KTTĐ phía Nam, Vùng KTTĐ ĐBSCL. Bất kỳ câu hỏi nào liên quan đến "vùng kinh tế trọng điểm",
+   "KTTĐ", "tỉnh/thành nào thuộc vùng KTTĐ" đều SAI VỀ CHƯƠNG TRÌNH và BI CẤM TUYỆT ĐỐI.
+
 
 E. ĐỊA LÍ ĐÔNG NAM Á (Địa 11 - bắt buộc có trong đề):
   11 quốc gia; diện tích 4,5 triệu km²; dân số 680 triệu (2024)
