@@ -500,32 +500,25 @@ export async function generateAnswersForQuestions(questions: Question[]): Promis
 
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
-QUY TẮC QUAN TRỌNG:
-- Với câu multiple_choice: trả về "correctAnswerIndex" là số nguyên từ 0-3
-- Với câu short_answer: trả về "correctAnswer" là chuỗi đáp án
-- Với câu true_false: trả về "statements" là mảng { "id": "...", "isTrue": true/false }
-- Trả về "explanation" giải thích ngắn gọn cho mỗi câu
-- PHẢI giữ nguyên đúng "id" của mỗi câu như đã cho
+QUY TẮC QUAN TRỌNG TỰ TẠO BẢNG SỐ LIỆU (MỚI KHẨN CẤP):
+Nếu nội dung câu hỏi nói "Cho biểu đồ sau" / "Theo bảng số liệu" / "Căn cứ vào Atlat" HOẶC yêu cầu tính toán dựa vào số liệu MÀ trường "context" bị rỗng/thiếu/null:
+-> BẠN PHẢI THỂ HIỆN SỰ THÔNG MINH! Hãy tự bịa ra/tạo ra 1 bảng dữ liệu Markdown HỢP LÝ nhất khớp với nội dung câu hỏi và TRẢ VỀ TRONG TRƯỜNG "context" của câu đó. 
+-> Ví dụ: nếu câu hỏi yêu cầu tính GDP thì bạn tự tạo ra 1 bảng GDP. Điều này giúp hệ thống tự vẽ biểu đồ thay thế bảng bị lỗi gốc.
 
-ĐỊNH DẠNG OUTPUT BẮT BUỘC – CHỈ trả về mảng JSON thuần túy, KHÔNG thêm bất kỳ comment hay văn bản nào:
+QUY TẮC JSON:
+- Với câu multiple_choice: trả về "correctAnswerIndex": (0-3)
+- Với câu short_answer: trả về "correctAnswer": "..."
+- Với câu true_false: trả về "statements": mảng { id, isTrue }
+- BẮT BUỘC trả về "context" nếu bạn vừa tạo thêm bảng. KHÔNG trả về "context" nếu không cần.
+- Trả về "explanation" giải thích ngắn gọn dựa trên kiến thức thật hoặc bảng bạn tự tạo.
+
+ĐỊNH DẠNG OUTPUT BẮT BUỘC – CHỈ JSON THUẦN TÚY:
 [
   {
     "id": "q_up_1",
     "correctAnswerIndex": 2,
-    "explanation": "Giải thích ngắn"
-  },
-  {
-    "id": "q_up_2",
-    "correctAnswer": "Nghệ An",
-    "explanation": "Giải thích ngắn"
-  },
-  {
-    "id": "q_up_3",
-    "statements": [
-      { "id": "stmt_a", "isTrue": true },
-      { "id": "stmt_b", "isTrue": false }
-    ],
-    "explanation": "Giải thích ngắn"
+    "context": "| Năm | GDP |\n|---|---|\n| 2020 | 100 |",
+    "explanation": "Dựa vào bảng tôi vừa tạo..."
   }
 ]
 
@@ -615,6 +608,7 @@ CHỈ xuất ra mảng JSON, BẮT ĐẦU bằng [ và KẾT THÚC bằng ].`;
 
       return {
         ...originalQ,
+        context: ans.context ?? originalQ.context,
         correctAnswerIndex: ans.correctAnswerIndex ?? (originalQ as any).correctAnswerIndex,
         correctAnswer: ans.correctAnswer ?? (originalQ as any).correctAnswer,
         explanation: ans.explanation ?? originalQ.explanation,
