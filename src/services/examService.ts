@@ -445,7 +445,8 @@ YÊU CẦU CHÍNH XÁC:
       return localId;
     }
     try {
-      const docRef = await addDoc(collection(db, 'exams'), exam);
+      const sanitized = sanitizeForFirestore({ ...exam, fileUrl: '' });
+      const docRef = await addDoc(collection(db, 'exams'), sanitized);
       return docRef.id;
     } catch (error) {
       if (isPermissionError(error)) {

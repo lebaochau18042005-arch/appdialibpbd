@@ -382,26 +382,34 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
 }
 
 export async function generateAnswersForQuestions(questions: Question[]): Promise<Question[]> {
-  // Loại bỏ imageUrl đầy base64 để không làm phình JSON text
-  const cleanQuestions = questions.map(q => {
-    const { imageUrl, ...rest } = q;
-    return rest;
+  // Extract ONLY needed fields for solving, protecting complex fields like 'context' and 'imageUrl'
+  const simpleQuestionsForAI = questions.map(q => {
+    const brief: any = { id: q.id, type: q.type, text: q.text };
+    if ('options' in q) brief.options = q.options;
+    if ('statements' in q) brief.statements = q.statements.map((s:any) => ({ id: s.id, text: s.text }));
+    return brief;
   });
 
   const promptText = `Dưới đây là một danh sách câu hỏi Địa lý (định dạng JSON). Danh sách này HIỆN CHƯA CÓ ĐÁP ÁN HOẶC LỜI GIẢI ĐẦY ĐỦ. Hãy đóng vai một chuyên gia giáo dục Địa lý 12, giải TẤT CẢ các câu hỏi này.
 
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
-Nhiệm vụ của bạn: Trả lại NGUYÊN BẢN mảng JSON này, nhưng:
-- Cập nhật "correctAnswerIndex" (từ 0 đến 3) cho các câu multiple_choice.
-- Cập nhật "isTrue" (true/false) chính xác cho từng ý statements trong câu true_false.
-- Cập nhật "correctAnswer" cho các câu short_answer.
-- THÊM "explanation": Lời giải thích rất chi tiết và kiến thức cần nhớ cho mỗi câu. Lời giải rất quan trọng.
+Nhiệm vụ của bạn: Chỉ cần trả về cấu trúc JSON chứa đáp án và giải thích cho các id câu hỏi, KHÔNG cần chép lại nội dung câu hỏi để tiết kiệm bộ nhớ.
+Định dạng BẮT BUỘC (trả về mảng JSON gọn nhẹ):
+[
+  {
+    "id": "q1",
+    "correctAnswerIndex": 2, // với multiple_choice (từ 0-3)
+    "correctAnswer": "0.56", // với short_answer
+    "statements": [ { "id": "stmt_id_1", "isTrue": true }, { "id": "stmt_id_2", "isTrue": false } ], // với true_false
+    "explanation": "Giải thích chi tiết kiến thức và tại sao đúng/sai."
+  }
+]
 
-Dữ liệu JSON đầu vào:
-${JSON.stringify(cleanQuestions, null, 2)}
+Dữ liệu JSON đầu vào (chỉ kèm cốt lõi câu hỏi):
+${JSON.stringify(simpleQuestionsForAI, null, 2)}
 
-Chỉ xuất ra mảng JSON cập nhật, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], KHÔNG chứa văn bản xung quanh hay khối mã (không dùng \`\`\`json).`;
+Chỉ xuất ra mảng JSON, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], KHÔNG chứa văn bản xung quanh hay khối mã (không dùng \`\`\`json).`;
 
   const promptParts: any[] = [promptText];
 
@@ -421,18 +429,47 @@ Chỉ xuất ra mảng JSON cập nhật, BẮT ĐẦU VÀ KẾT THÚC BẰNG D�
   });
 
   try {
-    // Generate relying on text + image array
-    const response = await generateContentWithFallback(promptParts);
+    const response = await generateContentWithFallback(promptParts, {
+      responseMimeType: "application/json"
+    });
     let text = response.text.trim();
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
     
-    const startIdx = text.indexOf('[');
-    const endIdx = text.lastIndexOf(']');
-    text = text.substring(startIdx, endIdx !== -1 ? endIdx + 1 : undefined);
-    if (!text.endsWith(']')) text += ']';
+    let answerKeys;
+    try {
+      answerKeys = JSON.parse(text);
+    } catch {
+      const startIdx = text.indexOf('[');
+      const endIdx = text.lastIndexOf(']');
+      if (startIdx !== -1) {
+        answerKeys = JSON.parse(text.substring(startIdx, endIdx + 1));
+      } else {
+        throw new Error("Lỗi định dạng AI");
+      }
+    }
 
-    return JSON.parse(text) as Question[];
+    // Merge generated answers securely back into Original Questions (preserving EVERYTHING including context and imageUrl)
+    return questions.map(originalQ => {
+      const ans = answerKeys.find((a: any) => a.id === originalQ.id);
+      if (!ans) return originalQ;
+      
+      let statements = (originalQ as any).statements;
+      if (originalQ.type === 'true_false' && statements && ans.statements) {
+        statements = statements.map((origStmt: any) => {
+          const ansStmt = ans.statements.find((s: any) => s.id === origStmt.id);
+          return ansStmt ? { ...origStmt, isTrue: ansStmt.isTrue } : origStmt;
+        });
+      }
+
+      return {
+        ...originalQ,
+        correctAnswerIndex: ans.correctAnswerIndex ?? (originalQ as any).correctAnswerIndex,
+        correctAnswer: ans.correctAnswer ?? (originalQ as any).correctAnswer,
+        explanation: ans.explanation ?? originalQ.explanation,
+        statements
+      } as unknown as Question;
+    });
   } catch (error) {
     console.error("Lỗi tạo đáp án:", error);
     throw new Error("Có lỗi xảy ra khi tạo đáp án. Vui lòng thử lại.");
