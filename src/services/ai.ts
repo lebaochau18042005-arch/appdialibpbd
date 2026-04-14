@@ -429,9 +429,8 @@ Chỉ xuất ra mảng JSON, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], 
   });
 
   try {
-    const response = await generateContentWithFallback(promptParts, {
-      responseMimeType: "application/json"
-    });
+    // Note: responseMimeType cannot be used together with inlineData image parts — they conflict.
+    const response = await generateContentWithFallback(promptParts);
     let text = response.text.trim();
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
@@ -470,9 +469,9 @@ Chỉ xuất ra mảng JSON, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], 
         statements
       } as unknown as Question;
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Lỗi tạo đáp án:", error);
-    throw new Error("Có lỗi xảy ra khi tạo đáp án. Vui lòng thử lại.");
+    throw new Error("Có lỗi xảy ra khi tạo đáp án: " + (error?.message || String(error)));
   }
 }
 
