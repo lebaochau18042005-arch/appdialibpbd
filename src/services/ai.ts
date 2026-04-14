@@ -496,26 +496,43 @@ export async function generateAnswersForQuestions(questions: Question[]): Promis
     return brief;
   });
 
-  const promptText = `Dưới đây là một danh sách câu hỏi Địa lý (định dạng JSON). Danh sách này HIỆN CHƯA CÓ ĐÁP ÁN HOẶC LỜI GIẢI ĐẦY ĐỦ. Hãy đóng vai một chuyên gia giáo dục Địa lý 12, giải TẤT CẢ các câu hỏi này.
+  const promptText = `Dưới đây là một danh sách câu hỏi Địa lý (định dạng JSON). Hãy đóng vai chuyên gia Địa lý 12, giải TẤT CẢ câu hỏi và trả về đáp án.
 
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
-Nhiệm vụ của bạn: Chỉ cần trả về cấu trúc JSON chứa đáp án và giải thích cho các id câu hỏi, KHÔNG cần chép lại nội dung câu hỏi để tiết kiệm bộ nhớ.
-Định dạng BẮT BUỘC (trả về mảng JSON gọn nhẹ):
+QUY TẮC QUAN TRỌNG:
+- Với câu multiple_choice: trả về "correctAnswerIndex" là số nguyên từ 0-3
+- Với câu short_answer: trả về "correctAnswer" là chuỗi đáp án
+- Với câu true_false: trả về "statements" là mảng { "id": "...", "isTrue": true/false }
+- Trả về "explanation" giải thích ngắn gọn cho mỗi câu
+- PHẢI giữ nguyên đúng "id" của mỗi câu như đã cho
+
+ĐỊNH DẠNG OUTPUT BẮT BUỘC – CHỈ trả về mảng JSON thuần túy, KHÔNG thêm bất kỳ comment hay văn bản nào:
 [
   {
-    "id": "q1",
-    "correctAnswerIndex": 2, // với multiple_choice (từ 0-3)
-    "correctAnswer": "0.56", // với short_answer
-    "statements": [ { "id": "stmt_id_1", "isTrue": true }, { "id": "stmt_id_2", "isTrue": false } ], // với true_false
-    "explanation": "Giải thích chi tiết kiến thức và tại sao đúng/sai."
+    "id": "q_up_1",
+    "correctAnswerIndex": 2,
+    "explanation": "Giải thích ngắn"
+  },
+  {
+    "id": "q_up_2",
+    "correctAnswer": "Nghệ An",
+    "explanation": "Giải thích ngắn"
+  },
+  {
+    "id": "q_up_3",
+    "statements": [
+      { "id": "stmt_a", "isTrue": true },
+      { "id": "stmt_b", "isTrue": false }
+    ],
+    "explanation": "Giải thích ngắn"
   }
 ]
 
-Dữ liệu JSON đầu vào (chỉ kèm cốt lõi câu hỏi):
+Dữ liệu đầu vào:
 ${JSON.stringify(simpleQuestionsForAI, null, 2)}
 
-Chỉ xuất ra mảng JSON, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], KHÔNG chứa văn bản xung quanh hay khối mã (không dùng \`\`\`json).`;
+CHỈ xuất ra mảng JSON, BẮT ĐẦU bằng [ và KẾT THÚC bằng ].`;
 
   const promptParts: any[] = [promptText];
 
@@ -542,8 +559,17 @@ Chỉ xuất ra mảng JSON, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], 
       throw new Error('AI trả về nội dung rỗng. Vui lòng thử lại.');
     }
     let text = rawText.trim();
+    // Strip markdown code fences
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
+
+    // CRITICAL: Strip JS-style // line comments that AI sometimes adds (invalid JSON)
+    // Example: "correctAnswerIndex": 2, // với multiple_choice
+    text = text.replace(/\/\/[^\n\r"]*/g, '');
+    // Strip /* block comments */ as well
+    text = text.replace(/\/\*[\s\S]*?\*\//g, '');
+    // Clean up any trailing commas before } or ] caused by comment removal
+    text = text.replace(/,(\s*[}\]])/g, '$1');
     
     let answerKeys;
     try {
