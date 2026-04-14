@@ -348,21 +348,43 @@ QUY TẮC BẮT BUỘC:
 Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương tự cấu trúc sau, CHỈ BAO GỒM mảng JSON, không có code block quotes hay văn bản nào khác.
 [
   {
-    "id": "q1",
+    "id": "q_up_1",
     "type": "multiple_choice",
     "topic": "Địa lý",
-    "text": "Cho bảng số liệu: ABC...",
-    "context": "| Năm | Sán lượng |\n|---|---|\n| 2020 | 100 |\n| 2021 | 120 |",
-    "options": ["Đáp án A tinh khiết", "Đáp án B tinh khiết", "Đáp án C tinh khiết", "Đáp án D tinh khiết"],
+    "text": "Thân câu hỏi trắc nghiệm ở đây?",
+    "context": "| Năm | Giá trị |\n|---|---|\n| 2020 | 100 |\n| 2023 | 150 |",
+    "options": ["Đáp án A chỉ riêng A", "Đáp án B chỉ riêng B", "Đáp án C chỉ riêng C", "Đáp án D chỉ riêng D"],
     "correctAnswerIndex": -1,
+    "explanation": ""
+  },
+  {
+    "id": "q_up_2",
+    "type": "true_false",
+    "topic": "Địa lý",
+    "text": "Thân câu hỏi Đúng/Sai chung được đặt tại đây.",
+    "context": "| Chỉ tiêu | Năm 2020 | Năm 2023 |\n|---|---|---|\n| Dân số (triệu) | 96.2 | 99.1 |",
+    "statements": [
+      { "id": "stmt_q_up_2_a", "text": "Nội dung phát biểu ý a được trích nguyên văn từ đề.", "isTrue": false },
+      { "id": "stmt_q_up_2_b", "text": "Nội dung phát biểu ý b được trích nguyên văn từ đề.", "isTrue": false },
+      { "id": "stmt_q_up_2_c", "text": "Nội dung phát biểu ý c được trích nguyên văn từ đề.", "isTrue": false },
+      { "id": "stmt_q_up_2_d", "text": "Nội dung phát biểu ý d được trích nguyên văn từ đề.", "isTrue": false }
+    ],
+    "explanation": ""
+  },
+  {
+    "id": "q_up_3",
+    "type": "short_answer",
+    "topic": "Địa lý",
+    "text": "Căn cứ vào bảng số liệu, hãy tính...",
+    "context": "| Cây trồng | Diện tích (nghìn ha) | Sản lượng (nghìn tấn) |\n|---|---|---|\n| Lúa | 7500 | 43000 |",
+    "correctAnswer": "",
     "explanation": ""
   }
 ]`;
 
   try {
-    const response = await generateContentWithFallback([promptText, mediaPart], {
-      responseMimeType: "application/json"
-    });
+    // IMPORTANT: responseMimeType CANNOT be used with inlineData (PDF/image) — causes HTTP 400!
+    const response = await generateContentWithFallback([promptText, mediaPart]);
     let text = response.text.trim();
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
