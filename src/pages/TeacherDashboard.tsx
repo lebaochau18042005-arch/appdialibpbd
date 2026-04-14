@@ -639,9 +639,10 @@ export default function TeacherDashboard() {
         // Silently refresh in background
         loadData();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Có lỗi xảy ra khi tải lên file.');
+      const msg = error?.message || String(error);
+      alert('Có lỗi xảy ra khi tải lên file: ' + msg);
     } finally {
       setIsUploading(false);
     }

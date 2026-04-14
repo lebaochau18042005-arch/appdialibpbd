@@ -303,10 +303,16 @@ function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string,
     reader.onload = () => {
       const result = reader.result as string;
       const base64 = result.split(',')[1];
+      let mimeType = file.type;
+      if (!mimeType) {
+        if (file.name.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
+        else if (file.name.toLowerCase().endsWith('.png')) mimeType = 'image/png';
+        else mimeType = 'image/jpeg';
+      }
       resolve({
         inlineData: {
           data: base64,
-          mimeType: file.type
+          mimeType
         }
       });
     };
@@ -353,7 +359,9 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
 ]`;
 
   try {
-    const response = await generateContentWithFallback([promptText, mediaPart]);
+    const response = await generateContentWithFallback([promptText, mediaPart], {
+      responseMimeType: "application/json"
+    });
     let text = response.text.trim();
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
