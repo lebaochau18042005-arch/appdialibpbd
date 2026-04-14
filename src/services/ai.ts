@@ -329,7 +329,7 @@ ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
 QUY TẮC BẮT BUỘC:
 1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong ảnh - KHÔNG BỎ SÓT câu nào.
-2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice".
+2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice". ĐẶC BIỆT LƯU Ý: Mảng "options" BẮT BUỘC phải chứa CHÍNH XÁC 4 phần tử tách biệt cho A, B, C, D. Tuyệt đối không gộp 2 đáp án (ví dụ A và B) vào chung một chuỗi!
 3. Với câu Đúng/Sai (có các ý a, b, c, d): dùng type "true_false" với 4 statements.
 4. Với câu tự luận/điền số/tính toán ngắn: dùng type "short_answer".
 5. ⚠️ NẾU TRONG ĐỀ KHÔNG CÓ ĐÁP ÁN (Bản thân thí sinh phải tự giải): 
@@ -339,10 +339,11 @@ QUY TẮC BẮT BUỘC:
 6. NẾU TRONG ĐỀ CÓ ĐÁP ÁN, hãy trích xuất chính xác đáp án đó.
 7. id phải là "q_up_1", "q_up_2",... theo thứ tự câu.
 
-⚠️ QUY TẮC VÀNG VỀ BẢNG SỐ LIỆU / BIỂU ĐỒ (BẮT BUỘC):
-- Nếu bài thi ĐỀ CẬP HOẶC CÓ CHỨA Bảng số liệu, biểu đồ, hình vẽ → BẮT BUỘC trường "context" phải ghi lại số liệu trích xuất dưới dạng MARKDOWN TABLE (cú pháp pipe |...|).
-- Ví dụ: Bảng dân số → Dịch sang Bảng Markdown và đưa vào "context". Biểu đồ tròn → Đọc số liệu trên biểu đồ, chuyển thành Bảng Markdown và đưa vào "context".
-- TUYỆT ĐỐI KHÔNG để "context": null nếu câu hỏi phụ thuộc vào dữ liệu hình/bảng đó. Nếu bỏ trống học sinh sẽ không có dữ liệu để làm bài!
+⚠️ QUY TẮC VÀNG VỀ BẢNG SỐ LIỆU / BIỂU ĐỒ (BẮT BUỘC TUÂN THỦ TẠI MỌI CÂU):
+- Nếu bài thi CÓ BẢNG SỐ LIỆU HOẶC BIỂU ĐỒ (được vẽ hoặc chụp trong file): Bạn PHẢI chuyển đổi toàn bộ số liệu đó thành BẢNG MARKDOWN (sử dụng cú pháp |..|..|) và GHI VÀO TRƯỜNG "context".
+- Tuyệt đối KHÔNG gộp chung Bảng số liệu vào trường "text". Thân câu hỏi ở "text", bảng số liệu ở "context".
+- Nếu là BẢNG: sao chép y hệt thành Markdown. Nếu là BIỂU ĐỒ: Đọc các giá trị trên cột/đường/tròn và lập thành Bảng Markdown.
+- LỖI NGHIÊM TRỌNG HẬU QUẢ LỚN: Nếu để "context": null, học sinh sẽ không thấy bảng dữ liệu và phần mềm sẽ sụp đổ. Bạn bắt buộc phải chuyển mọi dữ liệu dạng bảng/hình thành bảng Markdown vào "context"!
 
 Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương tự cấu trúc sau, CHỈ BAO GỒM mảng JSON, không có code block quotes hay văn bản nào khác.
 [
@@ -350,9 +351,9 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
     "id": "q1",
     "type": "multiple_choice",
     "topic": "Địa lý",
-    "text": "Nội dung câu hỏi?",
-    "context": null,
-    "options": ["Phương án A", "Phương án B", "Phương án C", "Phương án D"],
+    "text": "Cho bảng số liệu: ABC...",
+    "context": "| Năm | Sán lượng |\n|---|---|\n| 2020 | 100 |\n| 2021 | 120 |",
+    "options": ["Đáp án A tinh khiết", "Đáp án B tinh khiết", "Đáp án C tinh khiết", "Đáp án D tinh khiết"],
     "correctAnswerIndex": -1,
     "explanation": ""
   }
@@ -382,9 +383,10 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
 }
 
 export async function generateAnswersForQuestions(questions: Question[]): Promise<Question[]> {
-  // Extract ONLY needed fields for solving, protecting complex fields like 'context' and 'imageUrl'
+  // Extract ONLY needed fields for solving, protecting complex fields like 'imageUrl' but REQUIRE 'context' to be passed so AI can solve math!
   const simpleQuestionsForAI = questions.map(q => {
     const brief: any = { id: q.id, type: q.type, text: q.text };
+    if ('context' in q && q.context) brief.context = q.context; // Cực kỳ quan trọng để AI đọc được bảng/tính toán
     if ('options' in q) brief.options = q.options;
     if ('statements' in q) brief.statements = q.statements.map((s:any) => ({ id: s.id, text: s.text }));
     return brief;
