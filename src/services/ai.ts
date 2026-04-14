@@ -321,8 +321,89 @@ function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string,
   });
 }
 
+// Upload PDF via Gemini File API (required for PDF — inline base64 is NOT supported)
+async function uploadPDFViaFileAPI(file: File): Promise<{ fileData: { mimeType: string, fileUri: string } }> {
+  // @ts-ignore
+  const apiKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  if (!apiKey) throw new Error('Chưa thiết lập API Key.');
+
+  const mimeType = 'application/pdf';
+  const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
+
+  // Step 1: Resumable upload initiation
+  const initRes = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'X-Goog-Upload-Protocol': 'resumable',
+      'X-Goog-Upload-Command': 'start',
+      'X-Goog-Upload-Header-Content-Length': String(file.size),
+      'X-Goog-Upload-Header-Content-Type': mimeType,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ file: { display_name: file.name } }),
+  });
+
+  if (!initRes.ok) {
+    const errText = await initRes.text();
+    throw new Error(`File API init thất bại: ${errText}`);
+  }
+
+  const uploadSessionUrl = initRes.headers.get('X-Goog-Upload-URL');
+  if (!uploadSessionUrl) throw new Error('Không nhận được upload URL từ File API.');
+
+  // Step 2: Upload file bytes
+  const uploadRes = await fetch(uploadSessionUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Length': String(file.size),
+      'X-Goog-Upload-Offset': '0',
+      'X-Goog-Upload-Command': 'upload, finalize',
+    },
+    body: file,
+  });
+
+  if (!uploadRes.ok) {
+    const errText = await uploadRes.text();
+    throw new Error(`Upload file thất bại: ${errText}`);
+  }
+
+  const uploadData = await uploadRes.json();
+  let fileUri: string = uploadData?.file?.uri;
+  let state: string = uploadData?.file?.state;
+
+  if (!fileUri) throw new Error('Không nhận được file URI từ File API.');
+
+  // Step 3: Poll until file is ACTIVE (usually instant for small files)
+  const fileApiBase = `https://generativelanguage.googleapis.com/v1beta/files`;
+  const fileName = fileUri.split('/files/')[1];
+  let attempts = 0;
+  while (state !== 'ACTIVE' && attempts < 10) {
+    await new Promise(r => setTimeout(r, 1500));
+    const statusRes = await fetch(`${fileApiBase}/${fileName}?key=${apiKey}`);
+    if (statusRes.ok) {
+      const statusData = await statusRes.json();
+      state = statusData?.state;
+      fileUri = statusData?.uri || fileUri;
+    }
+    attempts++;
+  }
+
+  if (state !== 'ACTIVE') throw new Error('File PDF chưa sẵn sàng sau khi upload. Vui lòng thử lại.');
+
+  return { fileData: { mimeType, fileUri } };
+}
+
 export async function extractQuestionsFromMedia(file: File): Promise<Question[]> {
-  const mediaPart = await fileToGenerativePart(file);
+  const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+  // PDF: must use File API (inline base64 is not supported by Gemini for PDF)
+  // Images: can use fast inline base64
+  let mediaPart: any;
+  if (isPDF) {
+    mediaPart = await uploadPDFViaFileAPI(file);
+  } else {
+    mediaPart = await fileToGenerativePart(file);
+  }
   const promptText = `Bạn là một chuyên gia phân tích tài liệu và cấu trúc đề thi. Hãy đọc MỌI CÂU HỎI TRONG TÀI LIỆU cung cấp và trích xuất TOÀN BỘ ra thành danh sách JSON.
 
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
@@ -398,9 +479,10 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
     if (!text.endsWith(']')) text += ']';
 
     return JSON.parse(text) as Question[];
-  } catch (error) {
+  } catch (error: any) {
     console.error("Lỗi trích xuất đa phương tiện:", error);
-    throw new Error("Không thể đọc tài liệu. Đảm bảo file rõ nét và thử lại.");
+    const msg = error?.message || String(error);
+    throw new Error("Không thể đọc tài liệu: " + msg);
   }
 }
 
@@ -455,21 +537,41 @@ Chỉ xuất ra mảng JSON, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], 
   try {
     // Note: responseMimeType cannot be used together with inlineData image parts — they conflict.
     const response = await generateContentWithFallback(promptParts);
-    let text = response.text.trim();
+    const rawText = response.text;
+    if (!rawText || rawText.trim() === '') {
+      throw new Error('AI trả về nội dung rỗng. Vui lòng thử lại.');
+    }
+    let text = rawText.trim();
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
     
     let answerKeys;
     try {
+      // Try direct parse first
       answerKeys = JSON.parse(text);
     } catch {
+      // Fallback: find array boundaries and try to fix truncated JSON
       const startIdx = text.indexOf('[');
-      const endIdx = text.lastIndexOf(']');
+      let endIdx = text.lastIndexOf(']');
       if (startIdx !== -1) {
-        answerKeys = JSON.parse(text.substring(startIdx, endIdx + 1));
+        if (endIdx === -1 || endIdx < startIdx) {
+          // JSON truncated — try to close it
+          text = text.substring(startIdx) + ']}]';
+        } else {
+          text = text.substring(startIdx, endIdx + 1);
+        }
+        try {
+          answerKeys = JSON.parse(text);
+        } catch {
+          throw new Error('AI trả về JSON không hợp lệ — không thể phân tích đáp án. Hãy thử lại.');
+        }
       } else {
-        throw new Error("Lỗi định dạng AI");
+        throw new Error('AI không trả về mảng JSON đáp án. Vui lòng thử lại.');
       }
+    }
+
+    if (!Array.isArray(answerKeys)) {
+      throw new Error('Dữ liệu đáp án không phải mảng hợp lệ.');
     }
 
     // Merge generated answers securely back into Original Questions (preserving EVERYTHING including context and imageUrl)
@@ -498,4 +600,6 @@ Chỉ xuất ra mảng JSON, BẮT ĐẦU VÀ KẾT THÚC BẰNG DẤU [ và ], 
     throw new Error("Có lỗi xảy ra khi tạo đáp án: " + (error?.message || String(error)));
   }
 }
+
+
 

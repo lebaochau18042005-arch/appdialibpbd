@@ -165,10 +165,12 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
     if (options.length >= 2) {
       const opts = [...options];
       while (opts.length < 4) opts.push('');
+      // If no answer key found in file, use -1 so AI answer generation is triggered
+      const hasAnswerKey = answerMap[qNum] !== undefined;
       questions.push({
         ...parsedQuestion,
         type: 'multiple_choice', options: opts,
-        correctAnswerIndex: correctIdx >= 0 ? correctIdx : 0,
+        correctAnswerIndex: hasAnswerKey ? correctIdx : -1,
         cognitiveLevel: 'Nhận biết'
       } as Question);
     } else if (statements.length >= 2) {
