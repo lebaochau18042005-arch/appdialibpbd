@@ -35,6 +35,11 @@ function isPermissionError(e: unknown): boolean {
 }
 // ==========================================
 
+// Remove undefined fields recursively so Firestore never rejects them
+function sanitizeForFirestore<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj, (_k, v) => (v === undefined ? null : v)));
+}
+
 export const examService = {
   // Real-time listeners
   subscribeToAttempts(callback: (attempts: QuizAttempt[]) => void): Unsubscribe {
@@ -462,7 +467,9 @@ YÊU CẦU CHÍNH XÁC:
       try {
         const docRef = doc(db, 'exams', exam.id);
         const { id, ...data } = exam;
-        await updateDoc(docRef, data as any);
+        // Strip data URLs (too large for Firestore 1MB limit)
+        const sanitized = sanitizeForFirestore({ ...data, fileUrl: '' });
+        await updateDoc(docRef, sanitized as any);
       } catch (error) {
         if (!isPermissionError(error)) {
           console.warn('updateExam Firestore failed, kept in localStorage:', error);

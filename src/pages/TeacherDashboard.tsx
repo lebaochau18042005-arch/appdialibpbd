@@ -565,11 +565,11 @@ export default function TeacherDashboard() {
 
       // Auto-parse questions from Word file (no AI, regex-based)
       let parsedQuestions: Question[] = [];
+      // ── Word: regex extraction ───────────────────────────────────────────────
       if (uploadingType === 'word') {
         try {
           const mammoth = await import('mammoth');
           const arrayBuffer = await selectedFile.arrayBuffer();
-          // Sử dụng convertToHtml để bảo lưu được images và tables
           const result = await mammoth.convertToHtml({ arrayBuffer });
           const markdownText = htmlToMarkdownWord(result.value);
           parsedQuestions = parseExamQuestionsFromText(markdownText);
@@ -577,6 +577,49 @@ export default function TeacherDashboard() {
           console.warn('Word auto-parse failed:', e);
         }
       }
+
+      // ── PDF: extract text via pdfjs-dist, then pipe to AI ───────────────────
+      if (uploadingType === 'pdf') {
+        try {
+          const pdfjs = await import('pdfjs-dist');
+          // Use bundled worker path — vite handles this automatically
+          pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+            'pdfjs-dist/build/pdf.worker.min.mjs',
+            import.meta.url
+          ).toString();
+          const arrayBuffer = await selectedFile.arrayBuffer();
+          const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+          let rawText = '';
+          for (let p = 1; p <= pdf.numPages; p++) {
+            const page = await pdf.getPage(p);
+            const content = await page.getTextContent();
+            rawText += content.items.map((s: any) => s.str).join(' ') + '\n';
+          }
+          if (rawText.trim().length > 50) {
+            const { generateExamFromContext } = await import('../services/ai');
+            parsedQuestions = await generateExamFromContext(rawText.slice(0, 80000));
+          }
+        } catch (e) {
+          console.warn('PDF auto-parse failed:', e);
+        }
+      }
+
+      // ── HTML: DOMParser text extraction → AI ────────────────────────────────
+      if (uploadingType === 'html') {
+        try {
+          const htmlText = await selectedFile.text();
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(htmlText, 'text/html');
+          const rawText = htmlDoc.body?.innerText || htmlDoc.body?.textContent || '';
+          if (rawText.trim().length > 50) {
+            const { generateExamFromContext } = await import('../services/ai');
+            parsedQuestions = await generateExamFromContext(rawText.slice(0, 80000));
+          }
+        } catch (e) {
+          console.warn('HTML auto-parse failed:', e);
+        }
+      }
+
 
       // ─── Check if any question is missing answers ─────────────────────────────
       const needsAnswers = parsedQuestions.length > 0 && parsedQuestions.some(q =>
