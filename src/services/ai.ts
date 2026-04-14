@@ -315,9 +315,9 @@ function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string,
   });
 }
 
-export async function extractQuestionsFromImage(file: File): Promise<Question[]> {
-  const imagePart = await fileToGenerativePart(file);
-  const promptText = `Bạn là một chuyên gia phân tích tài liệu và cấu trúc đề thi. Hãy đọc MỌI CÂU HỎI TRONG ẢNH cung cấp và trích xuất TOÀN BỘ ra thành danh sách JSON.
+export async function extractQuestionsFromMedia(file: File): Promise<Question[]> {
+  const mediaPart = await fileToGenerativePart(file);
+  const promptText = `Bạn là một chuyên gia phân tích tài liệu và cấu trúc đề thi. Hãy đọc MỌI CÂU HỎI TRONG TÀI LIỆU cung cấp và trích xuất TOÀN BỘ ra thành danh sách JSON.
 
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
@@ -331,7 +331,12 @@ QUY TẮC BẮT BUỘC:
    - Với true_false: để tất cả "isTrue": false (kèm ghi chú ở explanation "Cần tạo đáp án")
    - Với short_answer: để "correctAnswer": ""
 6. NẾU TRONG ĐỀ CÓ ĐÁP ÁN, hãy trích xuất chính xác đáp án đó.
-7. id phải là "q_img_1", "q_img_2",... theo thứ tự câu.
+7. id phải là "q_up_1", "q_up_2",... theo thứ tự câu.
+
+⚠️ QUY TẮC VÀNG VỀ BẢNG SỐ LIỆU / BIỂU ĐỒ (BẮT BUỘC):
+- Nếu bài thi ĐỀ CẬP HOẶC CÓ CHỨA Bảng số liệu, biểu đồ, hình vẽ → BẮT BUỘC trường "context" phải ghi lại số liệu trích xuất dưới dạng MARKDOWN TABLE (cú pháp pipe |...|).
+- Ví dụ: Bảng dân số → Dịch sang Bảng Markdown và đưa vào "context". Biểu đồ tròn → Đọc số liệu trên biểu đồ, chuyển thành Bảng Markdown và đưa vào "context".
+- TUYỆT ĐỐI KHÔNG để "context": null nếu câu hỏi phụ thuộc vào dữ liệu hình/bảng đó. Nếu bỏ trống học sinh sẽ không có dữ liệu để làm bài!
 
 Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương tự cấu trúc sau, CHỈ BAO GỒM mảng JSON, không có code block quotes hay văn bản nào khác.
 [
@@ -348,7 +353,7 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
 ]`;
 
   try {
-    const response = await generateContentWithFallback([promptText, imagePart]);
+    const response = await generateContentWithFallback([promptText, mediaPart]);
     let text = response.text.trim();
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
@@ -363,8 +368,8 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
 
     return JSON.parse(text) as Question[];
   } catch (error) {
-    console.error("Lỗi trích xuất ảnh:", error);
-    throw new Error("Không thể trích xuất ảnh. Đảm bảo ảnh rõ nét và thử lại.");
+    console.error("Lỗi trích xuất đa phương tiện:", error);
+    throw new Error("Không thể đọc tài liệu. Đảm bảo file rõ nét và thử lại.");
   }
 }
 

@@ -6,7 +6,7 @@ import { examService } from '../services/examService';
 import { QuizAttempt, Exam, Question } from '../types';
 import { cn } from '../utils/cn';
 import { useAuth } from '../contexts/AuthContext';
-import { generateExamFromContext, extractQuestionsFromImage, generateAnswersForQuestions } from '../services/ai';
+import { generateExamFromContext, extractQuestionsFromMedia, generateAnswersForQuestions } from '../services/ai';
 import TeacherStats from '../components/teacher/TeacherStats';
 import ExamManager from '../components/teacher/ExamManager';
 import HistoryTable from '../components/teacher/HistoryTable';
@@ -531,8 +531,8 @@ export default function TeacherDashboard() {
 
     setIsUploading(true);
     try {
-      if (uploadingType === 'image') {
-        const parsedQuestions = await extractQuestionsFromImage(selectedFile);
+      if (uploadingType === 'image' || uploadingType === 'pdf') {
+        const parsedQuestions = await extractQuestionsFromMedia(selectedFile);
         
         // Check if any question is missing answers
         const needsAnswers = parsedQuestions.some(q => 
@@ -578,33 +578,8 @@ export default function TeacherDashboard() {
         }
       }
 
-      // ── PDF: extract text via pdfjs-dist, then pipe to AI ───────────────────
-      if (uploadingType === 'pdf') {
-        try {
-          const pdfjs = await import('pdfjs-dist');
-          // Use bundled worker path — vite handles this automatically
-          pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-            'pdfjs-dist/build/pdf.worker.min.mjs',
-            import.meta.url
-          ).toString();
-          const arrayBuffer = await selectedFile.arrayBuffer();
-          const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-          let rawText = '';
-          for (let p = 1; p <= pdf.numPages; p++) {
-            const page = await pdf.getPage(p);
-            const content = await page.getTextContent();
-            rawText += content.items.map((s: any) => s.str).join(' ') + '\n';
-          }
-          if (rawText.trim().length > 50) {
-            const { generateExamFromContext } = await import('../services/ai');
-            parsedQuestions = await generateExamFromContext(rawText.slice(0, 80000));
-          }
-        } catch (e) {
-          console.warn('PDF auto-parse failed:', e);
-        }
-      }
-
       // ── HTML: DOMParser text extraction → AI ────────────────────────────────
+      // Note: HTML/Word usually do not have complex embedded pdf-like charts, so text parse is OK.
       if (uploadingType === 'html') {
         try {
           const htmlText = await selectedFile.text();
