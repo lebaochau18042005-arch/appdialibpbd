@@ -199,6 +199,7 @@ export default function DataTableChart({ content }: { content: string }) {
           {btn('table', 'indigo', 'Bảng số liệu', Table2)}
           {btn('bar', 'emerald', 'Biểu đồ cột', BarChart2)}
           {btn('line', 'amber', 'Biểu đồ đường', TrendingUp)}
+          {btn('area', 'sky', 'Biểu đồ miền', Layers)}
           {canCombined && btn('combined', 'violet', 'Kết hợp', BarChart2)}
           {btn('pie', 'rose', 'Biểu đồ tròn', PieIcon)}
         </div>
