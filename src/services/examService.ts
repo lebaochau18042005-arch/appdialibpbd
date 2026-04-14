@@ -4,7 +4,7 @@ import { collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc, setD
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Question, Exam, QuizAttempt, UserProfile } from '../types';
 import { Type } from "@google/genai";
-import { generateContentWithFallback } from './ai';
+import { generateContentWithFallback, KIEN_THUC_HANH_CHINH_2025_EXPORT } from './ai';
 
 // ===== LocalStorage Fallback Helpers =====
 const LS_EXAM_KEY = 'geo_pro_local_exams';
@@ -70,64 +70,7 @@ export const examService = {
     try {
       // model is selected automatically by generateContentWithFallback
       // ===== KHỐI KIẾN THỨC HÀNH CHÍNH BẮT BUỘC (sau sáp nhập 1/7/2025) =====
-      const HANH_CHINH_2025 = `
-=== ĐƠN VỊ HÀNH CHÍNH VIỆT NAM SAU SÁP NHẬP (NQ 202/2025/QH15, hiệu lực 1/7/2025) ===
-Việt Nam hiện có ĐÚNG 34 tỉnh/thành phố trực thuộc TW. TUYỆT ĐỐI CẤM dùng tên tỉnh cũ đã bị xóa.
-
-DANH SÁCH ĐẦY ĐỦ 34 ĐƠN VỊ (chỉ được dùng những tên này):
---- 6 THÀNH PHỐ TRỰC THUỘC TW ---
-1. Hà Nội
-2. TP Huế (mới - nâng cấp từ tỉnh Thừa Thiên Huế)
-3. Hải Phòng (= Hải Phòng + Hải Dương cũ)
-4. Đà Nẵng (= Đà Nẵng + Quảng Nam cũ)
-5. TP Hồ Chí Minh (= HCM + Bình Dương cũ + Bà Rịa-Vũng Tàu cũ)
-6. Cần Thơ (= Cần Thơ + Hậu Giang cũ + Sóc Trăng cũ)
-
---- 28 TỈNH ---
-7. Tuyên Quang (= Tuyên Quang + Hà Giang cũ) → Điểm cực Bắc VN (Lũng Cú) nay thuộc TUYÊN QUANG
-8. Lào Cai (= Lào Cai + Yên Bái cũ)
-9. Cao Bằng
-10. Lạng Sơn
-11. Lai Châu
-12. Điện Biên
-13. Sơn La
-14. Thái Nguyên (= Thái Nguyên + Bắc Kạn cũ)
-15. Phú Thọ (= Phú Thọ + Hòa Bình cũ + Vĩnh Phúc cũ)
-16. Bắc Ninh (= Bắc Ninh + Bắc Giang cũ)
-17. Hưng Yên (= Hưng Yên + Thái Bình cũ)
-18. Quảng Ninh
-19. Ninh Bình (= Ninh Bình + Hà Nam cũ + Nam Định cũ)
-20. Thanh Hóa
-21. Nghệ An
-22. Hà Tĩnh
-23. Quảng Trị (= Quảng Trị + Quảng Bình cũ)
-24. Quảng Ngãi (= Quảng Ngãi + Kon Tum cũ)
-25. Gia Lai (= Gia Lai + Bình Định cũ)
-26. Khánh Hòa (= Khánh Hòa + Ninh Thuận cũ)
-27. Đắk Lắk
-28. Lâm Đồng (= Lâm Đồng + Đắk Nông cũ + Bình Thuận cũ)
-29. Đồng Nai
-30. Tây Ninh
-31. Vĩnh Long
-32. Đồng Tháp
-33. An Giang (= An Giang + Kiên Giang cũ)
-34. Cà Mau (= Cà Mau + Bạc Liêu cũ)
-
-CÁC TÊN TỈNH ĐÃ XÓA BỎ — TUYỆT ĐỐI KHÔNG ĐƯỢC DÙNG LÀM ĐÁP ÁN ĐÚNG ĐỘC LẬP:
-Hà Giang, Hải Dương, Bắc Kạn, Yên Bái, Vĩnh Phúc, Hòa Bình, Bắc Giang, Hà Nam, Nam Định,
-Thái Bình, Quảng Bình, Quảng Nam, Kon Tum, Bình Định, Ninh Thuận, Đắk Nông, Bình Thuận,
-Bình Dương, Bà Rịa-Vũng Tàu, Hậu Giang, Sóc Trăng, Kiên Giang, Bạc Liêu,
-Thừa Thiên Huế (đã đổi thành TP Huế)
-
-SỰ KIỆN ĐỊA LÍ QUAN TRỌNG SAU SÁP NHẬP (phải dùng đúng khi ra câu hỏi):
-• Điểm cực Bắc VN (Lũng Cú): thuộc tỉnh TUYÊN QUANG (không phải Hà Giang)
-• Điểm cực Tây VN (Apáchải): thuộc tỉnh ĐIỆN BIÊN (không đổi)
-• Điểm cực Nam VN (Mũi Cà Mau): thuộc tỉnh CÀ MAU (không đổi)
-• Điểm cực Đông VN (Mũi Đôi): thuộc tỉnh KHÁNH HÒA
-• Sapa: thuộc tỉnh LÀO CAI (không đổi)
-• Vịnh Hạ Long: thuộc tỉnh QUẢNG NINH (không đổi)
-• Bắc Ninh là tỉnh có mật độ dân số cao nhất (sau sáp nhập Bắc Giang)
-`;
+      const HANH_CHINH_2025 = KIEN_THUC_HANH_CHINH_2025_EXPORT;
 
 
       // ===== MA TRẬN ĐỀ THI CHUẨN BỘ GDĐT 2025 BÁM SÁT ĐỀ THAM KHẢO =====
@@ -251,7 +194,7 @@ SINH ĐỦ 28 CÂU JSON, TUÂN THỦ THEO ĐÚNG TỪNG VỊ TRÍ DƯỚI ĐÂY:
 
 ═══ PHẦN I — 18 CÂU TRẮC NGHIỆM (type=multiple_choice) ═══
 Câu 1:  topic="Nhận xét biểu đồ"                          cognitiveLevel="Vận dụng"
-        → context BẮT BUỘC: bảng Markdown + cột Đơn vị + dòng "Biểu đồ: Kết hợp cột và đường"
+        → context BẮT BUỘC: bảng Markdown. Nếu so sánh cấu trúc tỷ lệ/tốc độ với quy mô, sinh Biểu đồ "Kết hợp". Nếu các đối tượng đồng nhất đơn vị tuyệt đối, CẤM DÙNG KẾT HỢP.
 Câu 2:  topic="Thiên tai và biện pháp phòng chống"         cognitiveLevel="Nhận biết"
 Câu 3:  topic="Dịch vụ GTVT/BCVT"                         cognitiveLevel="Thông hiểu"
 Câu 4:  topic="Đồng bằng sông Cửu Long"                   cognitiveLevel="Vận dụng"
@@ -412,18 +355,7 @@ YÊU CẦU CHÍNH XÁC:
     try {
       // model is selected automatically by generateContentWithFallback
 
-      const HANH_CHINH_NOTE = `
-CẬP NHẬT HÀNH CHÍNH 2025 (NQ202/2025/QH15 hiệu lực 1/7/2025): Việt Nam còn 34 đơn vị hành chính cấp tỉnh.
-KHÔNG BAO GIỌ dùng tên củ (đã sáp nhập) là một tỉnh độc lập: Hà Giang (nay = Tuyên Quang), Hải Dương (nay = Hải Phòng),
-Bắc Kạn (nay = Thái Nguyên), Yên Bái (nay = Lào Cai), Bắc Giang (nay = Bắc Ninh), Vĩnh Phúc+Hòa Bình (nay = Phú Thọ),
-Thái Bình (nay = Hưng Yên), Hà Nam+Nam Định (nay = Ninh Bình), Quảng Bình (nay = Quảng Trị),
-Quảng Nam (nay = Đà Nẵng), Kon Tum (nay = Quảng Ngãi), Bình Định (nay = Gia Lai),
-Bình Dương+Bà Rịa-Vũng Tàu (nay = TP Hồ Chí Minh), Hậu Giang+Sóc Trăng (nay = Cần Thơ),
-Kiên Giang (nay = An Giang), Bạc Liêu (nay = Cà Mau), Ninh Thuận (nay = Khánh Hòa),
-Đắk Nông+Bình Thuận (nay = Lâm Đồng).
-Điểm cực Bắc nằm tại Tuyên Quang (đã gộp Hà Giang). Quần đảo Hoàng Sa thuộc Đà Nẵng, Trường Sa thuộc Khánh Hòa.
-Thuật ngữ mới: "vùng kinh tế - xã hội" (thay cho "vùng kinh tế"). KHÔNG dùng Atlat. KHÔNG ra vùng kinh tế trọng điểm.
-`;
+      const HANH_CHINH_NOTE = KIEN_THUC_HANH_CHINH_2025_EXPORT;
 
       const systemInstruction = `Bạn là một chuyên gia biên soạn câu hỏi luyện tập môn Địa lí THPT chuẩn chương trình 2025 (TT 17/2025/TT-BGDĐT).
       Nhiệm vụ: tạo ${count} câu hỏi luyện tập về ${mode === 'topic' ? 'chủ đề' : mode === 'lesson' ? 'bài học' : 'dạng thức'}: "${topicOrLesson}".

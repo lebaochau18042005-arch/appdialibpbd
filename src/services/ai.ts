@@ -53,8 +53,8 @@ Nghị quyết 202/2025/QH15 của Quốc hội (hiệu lực 1/7/2025) sắp x�
 - Vùng Đồng bằng sông Cửu Long: Cần Thơ (đã gồm Hậu Giang + Sóc Trăng), Vĩnh Long, Đồng Tháp, An Giang (đã gồm Kiên Giang), Cà Mau (đã gồm Bạc Liêu)
 - Vùng Trung du và miền núi phía Bắc: Tuyên Quang (đã gồm Hà Giang), Lào Cai (đã gồm Yên Bái), Thái Nguyên (đã gồm Bắc Kạn), Phú Thọ (đã gồm Hòa Bình + Vĩnh Phúc), Cao Bằng, Lạng Sơn, Lai Châu, Điện Biên, Sơn La
 - Vùng Bắc Trung Bộ: Thanh Hóa, Nghệ An, Hà Tĩnh, Quảng Trị (đã gồm Quảng Bình), TP Huế
-- Vùng Nam Trung Bộ: Đà Nẵng (đã gồm Quảng Nam), Quảng Ngãi (đã gồm Kon Tum), Gia Lai (đã gồm Bình Định), Khánh Hòa (đã gồm Ninh Thuận)
-- Vùng Tây Nguyên: Đắk Lắk, Lâm Đồng (đã gồm Đắk Nông + Bình Thuận)
+- Vùng Nam Trung Bộ: (Bao gồm Duyên hải Nam Trung Bộ cũ + khu vực Tây Nguyên cũ): Đà Nẵng (đã gồm Quảng Nam), Quảng Ngãi (đã gồm Kon Tum), Gia Lai (đã gồm Bình Định), Khánh Hòa (đã gồm Ninh Thuận), Đắk Lắk, Lâm Đồng (đã gồm Đắk Nông + Bình Thuận).
+⚠️ KHÁI NIỆM "VÙNG TÂY NGUYÊN" ĐÃ BỊ BỘ GIÁO DỤC XÓA BỎ HOÀN TOÀN TỪ 1/7/2025 (GỘP VÀO NAM TRUNG BỘ). CẤM SỬ DỤNG "TÂY NGUYÊN" LÀM ĐÁP ÁN ĐÚNG TRONG MỌI CÂU HỎI VỀ VÙNG.
 
 ### Thông tư 17/2025/TT-BGDĐT (Bộ GDĐT, hiệu lực 12/9/2025):
 - Sửa đổi Chương trình GDPT 2018, yêu cầu cập nhật nội dung Địa lý 12 theo 34 đơn vị hành chính mới.

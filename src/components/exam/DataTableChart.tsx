@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   ComposedChart, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
+  Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList
 } from 'recharts';
 import { BarChart2, TrendingUp, Table2, PieChart as PieIcon, Layers } from 'lucide-react';
 
@@ -151,9 +151,16 @@ export default function DataTableChart({ content }: { content: string }) {
   const canChart = numericKeys.length > 0 && chartData.length >= 2;
   const canCombined = numericKeys.length >= 2;
 
-  // If we pivoted (year table), separate big-value keys (bar) from small-value keys (line)
-  const barKey = numericKeys[0];
-  const lineKeys = numericKeys.slice(1);
+  // Separate keys based on terminology/regex for combined charts
+  const barKeys: string[] = [];
+  const lineKeys: string[] = [];
+  numericKeys.forEach(k => {
+    if (/%|tốc độ|tỉ trọng|tỉ lệ/i.test(k)) {
+      lineKeys.push(k);
+    } else {
+      barKeys.push(k);
+    }
+  });
 
   const annotation = useMemo(() => {
     const lines = content.split('\n');
@@ -234,7 +241,11 @@ export default function DataTableChart({ content }: { content: string }) {
               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} width={65} tickFormatter={yFmt} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-              {numericKeys.map((k, i) => <Bar key={k} dataKey={k} fill={COLORS[i % COLORS.length]} radius={[3,3,0,0]} maxBarSize={60} />)}
+              {numericKeys.map((k, i) => (
+                <Bar key={k} dataKey={k} fill={COLORS[i % COLORS.length]} radius={[3,3,0,0]} maxBarSize={60}>
+                  <LabelList dataKey={k} position="top" style={{ fontSize: 10, fill: '#64748b' }} formatter={yFmt} />
+                </Bar>
+              ))}
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -250,7 +261,11 @@ export default function DataTableChart({ content }: { content: string }) {
               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} width={65} tickFormatter={yFmt} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-              {numericKeys.map((k, i) => <Line key={k} type="monotone" dataKey={k} stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />)}
+              {numericKeys.map((k, i) => (
+                <Line key={k} type="monotone" dataKey={k} stroke={COLORS[i % COLORS.length]} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }}>
+                  <LabelList dataKey={k} position="top" style={{ fontSize: 10, fill: '#64748b' }} formatter={yFmt} />
+                </Line>
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -280,22 +295,29 @@ export default function DataTableChart({ content }: { content: string }) {
       {canChart && canCombined && view === 'combined' && (
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <p className="text-[11px] text-slate-500 mb-2 font-medium">
-            <span className="text-indigo-600 font-bold">{barKey}</span> — cột (trục trái) &nbsp;|&nbsp;
-            <span className="text-amber-600 font-bold">{lineKeys.join(', ')}</span> — đường (trục phải)
+            {barKeys.length > 0 && <><span className="text-indigo-600 font-bold">{barKeys.join(', ')}</span> — cột (trục trái)</>}
+            {barKeys.length > 0 && lineKeys.length > 0 && " | "}
+            {lineKeys.length > 0 && <><span className="text-amber-600 font-bold">{lineKeys.join(', ')}</span> — đường (trục phải)</>}
           </p>
           <ResponsiveContainer width="100%" height={290}>
             <ComposedChart data={chartData} margin={margin}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis {...xProps} />
-              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} width={70} tickFormatter={yFmt} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#f59e0b' }} width={55} tickFormatter={yFmt} />
+              {barKeys.length > 0 && <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} width={70} tickFormatter={yFmt} />}
+              {lineKeys.length > 0 && <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#f59e0b' }} width={55} tickFormatter={yFmt} />}
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-              <Bar yAxisId="left" dataKey={barKey} fill={COLORS[0]} radius={[3,3,0,0]} maxBarSize={65} name={barKey} />
+              {barKeys.map((k, i) => (
+                <Bar key={k} yAxisId="left" dataKey={k} fill={COLORS[i % COLORS.length]} radius={[3,3,0,0]} maxBarSize={65} name={k}>
+                  <LabelList dataKey={k} position="top" style={{ fontSize: 10, fill: '#64748b' }} formatter={yFmt} />
+                </Bar>
+              ))}
               {lineKeys.map((k, i) => (
-                <Line yAxisId="right" key={k} type="monotone" dataKey={k}
-                  stroke={COLORS[i + 2 < COLORS.length ? i + 2 : i + 1]}
-                  strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} name={k} />
+                <Line key={k} yAxisId="right" type="monotone" dataKey={k}
+                  stroke={COLORS[(i + barKeys.length) % COLORS.length]}
+                  strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} name={k}>
+                   <LabelList dataKey={k} position="top" style={{ fontSize: 10, fill: '#64748b' }} formatter={yFmt} />
+                </Line>
               ))}
             </ComposedChart>
           </ResponsiveContainer>
