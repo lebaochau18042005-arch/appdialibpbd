@@ -61,6 +61,17 @@ export default function Quiz() {
   const [studentName, setStudentName] = useState<string>('');
   const [hasJoined, setHasJoined] = useState(false);
 
+  const applyPracticeScoring = (questionsList: Question[]) => {
+    if (mode !== 'exam' && questionsList.length > 0) {
+      const basePoint = 10 / questionsList.length;
+      setScoringConfig({
+        mcPointsEach: basePoint,
+        saPointsEach: basePoint,
+        tfPointsPerLevel: [basePoint * 0.1, basePoint * 0.25, basePoint * 0.5, basePoint * 1.0]
+      });
+    }
+  };
+
   useEffect(() => {
     const savedProfile = localStorage.getItem('examGeoProfile');
     if (savedProfile) {
@@ -109,6 +120,7 @@ export default function Quiz() {
 
           const aiQuestions = await examService.generatePracticeQuestions(filter, mode, count, fileContext);
           setQuizQuestions(aiQuestions);
+          applyPracticeScoring(aiQuestions);
         } catch (err: any) {
           console.error('Lỗi khi tạo câu hỏi AI:', err);
           const msg = err?.message || String(err);
@@ -173,6 +185,7 @@ export default function Quiz() {
         ];
       }
       setQuizQuestions(finalQuestions);
+      applyPracticeScoring(finalQuestions);
     };
 
     loadQuestions();
