@@ -1287,6 +1287,19 @@ export default function TeacherDashboard() {
                       </div>
                     </div>
                     
+                    {q.imageUrl && (
+                      <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center ml-12">
+                        <img src={q.imageUrl} alt="Hình minh họa" className="max-w-full max-h-72 object-contain" />
+                      </div>
+                    )}
+                    
+                    {q.context && (
+                      <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 ml-12">
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">📊 Bảng số liệu & Biểu đồ tham khảo</p>
+                        <DataTableChart content={q.context} />
+                      </div>
+                    )}
+                    
                     {q.type === 'multiple_choice' && q.options && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-12">
                         {q.options.map((opt, idx) => (

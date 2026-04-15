@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, ChevronRight, RotateCcw, Layers } from 'lucide-react';
 import { Exam, Question } from '../../types';
 import { cn } from '../../utils/cn';
+import DataTableChart from '../exam/DataTableChart';
 
 interface FlashcardModalProps {
   exam: Exam;
@@ -115,7 +116,12 @@ export default function FlashcardModal({ exam, onClose }: FlashcardModalProps) {
                 <div className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-4">CÂU HỎI — Nhấn để xem đáp án</div>
                 <p className="text-slate-800 font-bold text-lg leading-relaxed text-center">{current.text}</p>
                 {current.imageUrl && (
-                  <img src={current.imageUrl} alt="" className="mt-4 max-h-28 rounded-xl object-contain" />
+                  <img src={current.imageUrl} alt="" className="mt-4 max-h-28 rounded-xl object-contain shrink-0" />
+                )}
+                {current.context && (
+                  <div className="mt-4 w-full max-h-32 overflow-y-auto no-scrollbar rounded-xl border border-purple-200 bg-white/50 p-2">
+                    <DataTableChart content={current.context} />
+                  </div>
                 )}
               </div>
 
