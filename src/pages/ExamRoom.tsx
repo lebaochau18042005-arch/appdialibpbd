@@ -56,6 +56,14 @@ export default function ExamRoom() {
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [detailedExplanations, setDetailedExplanations] = useState<Record<number, { explanation: string, tips: string, mnemonics: string }>>({});
   const [loadingExplanation, setLoadingExplanation] = useState<number | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState('Đang chuẩn bị đề thi...');
+
+  /** Wraps any promise with a timeout; rejects after `ms` ms */
+  const withTimeout = <T,>(promise: Promise<T>, ms: number, label = 'Timeout'): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms)),
+    ]);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const sessionKeyRef = useRef<string>('');
@@ -109,34 +117,68 @@ export default function ExamRoom() {
         setExamTitle('Đề thi thử (AI) - Luyện tập');
         if (libraryFileId) {
           try {
+            setLoadingStatus('📂 Đang đọc tài liệu...');
             const fileSnap = await get(ref(rtdb, `library_files/${libraryFileId}`));
             if (fileSnap.exists()) {
               const fileData = fileSnap.val();
               const fileUrl = fileData.storagePath || fileData.fileUrl;
-              const fileContext = await extractTextFromUrl(fileUrl, fileData.fileType);
-              const aiQuestions = await examService.generateAIExam(fileContext);
-              setExamQuestions(aiQuestions);
-            } else {
-              // No library file found — generate fresh AI exam (with chart contexts)
+              let fileContext = '';
               try {
-                const aiQuestions = await examService.generateAIExam();
+                fileContext = await withTimeout(
+                  extractTextFromUrl(fileUrl, fileData.fileType),
+                  12000,
+                  'extractText'
+                );
+              } catch (extractErr) {
+                console.warn('File extract failed or timed out, going to random fallback:', extractErr);
+                setLoadingStatus('⚡ Tài liệu không trích xuất được — đang dùng ngân hàng câu hỏi...');
+                generateRandomExam();
+                setStartTime(Date.now()); setTimeLeft(3000);
+                return;
+              }
+              try {
+                setLoadingStatus('🤖 AI đang tạo đề thi từ tài liệu...');
+                const aiQuestions = await withTimeout(
+                  examService.generateAIExam(fileContext),
+                  25000,
+                  'generateAIExam'
+                );
+                setExamQuestions(aiQuestions);
+              } catch (aiErr) {
+                console.warn('AI exam gen failed, falling back to random:', aiErr);
+                setLoadingStatus('⚡ AI không phản hồi — đang dùng ngân hàng câu hỏi...');
+                generateRandomExam();
+              }
+            } else {
+              // Library file not found — generate from AI without context
+              try {
+                setLoadingStatus('🤖 AI đang tạo đề thi ngẫu nhiên...');
+                const aiQuestions = await withTimeout(
+                  examService.generateAIExam(),
+                  25000,
+                  'generateAIExam'
+                );
                 setExamQuestions(aiQuestions);
               } catch { generateRandomExam(); }
             }
           } catch (err) {
-            console.error('Lỗi khi đọc file thư viện, fallback về AI:', err);
-            try {
-              const aiQuestions = await examService.generateAIExam();
-              setExamQuestions(aiQuestions);
-            } catch { generateRandomExam(); }
+            console.error('Unexpected error loading library exam, falling back:', err);
+            setLoadingStatus('⚡ Đang dùng ngân hàng câu hỏi...');
+            generateRandomExam();
           }
         } else {
-          // No library file — generate fresh AI exam (with two-pass chart context)
+          // No library file — generate fresh AI exam
           try {
-            const aiQuestions = await examService.generateAIExam();
+            setLoadingStatus('🤖 AI đang tạo đề thi...');
+            const aiQuestions = await withTimeout(
+              examService.generateAIExam(),
+              25000,
+              'generateAIExam'
+            );
             setExamQuestions(aiQuestions);
           } catch (err) {
             console.warn('AI exam gen failed, falling back to random:', err);
+            setLoadingStatus('⚡ Đang dùng ngân hàng câu hỏi...');
             generateRandomExam();
           }
         }
@@ -351,8 +393,9 @@ export default function ExamRoom() {
   if (examQuestions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
-        <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mb-4" />
-        <p className="text-slate-600 font-medium">Đang chuẩn bị đề thi...</p>
+              <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mb-4" />
+        <p className="text-slate-600 font-medium">{loadingStatus}</p>
+        <p className="text-slate-400 text-xs mt-2">Nếu màn hình không tiến triển sau 30 giây, hãy tải lại trang.</p>
       </div>
     );
   }
