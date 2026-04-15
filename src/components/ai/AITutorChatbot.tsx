@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bot, X, Send, User, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Bot, X, Send, User, Loader2, Sparkles, AlertCircle, Image } from 'lucide-react';
 import { chatWithTutor } from '../../services/ai';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -9,6 +9,7 @@ import { cn } from '../../utils/cn';
 interface Message {
   role: 'user' | 'model';
   text: string;
+  imageUrl?: string;
 }
 
 export default function AITutorChatbot() {
@@ -18,7 +19,18 @@ export default function AITutorChatbot() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setSelectedImage(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Allow re-selecting the same file
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -29,15 +41,18 @@ export default function AITutorChatbot() {
   }, [messages, isOpen]);
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !selectedImage) || isLoading) return;
     
-    const userMessage = input.trim();
+    const userMessage = input.trim() || 'Thầy/cô giải thích giúp em hình ảnh này nhé.';
+    const imageToSend = selectedImage;
+    
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setSelectedImage(null);
+    setMessages(prev => [...prev, { role: 'user', text: userMessage, imageUrl: imageToSend || undefined }]);
     setIsLoading(true);
 
     try {
-      const response = await chatWithTutor(userMessage, messages);
+      const response = await chatWithTutor(userMessage, messages, imageToSend || undefined);
       setMessages(prev => [...prev, { role: 'model', text: response || 'Lỗi phản hồi.' }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'model', text: 'Rất xin lỗi, hệ thống AI đang gặp sự cố kết nối. Vui lòng thử lại sau!' }]);
@@ -129,6 +144,9 @@ export default function AITutorChatbot() {
                     "p-3.5 rounded-2xl md:text-sm text-[15px] leading-relaxed",
                     msg.role === 'user' ? "bg-blue-600 text-white rounded-br-sm" : "bg-white border border-slate-200 shadow-sm text-slate-800 rounded-bl-sm markdown-body prose-sm max-w-none"
                   )}>
+                    {msg.imageUrl && (
+                      <img src={msg.imageUrl} alt="Đính kèm" className="max-w-full max-h-48 rounded-xl mb-3 object-contain bg-white/10" />
+                    )}
                     <Markdown remarkPlugins={[remarkGfm]}>{msg.text}</Markdown>
                   </div>
                 </motion.div>
@@ -153,19 +171,52 @@ export default function AITutorChatbot() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white border-t border-slate-100 shrink-0">
-              <div className="relative flex items-center">
+            <div className="p-4 bg-white border-t border-slate-100 shrink-0 relative">
+              <AnimatePresence>
+                {selectedImage && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="absolute bottom-full left-4 mb-2 z-10"
+                  >
+                    <div className="relative inline-block bg-white p-1 rounded-xl shadow-lg border border-slate-200">
+                      <img src={selectedImage} alt="Preview" className="h-24 rounded-lg object-contain" />
+                      <button 
+                        onClick={() => setSelectedImage(null)}
+                        className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-md hover:bg-rose-600 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div className="relative flex items-center bg-slate-100 rounded-2xl border-none focus-within:ring-2 focus-within:ring-emerald-500/50">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="pl-4 pr-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  <Image size={20} />
+                </button>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  ref={fileInputRef} 
+                  onChange={handleImageSelect} 
+                />
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Hãy hỏi bất kỳ câu hỏi nào..."
-                  className="w-full pl-4 pr-12 py-3 bg-slate-100 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none h-[52px] max-h-[120px] text-sm overflow-hidden placeholder:text-slate-400"
+                  placeholder="Hỏi bất kỳ điều gì..."
+                  className="w-full pr-12 py-3 bg-transparent font-medium text-slate-900 border-none outline-none resize-none h-[52px] max-h-[120px] text-sm overflow-hidden placeholder:text-slate-400 focus:ring-0"
                   rows={1}
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
+                  disabled={(!input.trim() && !selectedImage) || isLoading}
                   className="absolute right-2 p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4" />
