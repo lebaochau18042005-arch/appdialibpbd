@@ -10,8 +10,8 @@ import { ref as rtdbRef, push, onValue, remove } from 'firebase/database';
 const CLOUDINARY_CLOUD_NAME = 'dahaer5kb';
 const CLOUDINARY_UPLOAD_PRESET = 'geo_uploads'; // unsigned preset
 
-/** Maximum file size allowed for direct upload (Cloudinary free tier) */
-export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB
+/** Maximum file size allowed for direct upload (Cloudinary free tier limit is 10MB) */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export interface LibraryVideo {
   id: string;
@@ -85,9 +85,9 @@ export const libraryService = {
   ): Promise<void> {
     if (file.size > MAX_UPLOAD_BYTES) {
       throw new Error(
-        `File quá lớn (${(file.size / 1024 / 1024).toFixed(0)} MB). ` +
-        `Giới hạn tải lên trực tiếp là 100 MB. ` +
-        `Hãy dùng Google Drive và nhập link bên dưới.`
+        `File quá lớn (${(file.size / 1024 / 1024).toFixed(1)} MB). ` +
+        `Cloudinary giới hạn miễn phí tối đa là 10 MB. ` +
+        `Hãy dùng Google Drive và chọn "Dùng link Drive".`
       );
     }
 
