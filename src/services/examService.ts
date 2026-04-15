@@ -245,6 +245,18 @@ Câu III.6: topic="Địa lí tự nhiên Việt Nam"        cognitiveLevel="Th�
 ─── VÍ DỤ CÂU TÍNH HỢP LỆ ───
 "Dân số VN 2024: 99,5 triệu, tỉ lệ tăng tự nhiên 0,9‰ → Tính số tăng thêm (nghìn người)" → correctAnswer: "896"
 "GDP VN 2024: 477 tỷ USD, dân số 99,5 triệu → Tính GDP/người (USD, làm tròn nghìn)" → correctAnswer: "4793"
+"TP HCM: diện tích 30500 km², dân số 24,5 triệu → Tính mật độ dân số (người/km², làm tròn đến hàng đơn vị)" → correctAnswer: "803"
+
+⚠️ QUY TẮC PHIẾU CHẤM BGD — BẮT BUỘC TUYỆT ĐỐI:
+Phiếu trả lời của BGD chỉ có 4 ô (gồm chữ số + dấu "," + dấu "-"), do đó:
+- correctAnswer PHẢI là chuỗi TỐI ĐA 4 KÝ TỰ, chỉ gồm chữ số, dấu phẩy "," và dấu trừ "-".
+- Nếu đề yêu cầu "làm tròn đến hàng đơn vị" → correctAnswer là số nguyên (vd: "803").
+- Nếu đề yêu cầu "làm tròn đến 1 chữ số thập phân" → correctAnswer có đúng 1 thập phân (vd: "80,3").
+- Nếu đề yêu cầu "làm tròn đến 2 chữ số thập phân" → correctAnswer có đúng 2 thập phân (vd: "8,03").
+- VÍ DỤ HỢP LỆ: "803" (3 ký tự), "80,3" (4 ký tự), "-8,3" (4 ký tự), "1234" (4 ký tự).
+- VÍ DỤ SAI: "803,2" (5 ký tự — quá 4 ô), "803.28" (dấu chấm — KHÔNG dùng).
+- RA ĐỀ PHẢI thiết kế số liệu sao cho kết quả tính toán sau làm tròn vừa đúng 4 ký tự trở xuống.
+- KHÔNG được lưu correctAnswer có phần thập phân khi câu hỏi yêu cầu làm tròn đến hàng đơn vị.
 
 ─── FORMAT CONTEXT BIỂU ĐỒ ───
 Dòng 1: "Biểu đồ: [Tên loại]"
@@ -370,6 +382,7 @@ YÊU CẦU CHÍNH XÁC:
       QUY TẮC BẮT BUỘC:
       1. CẤU TRÚC: ${mode === 'format' ? `CHỈ TẠO CÁC CÂU HỎI THUỘC ĐÚNG MỘT DẠNG: ${topicOrLesson}. (multiple_choice, true_false, hoặc short_answer).` : `Kết hợp các loại câu hỏi (Trắc nghiệm, Đúng/Sai, Trả lời ngắn) theo tỉ lệ phù hợp.`}
       2. ĐỐI VỚI DẠNG TRẢ LỜI NGẮN (short_answer): BẮT BUỘC phải là các bài tập tính toán dựa trên công thức địa lí (ví dụ: mật độ dân số, năng suất, bình quân đầu người, biên độ nhiệt, v.v.). Đáp án correctAnswer PHẢI LÀ MỘT CON SỐ. Không ra câu hỏi lý thuyết cho dạng trả lời ngắn.
+         ⚠️ QUY TẮC PHIẾU BGD 4 Ô — BẮT BUỘC: Phiếu trả lời BGD chỉ có 4 ô (chữ số + dấu "," + dấu "-"). Do đó correctAnswer PHẢI là chuỗi tối đa 4 ký tự. Nếu câu yêu cầu làm tròn đến hàng đơn vị → correctAnswer là số nguyên (vd: "803"). Nếu yêu cầu 1 thập phân → vd: "80,3". Nếu yêu cầu 2 thập phân → vd: "8,03". Ra đề phải thiết kế số liệu sao cho kết quả sau làm tròn vừa đúng ≤ 4 ký tự.
       3. SỐ LIỆU: Nếu câu hỏi cần bảng số liệu, đặt vào trường "context" dưới dạng MARKDOWN TABLE với số liệu cụ thể (không dùng URL).
       4. CHÍNH XÁC KIẾN THỨC: Bám sát chương trình mới nhất (TT 17/2025). Dùng đúng tên tỉnh thành sau sáp nhập.
       5. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.

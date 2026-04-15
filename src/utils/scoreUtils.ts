@@ -13,9 +13,9 @@ export const DEFAULT_BGD_SCORING: ScoringConfig = {
 };
 
 /**
- * Chuẩn hóa đáp án trả lời ngắn:
- * - Loại khoảng trắng thừa
- * - Chuyển dấu chấm "." thành dấu phẩy "," (chuẩn VN)
+ * Chuẩn hóa đáp án trả lời ngắn theo định dạng phiếu BGD:
+ * - Phiếu BGD chỉ có 4 ô gồm chữ số, dấu "," và dấu "-"
+ * - Loại khoảng trắng, chuyển "." → "," (học sinh VN hay dùng dấu chấm)
  * - Về chữ thường
  */
 export function normalizeShortAnswer(val: string | number): string {
@@ -23,13 +23,48 @@ export function normalizeShortAnswer(val: string | number): string {
 }
 
 /**
- * So sánh đáp án trả lời ngắn — chấp nhận cả dấu "," và "." làm dấu thập phân.
- * Không yêu cầu khớp đơn vị.
+ * Kiểm tra định dạng hợp lệ theo phiếu BGD (tối đa 4 ký tự, chỉ chữ số + "," + "-").
+ * Ví dụ hợp lệ: "803", "80,3", "-8,3", "1234", "-803", "0,25"
+ * Ví dụ KHÔNG hợp lệ: "803,2" (5 ký tự), "1234,5" (5 ký tự)
+ */
+export function isBGDFormat(val: string): boolean {
+  const normalized = normalizeShortAnswer(val);
+  // Chỉ cho phép: chữ số, dấu phẩy, dấu trừ — tối đa 4 ký tự
+  return /^-?[0-9]{1,3}(,[0-9]+)?$/.test(normalized) && normalized.length <= 4;
+}
+
+/**
+ * Chuyển chuỗi số (VN hoặc quốc tế) sang số thực.
+ * Chấp nhận cả "," và "." làm dấu thập phân.
+ */
+function parseNumericAnswer(val: string): number | null {
+  // Chuẩn hoá thập phân VN: "," → "."
+  const normalized = val.replace(',', '.');
+  const n = parseFloat(normalized);
+  return isNaN(n) ? null : n;
+}
+
+/**
+ * So sánh đáp án trả lời ngắn — tuân thủ quy tắc phiếu BGD 4 ô.
+ *
+ * QUY TẮC BGD: Phiếu chấm chỉ có 4 ô (chữ số + "," + "-").
+ * Học sinh PHẢI điền đúng giá trị đã làm tròn theo yêu cầu đề.
+ * → KHÔNG có dung sai làm tròn: "803" ≠ "803,3" — sai là sai.
+ *
+ * Chỉ chuẩn hoá dấu "." ↔ "," để học sinh dùng cả hai cách đều được nhận.
  */
 export function isShortAnswerCorrect(userAnswer: string, correctAnswer: string | number): boolean {
+  // Bước 1: Khớp chuỗi sau chuẩn hoá (chỉ chuẩn hoá dấu . và ,)
   const user = normalizeShortAnswer(userAnswer);
   const correct = normalizeShortAnswer(correctAnswer);
-  return user === correct;
+  if (user === correct) return true;
+
+  // Bước 2: So sánh số học chính xác (KHÔNG dung sai — học sinh phải tính đúng)
+  const userNum = parseNumericAnswer(user);
+  const correctNum = parseNumericAnswer(correct);
+  if (userNum === null || correctNum === null) return false;
+
+  return userNum === correctNum;
 }
 
 /**

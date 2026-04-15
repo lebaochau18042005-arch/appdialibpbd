@@ -508,6 +508,14 @@ Nếu nội dung câu hỏi nói "Cho biểu đồ sau" / "Theo bảng số li�
 QUY TẮC JSON:
 - Với câu multiple_choice: trả về "correctAnswerIndex": (0-3)
 - Với câu short_answer: trả về "correctAnswer": "..."
+  ⚠️ QUY TẮC PHIẾU BGD 4 Ô — BẮT BUỘC: Phiếu trả lời BGD chỉ có 4 ô (chữ số + dấu "," + dấu "-").
+  correctAnswer PHẢI là chuỗi TỐI ĐA 4 KÝ TỰ, dùng dấu phẩy "," (không dùng dấu chấm "."):
+  - Làm tròn đến hàng đơn vị → số nguyên: "803", "1234"
+  - Làm tròn đến 1 thập phân → "80,3", "12,5"
+  - Làm tròn đến 2 thập phân → "8,03", "0,25"
+  - Số âm → bắt đầu bằng "-": "-8,3", "-803"
+  VÍ DỤ ĐÚNG: "803" (3 ký tự) ✓, "80,3" (4 ký tự) ✓
+  VÍ DỤ SAI: "803,2" (5 ký tự) ✗, "803.28" (dấu chấm) ✗
 - Với câu true_false: trả về "statements": mảng { id, isTrue }
 - BẮT BUỘC trả về "context" nếu bạn vừa tạo thêm bảng. KHÔNG trả về "context" nếu không cần.
 - Trả về "explanation" giải thích ngắn gọn dựa trên kiến thức thật hoặc bảng bạn tự tạo.

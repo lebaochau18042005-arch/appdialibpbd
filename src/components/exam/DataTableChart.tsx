@@ -120,21 +120,15 @@ function detectChartType(content: string): ViewMode {
 // ── Colors ────────────────────────────────────────────────────────────────────
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl text-sm">
-      <p className="font-bold text-slate-800 mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} style={{ color: p.fill || p.stroke || p.color }}>
-          {p.name}: <span className="font-bold">
-            {typeof p.value === 'number' ? p.value.toLocaleString('vi-VN') : p.value}
-          </span>
-        </p>
-      ))}
-    </div>
-  );
-};
+// ── Chart type button config ──────────────────────────────────────────────────
+const CHART_BUTTONS: { v: ViewMode; label: string; Icon: any; color: string; border: string; bg: string; bgActive: string }[] = [
+  { v: 'table',    label: 'Bảng số liệu',  Icon: Table2,    color: '#6366f1', border: '#a5b4fc', bg: '#eef2ff', bgActive: '#6366f1' },
+  { v: 'bar',      label: 'Biểu đồ cột',   Icon: BarChart2,  color: '#10b981', border: '#6ee7b7', bg: '#ecfdf5', bgActive: '#10b981' },
+  { v: 'line',     label: 'Biểu đồ đường', Icon: TrendingUp, color: '#f59e0b', border: '#fde68a', bg: '#fffbeb', bgActive: '#f59e0b' },
+  { v: 'area',     label: 'Biểu đồ miền',  Icon: Layers,     color: '#0ea5e9', border: '#7dd3fc', bg: '#f0f9ff', bgActive: '#0ea5e9' },
+  { v: 'combined', label: 'Kết hợp',        Icon: BarChart2,  color: '#8b5cf6', border: '#c4b5fd', bg: '#f5f3ff', bgActive: '#8b5cf6' },
+  { v: 'pie',      label: 'Biểu đồ tròn',  Icon: PieIcon,    color: '#f43f5e', border: '#fda4af', bg: '#fff1f2', bgActive: '#f43f5e' },
+];
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function DataTableChart({ content }: { content: string }) {
@@ -181,27 +175,31 @@ export default function DataTableChart({ content }: { content: string }) {
   const yFmt = (v: any) => typeof v === 'number' ? v.toLocaleString('vi-VN') : v;
   const margin = { top: 10, right: 40, left: 10, bottom: 30 };
 
-  const btnBase = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all';
-  const btn = (v: ViewMode, color: string, label: string, Icon: any) => (
-    <button key={v} onClick={() => setView(v)}
-      className={`${btnBase} ${view === v
-        ? `bg-${color}-600 text-white border-${color}-600`
-        : `bg-white text-${color}-600 border-${color}-300 hover:bg-${color}-50`}`}>
-      <Icon size={12} /> {label}
-    </button>
-  );
-
   return (
     <div className="space-y-3 w-full">
-      {/* Toggle buttons */}
+      {/* Toggle buttons — inline styles used intentionally to prevent Tailwind purge */}
       {canChart && (
         <div className="flex items-center gap-2 flex-wrap">
-          {btn('table', 'indigo', 'Bảng số liệu', Table2)}
-          {btn('bar', 'emerald', 'Biểu đồ cột', BarChart2)}
-          {btn('line', 'amber', 'Biểu đồ đường', TrendingUp)}
-          {btn('area', 'sky', 'Biểu đồ miền', Layers)}
-          {canCombined && btn('combined', 'violet', 'Kết hợp', BarChart2)}
-          {btn('pie', 'rose', 'Biểu đồ tròn', PieIcon)}
+          {CHART_BUTTONS.filter(b => b.v !== 'combined' || canCombined).map(({ v, label, Icon, color, border, bg, bgActive }) => {
+            const isActive = view === v;
+            return (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 12px', borderRadius: '8px',
+                  fontSize: '12px', fontWeight: 700,
+                  border: `1px solid ${isActive ? bgActive : border}`,
+                  background: isActive ? bgActive : bg,
+                  color: isActive ? '#fff' : color,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >
+                <Icon size={12} /> {label}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -271,11 +269,11 @@ export default function DataTableChart({ content }: { content: string }) {
         </div>
       )}
 
-      {/* Area / Miền — stacked 100% when pivoted (percent data) */}
+      {/* Area / Miền — stacked when multiple series */}
       {canChart && view === 'area' && (
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={chartData} margin={margin} stackOffset={needsPivot ? undefined : undefined}>
+            <AreaChart data={chartData} margin={margin}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis {...xProps} />
               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} width={65} tickFormatter={yFmt} />
@@ -324,8 +322,8 @@ export default function DataTableChart({ content }: { content: string }) {
         </div>
       )}
 
-      {/* Pie / Tròn (single-value series) */}
-      {canChart && !canCombined && view === 'pie' && (
+      {/* Pie / Tròn — works for both single and multi-series (uses first numeric key) */}
+      {canChart && view === 'pie' && (
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <ResponsiveContainer width="100%" height={290}>
             <PieChart>
@@ -355,3 +353,19 @@ export default function DataTableChart({ content }: { content: string }) {
     </div>
   );
 }
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl text-sm">
+      <p className="font-bold text-slate-800 mb-1">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <p key={i} style={{ color: p.fill || p.stroke || p.color }}>
+          {p.name}: <span className="font-bold">
+            {typeof p.value === 'number' ? p.value.toLocaleString('vi-VN') : p.value}
+          </span>
+        </p>
+      ))}
+    </div>
+  );
+};
