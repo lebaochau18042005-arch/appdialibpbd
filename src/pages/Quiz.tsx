@@ -109,9 +109,14 @@ export default function Quiz() {
 
           const aiQuestions = await examService.generatePracticeQuestions(filter, mode, count, fileContext);
           setQuizQuestions(aiQuestions);
-        } catch (err) {
+        } catch (err: any) {
           console.error('Lỗi khi tạo câu hỏi AI:', err);
-          alert('Không thể tạo câu hỏi AI lúc này (hoặc lỗi đọc tài liệu). Hệ thống sẽ dùng ngân hàng câu hỏi có sẵn.');
+          const msg = err?.message || String(err);
+          if (msg.includes('API Key') || msg.includes('apiKey') || msg.includes('Chưa thiết lập') || msg.includes('API_KEY_INVALID')) {
+            alert('⚠️ Chưa thiết lập API Key cho AI.\nVào Trang chủ → Cấu hình AI → nhập Google Gemini API Key để dùng tính năng này.\n\nHệ thống sẽ dùng ngân hàng câu hỏi có sẵn.');
+          } else {
+            alert('Không thể tạo câu hỏi AI lúc này. Hệ thống sẽ dùng ngân hàng câu hỏi có sẵn.');
+          }
           // Fallback to static questions
           loadStaticQuestions();
         } finally {
