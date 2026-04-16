@@ -2,12 +2,23 @@ import { GoogleGenAI } from '@google/genai';
 import { Question, UserProfile, QuizAttempt } from '../types';
 
 const FALLBACK_MODELS = [
-  'gemini-1.5-pro',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-2.5-flash-lite',
 ];
 
-const DEFAULT_MODEL = 'gemini-1.5-flash';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
+
+// ── Boot-time localStorage cleanup ────────────────────────────────────────────
+// Clear any stale/invalid model IDs (from previous versions) that would cause 404.
+(function cleanupStaleModel() {
+  const stored = localStorage.getItem('GEMINI_MODEL');
+  const valid = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite']);
+  if (stored && !valid.has(stored)) {
+    console.warn('[AI] Xóa model cũ không hợp lệ khỏi localStorage:', stored);
+    localStorage.removeItem('GEMINI_MODEL');
+  }
+})();
 
 // ===== KIẾN THỨC HÀNH CHÍNH SAU SÁP NHẬP 1/7/2025 (NQ 202/2025/QH15) =====
 // Được nhúng vào TẤT CẢ các prompt AI để mọi giải thích đều dùng thông tin hành chính MỚI NHẤT

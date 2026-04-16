@@ -4,14 +4,18 @@ Tài liệu này ghi lại các quy tắc đã được thống nhất để AI 
 Tôi đang triển khai ứng dụng từ github qua vercel, hãy kiểm tra giúp tôi các file vercel.json, index.html có tham chiếu đúng chưa và hướng dẫn tôi setup api key gemini để người dùng tự nhập API key của họ để chạy app
 
 ## 1. Cấu hình Model AI & Cơ chế Fallback
-- **Model mặc định**: `gemini-3-pro-preview`
+- **Model mặc định**: `gemini-2.5-flash` (model chính thức, ổn định, miễn phí trên AI Studio)
 - **Model dự phòng**: Tự động chuyển đổi nếu model hiện tại gặp lỗi/quá tải:
-  1. `gemini-3-flash-preview`
-  2. `gemini-3-pro-preview`
-  3. `gemini-2.5-flash`
+  1. `gemini-2.5-flash` (mặc định — khuyên dùng)
+  2. `gemini-2.5-pro` (chất lượng cao hơn, tư duy sâu)
+  3. `gemini-2.5-flash-lite` (siêu nhẹ, tiết kiệm quota)
+- **❌ CÁC MODEL ĐÃ BỊ XÓA (TUYỆT ĐỐI KHÔNG DÙNG)**:
+  - `gemini-3-pro-preview`, `gemini-3-flash-preview` — chưa tồn tại/không hợp lệ
+  - `gemini-1.5-pro` — đã bị Google xóa khỏi public API (HTTP 404)
+  - `gemini-1.5-flash-8b` — không còn hỗ trợ rộng rãi
 - **Cơ chế Retry**:
-  - Nếu một bước xử lý (Step 1, 2, hoặc 3) gặp lỗi API, hệ thống **tự động** thử lại ngay lập tức với model tiếp theo trong danh sách.
-  - Vẫn giữ nguyên kết quả của các bước trước đó, chỉ retry bước đang lỗi.
+  - Nếu một model gặp lỗi API, hệ thống tự động thử model tiếp theo trong FALLBACK_MODELS.
+  - Khi app khởi động, tự động xóa model ID cũ không hợp lệ khỏi localStorage.
 
 ## 2. Quản lý API Key
 - **Cơ chế**:
@@ -19,9 +23,9 @@ Tôi đang triển khai ứng dụng từ github qua vercel, hãy kiểm tra gi�
   - Lưu vào `localStorage` của trình duyệt.
   - Ưu tiên sử dụng key từ `localStorage`.
 - **Giao diện**:
-  - **Thiết lập Model & API Key**: Cần hiển thị như hình mẫu.
-    - Hiển thị danh sách chọn Model AI (dạng thẻ/Cards).
-    - Thứ tự hiển thị: `gemini-3-flash-preview` (Default), `gemini-3-pro-preview`, `gemini-2.5-flash`.
+  - **Thiết lập Model & API Key**: Hiển thị danh sách chọn Model AI (dạng thẻ/Cards).
+  - Thứ tự hiển thị: `gemini-2.5-flash` (Mặc định), `gemini-2.5-pro`, `gemini-2.5-flash-lite`.
+
   - Nút **Settings (API Key)** kèm dòng chữ màu đỏ "Lấy API key để sử dụng app" phải luôn hiển thị trên Header để người dùng dễ dàng thay đổi key khi hết quota. 
   - Khi chưa có key, hiển thị Modal bắt buộc nhập.
   - Việc nhập key ban đầu trước khi dùng app, hướng dẫn người dùng vào https://aistudio.google.com/api-keys để lấy key API
