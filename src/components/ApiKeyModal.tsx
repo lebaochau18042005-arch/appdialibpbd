@@ -8,19 +8,19 @@ interface ApiKeyModalProps {
 }
 
 const MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Chất lượng cao nhất, logic phức tạp (Mặc định)' },
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'Nhanh, hiệu suất cao' },
-  { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', desc: 'Bản nhẹ, tiết kiệm quota' }
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Chất lượng cao nhất, logic phức tạp' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Nhanh, hiệu suất cao (Mặc định)' },
+  { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash-8B', desc: 'Bản nhẹ, tốc độ phản hồi cực nhanh' }
 ];
 
 export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-1.5-flash');
 
   useEffect(() => {
     if (isOpen) {
       const savedKey = localStorage.getItem('GEMINI_API_KEY') || '';
-      const savedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-2.5-flash';
+      const savedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-1.5-flash';
       setApiKey(savedKey);
       setSelectedModel(savedModel);
     }

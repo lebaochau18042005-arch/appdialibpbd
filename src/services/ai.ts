@@ -2,12 +2,12 @@ import { GoogleGenAI } from '@google/genai';
 import { Question, UserProfile, QuizAttempt } from '../types';
 
 const FALLBACK_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
+  'gemini-1.5-pro',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
 ];
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-1.5-flash';
 
 // ===== KIẾN THỨC HÀNH CHÍNH SAU SÁP NHẬP 1/7/2025 (NQ 202/2025/QH15) =====
 // Được nhúng vào TẤT CẢ các prompt AI để mọi giải thích đều dùng thông tin hành chính MỚI NHẤT
