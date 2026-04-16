@@ -181,6 +181,8 @@ ${HANH_CHINH_2025}
       • Số liệu trong bảng PHẢI khớp với phương án đúng / mệnh đề đúng/sai.
       • Nguồn số liệu: dòng cuối context là "(Nguồn: Tổng cục Thống kê, năm X)"
       • TUYỆT ĐỐI CẤM context = null/rỗng/chuỗi "null" khi câu tham chiếu biểu đồ.
+      • ⚠️ DỮ LIỆU PHẢI ĐẦY ĐỦ 100%: Nếu câu hỏi hỏi về "cả năm" / "tất cả các tháng" → bảng PHẢI có 12 tháng (T1–T12). KHÔNG ĐƯỢC chỉ có 10 hoặc 11 tháng. Nếu câu tính tổng/trung bình → bảng PHẢI có đủ hàng dữ liệu để tính.
+      • ⚠️ SỐ LIỆU NHẤT QUÁN: correctAnswer PHẢI là kết quả tính đúng từ số liệu trong bảng. Kiểm tra lại sau khi sinh.
 
       QUY TẮC KHÁC:
       A. correctAnswerIndex là số nguyên 0/1/2/3 — KHÔNG phải chữ A/B/C/D.
@@ -383,7 +385,12 @@ YÊU CẦU CHÍNH XÁC:
       1. CẤU TRÚC: ${mode === 'format' ? `CHỈ TẠO CÁC CÂU HỎI THUỘC ĐÚNG MỘT DẠNG: ${topicOrLesson}. (multiple_choice, true_false, hoặc short_answer).` : `Kết hợp các loại câu hỏi (Trắc nghiệm, Đúng/Sai, Trả lời ngắn) theo tỉ lệ phù hợp.`}
       2. ĐỐI VỚI DẠNG TRẢ LỜI NGẮN (short_answer): BẮT BUỘC phải là các bài tập tính toán dựa trên công thức địa lí (ví dụ: mật độ dân số, năng suất, bình quân đầu người, biên độ nhiệt, v.v.). Đáp án correctAnswer PHẢI LÀ MỘT CON SỐ. Không ra câu hỏi lý thuyết cho dạng trả lời ngắn.
          ⚠️ QUY TẮC PHIẾU BGD 4 Ô — BẮT BUỘC: Phiếu trả lời BGD chỉ có 4 ô (chữ số + dấu "," + dấu "-"). Do đó correctAnswer PHẢI là chuỗi tối đa 4 ký tự. Nếu câu yêu cầu làm tròn đến hàng đơn vị → correctAnswer là số nguyên (vd: "803"). Nếu yêu cầu 1 thập phân → vd: "80,3". Nếu yêu cầu 2 thập phân → vd: "8,03". Ra đề phải thiết kế số liệu sao cho kết quả sau làm tròn vừa đúng ≤ 4 ký tự.
-      3. SỐ LIỆU: Nếu câu hỏi cần bảng số liệu, đặt vào trường "context" dưới dạng MARKDOWN TABLE với số liệu cụ thể (không dùng URL).
+      3. SỐ LIỆU ĐẦY ĐỦ 100% — NGHIÊM CẤM THIẾU DỮ LIỆU:
+         - Nếu câu hỏi tính toán dựa trên bảng số liệu, bảng PHẢI chứa ĐỦ dữ liệu để học sinh tự tính.
+         - Nếu câu hỏi về "cả năm" / "trung bình năm" / "tất cả các tháng" → bảng PHẢI có đủ 12 tháng (T1 đến T12). KHÔNG được chỉ có 10 hoặc 11 tháng.
+         - Nếu câu hỏi tính tổng/trung bình/tốc độ tăng → số liệu trong bảng PHẢI đủ hàng/cột cần thiết.
+         - correctAnswer PHẢI là kết quả tính ĐÚNG từ số liệu bảng. Phải kiểm tra lại trước khi trả kết quả.
+         - Đặt bảng vào trường "context" dưới dạng MARKDOWN TABLE.
       4. CHÍNH XÁC KIẾN THỨC: Bám sát chương trình mới nhất (TT 17/2025). Dùng đúng tên tỉnh thành sau sáp nhập.
       5. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.
       6. ĐỘ KHÓ: Phân bổ từ Nhận biết đến Vận dụng.
@@ -459,17 +466,23 @@ YÊU CẦU CHÍNH XÁC:
             const isPercentage = /cơ cấu|tỉ trọng|tỉ lệ|%|phần trăm/i.test(q.text);
             const chartType = isPercentage ? 'Tròn (cơ cấu)' : isSEA ? 'Cột nhóm (so sánh)' : 'Kết hợp cột và đường';
 
-            const ctxPrompt = `BẮT BUỘC tạo ngay bảng số liệu Markdown cho câu hỏi địa lí sau. Học sinh KHÔNG THỂ làm bài nếu thiếu bảng này.
+            const ctxPrompt = `BẮT BUỘC tạo ngay bảng số liệu Markdown HOÀN CHỈNH cho câu hỏi địa lí sau.
+HỌC SINH KHÔNG THỂ LÀM BÀI NẾU THIẾU HOẶC THIẾU DỮ LIỆU.
 
 CÂU HỎI: ${q.text}
 
-YÊU CẦU CHÍNH XÁC:
+QUY TẮC DỮ LIỆU ĐẦY ĐỦ — BẮT BUỘC TUYỆT ĐỐI:
+1. Nếu câu hỏi hỏi về "cả năm" / "trung bình năm" / "tất cả các tháng" → bảng PHẢI có ĐỦ 12 CỘT tháng (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12). KHÔNG được chỉ có 10 tháng!
+2. Nếu câu tính toán → số liệu phải đủ để tính ra kết quả ĐÚNG.
+3. Nếu câu về nhiều năm → phải có đủ cột năm theo yêu cầu.
+
+CẤU TRÚC BẮT BUỘC:
 - Dòng 1: "Biểu đồ: ${chartType}" (không có gì khác)
-- Dòng 2 trở đi: bảng Markdown với CỘT ĐƠN VỊ bắt buộc:
-  | Chỉ tiêu | Đơn vị | Cột năm 1 | Cột năm 2 | Cột năm 3 |
-  |---|---|---|---|---|
-  | ... | ... | ... | ... | ... |
-- Ít nhất 3-4 hàng dữ liệu với số liệu thực tế 2019-2024
+- Dòng 2 trở đi: bảng Markdown với CỘT ĐƠN VỊ:
+  | Chỉ tiêu | Đơn vị | [cột 1] | [cột 2] | ... | [cột cuối] |
+  |---|---|---|---|---|---|
+  | ... | ... | ... | ... | ... | ... |
+- Ít nhất 3-4 hàng dữ liệu với số liệu thực tế, cụ thể
 - ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể' : 'Dùng số liệu Việt Nam cụ thể theo chủ đề câu hỏi'}
 - Số liệu PHẢI khớp với đáp án/mệnh đề đúng trong câu hỏi
 - Dòng cuối: "(Nguồn: Tổng cục Thống kê / World Bank, 2024)"
