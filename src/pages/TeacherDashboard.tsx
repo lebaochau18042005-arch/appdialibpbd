@@ -50,7 +50,10 @@ function htmlToMarkdownWord(html: string): string {
       const el = node as HTMLElement;
       if (el.tagName === 'IMG') {
         const src = (el as HTMLImageElement).src;
-        // Bọc thành 1 dòng phân biệt biệt qua prefix ![chart]
+        // Strip heavy base64 strings to prevent AI token overflow and hallucinated truncations
+        if (src.startsWith('data:image')) {
+          return `\n[HÌNH ẢNH/BIỂU ĐỒ NẰM Ở ĐÂY - GIÁO VIÊN CẦN BỔ SUNG LẠI BẢNG SỐ LIỆU SAU KHI TẠO ĐỀ]\n`;
+        }
         return `\n![chart](${src})\n`;
       }
       if (el.tagName === 'TABLE') {

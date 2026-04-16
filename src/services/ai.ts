@@ -261,7 +261,7 @@ export async function generateExamFromContext(context: string): Promise<Question
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
 QUY TẮC BẮT BUỘC:
-1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong đề - KHÔNG BỎ SÓT câu nào.
+1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong đề. NẾU ĐỀ THI CÓ 28 HAY 40 CÂU, BẮT BUỘC PHẢI IN TRẢ VỀ ĐÚNG BẤY NHIÊU CÂU JSON! TUYỆT ĐỐI NGHIÊM CẤM LƯỜI BIẾNG CHỈ IN RA 3-4 CÂU ĐẦU TIÊN RỒI DỪNG LẠI (LỖI ĐỨT GÃY HỆ THỐNG Trầm Trọng). KHÔNG BỎ SÓT BẤT CỨ CÂU NÀO!
 2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice". ĐẶC BIỆT LƯU Ý: Rất nhiều nội dung thô bị gộp dính các đáp án vào cùng 1 dòng (ví dụ "A. Môtt B. Hại C. Ba"). Tùy thuộc vào bạn, hãy dùng AI và tư duy để NGẮT CHÚNG THÀNH 4 CHUỖI TÁCH BIỆT TRONG MẢNG \`options\`: ["Môtt", "Hại", "Ba", ...]. Tuyệt đối cấm gộp nhiều đáp án vào chung 1 chuỗi.
 3. Với câu Đúng/Sai (có các ý a, b, c, d): dùng type "true_false" với 4 statements.
 4. Với câu tự luận/điền số/tính toán ngắn: dùng type "short_answer".
