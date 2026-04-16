@@ -1062,7 +1062,7 @@ export default function TeacherDashboard() {
                 {/* Validation summary */}
                 {generatedQuestions && (() => {
                   const warnings = generatedQuestions.reduce((acc, q, i) => {
-                    const refChart = /biểu đồ|bảng số liệu|số liệu|hình/i.test(q.text);
+                    const refChart = /biểu đồ|bảng số liệu|số liệu|hình|tính toán|tổng số giờ|tính ra|bao nhiêu/i.test(q.text);
                     const hasContext = !!q.context?.trim();
                     if (refChart && !hasContext) acc.push(i + 1);
                     return acc;
@@ -1070,13 +1070,31 @@ export default function TeacherDashboard() {
                   return warnings.length > 0 ? (
                     <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3">
                       <AlertCircle size={20} className="text-amber-600 shrink-0 mt-0.5" />
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-black text-amber-800">
-                          ⚠️ Phát hiện {warnings.length} câu hỏi tham chiếu biểu đồ/bảng số liệu nhưng thiếu dữ liệu!
+                          ⚠️ Phát hiện {warnings.length} câu hỏi đang thiếu bảng số liệu! (câu: {warnings.join(', ')})
                         </p>
-                        <p className="text-xs text-amber-700 mt-1">
-                          Câu: {warnings.join(', ')} — Hãy bổ sung bảng Markdown vào ô "Dữ liệu bảng/biểu đồ" bên dưới trước khi xác nhận.
-                        </p>
+                        <p className="text-xs text-amber-700 mt-1">AI có thể tự động tạo bảng số liệu cho các câu này. Nhấn nút bên dưới để AI tự sửa.</p>
+                        <button
+                          onClick={async () => {
+                            if (!generatedQuestions) return;
+                            setIsUploading(true);
+                            try {
+                              const { generateAnswersForQuestions } = await import('../services/ai');
+                              const fixed = await generateAnswersForQuestions(generatedQuestions);
+                              setGeneratedQuestions(fixed);
+                            } catch (e) {
+                              console.error('Auto-fix context error:', e);
+                            } finally {
+                              setIsUploading(false);
+                            }
+                          }}
+                          disabled={isUploading}
+                          className="mt-2 px-4 py-2 bg-amber-500 text-white rounded-xl font-bold text-xs hover:bg-amber-600 transition-all flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {isUploading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                          {isUploading ? 'Đang AI tự điền bảng...' : '🤖 AI TỰ SỬA BẢNG SỐ LIỆU'}
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -1085,6 +1103,7 @@ export default function TeacherDashboard() {
                     </div>
                   );
                 })()}
+
 
                 <div className="space-y-6">
                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2">Nội dung chi tiết — Kiểm tra và sửa trước khi xác nhận</h4>
