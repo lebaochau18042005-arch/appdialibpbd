@@ -213,7 +213,7 @@ ${CHUONG_TRINH_TT17}
       • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
       • Cột đơn vị BẮT BUỘC: | Chỉ tiêu | Đơn vị | 2015 | 2020 | 2024 |
       • Dòng đầu context phải ghi: "Biểu đồ: [tên loại]" (cột / đường / tròn / miền / kết hợp)
-      • QUY TẮC BIỂU ĐỒ TRÒN/MIỀN (CƠ CẤU): Nếu câu hỏi nói về "Cơ cấu" hoặc tạo biểu đồ "Tròn"/"Miền", CỘT ĐƠN VỊ CỦA BẢNG BẮT BUỘC ĐƯỢC CHUYỂN ĐỔI SANG "%", tuyệt đối KHÔNG dùng giá trị thô gốc (Nghìn tỷ, Triệu người,...). Tổng các thành phần phải xấp xỉ 100%. NGHIÊM CẤM CHÈN THÊM CÁC HÀNG THỪA NHƯ "Tốc độ tăng trưởng", "Tổng số" vào bảng cơ cấu.
+      • ⚠️ NGUYÊN TẮC 'CƠ CẤU' PHẢI TỰ ĐỘNG QUY ĐỔI SANG %: Bất cứ câu hỏi nào có chứa từ khóa "cơ cấu", HOẶC loại biểu đồ là "Tròn"/"Miền", ĐƠN VỊ CỦA BẢNG BẮT BUỘC PHẢI LÀ "%". Bạn (AI) PHẢI tự đứng ra làm toán quy đổi các số liệu thô (như nghìn tấn, tỷ đồng, nghìn ha) sang % sao cho tổng = 100%. TUYỆT ĐỐI NGHIÊM CẤM đưa các giá trị tuyệt đối thô (chưa chia) vào bảng số liệu cơ cấu. ĐỒNG THỜI, NGHIÊM CẤM chèn thêm các hàng thừa không thuộc tổ hợp 100% (như "Tốc độ tăng trưởng", "Tổng số").
       • Câu 1 và Câu II.4 PHẢI dùng 2 loại biểu đồ KHÁC NHAU.
       • Số liệu trong bảng PHẢI khớp với phương án đúng / mệnh đề đúng/sai.
       • Nguồn số liệu: BẮT BUỘC phải có dòng cuối ở context ghi rõ "(Nguồn: [Tên nguồn rõ ràng từ tài liệu hoặc Tổng cục Thống kê/Ngân hàng thế giới], năm X)". Cấm để trống nguồn.
