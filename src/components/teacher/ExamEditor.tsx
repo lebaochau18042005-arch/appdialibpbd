@@ -206,7 +206,7 @@ function QuestionEditor({
                   onChange={e => onChange({ ...question, context: e.target.value || undefined })}
                   placeholder={'Nhập bảng Markdown:\n**TIÊU ĐỀ BẢNG**\n| Cột 1 | Cột 2 | Cột 3 |\n|---|---|---|\n| Dữ liệu | Dữ liệu | Dữ liệu |'}
                   rows={6}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white font-mono resize-y"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white font-mono resize-y text-slate-800 placeholder:text-slate-400"
                   spellCheck={false}
                 />
 
@@ -226,7 +226,7 @@ function QuestionEditor({
                     value={question.text || ''}
                     onChange={e => onChange({ ...question, text: e.target.value })}
                     rows={2}
-                    className="w-full px-3 py-2 border border-indigo-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white font-medium"
+                    className="w-full px-3 py-2 border border-indigo-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white font-medium text-slate-800 placeholder:text-slate-400"
                     placeholder="Nhập nội dung câu hỏi..."
                   />
                   <div className="space-y-2">
@@ -247,7 +247,7 @@ function QuestionEditor({
                             onChange({ ...question, options: newOpts });
                           }}
                           placeholder={`Phương án ${String.fromCharCode(65 + i)}`}
-                          className={cn("flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 outline-none transition-colors", question.correctAnswerIndex === i ? "bg-emerald-50/30 border-emerald-200 focus:ring-emerald-400" : "bg-white focus:ring-indigo-400")}
+                          className={cn("flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 outline-none transition-colors text-slate-800 placeholder:text-slate-400", question.correctAnswerIndex === i ? "bg-emerald-50/30 border-emerald-200 focus:ring-emerald-400" : "bg-white focus:ring-indigo-400")}
                         />
                       </div>
                     ))}
@@ -277,7 +277,7 @@ function QuestionEditor({
                     value={question.text || ''}
                     onChange={e => onChange({ ...question, text: e.target.value })}
                     rows={2}
-                    className="w-full px-3 py-2 border border-emerald-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 outline-none bg-white font-medium"
+                    className="w-full px-3 py-2 border border-emerald-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 outline-none bg-white font-medium text-slate-800 placeholder:text-slate-400"
                     placeholder="Nhập nội dung câu hỏi..."
                   />
                   <div className="space-y-2">
@@ -302,7 +302,7 @@ function QuestionEditor({
                             onChange({ ...question, statements: newStmts });
                           }}
                           placeholder={`Khẳng định ${String.fromCharCode(97 + i)}`}
-                          className={cn("flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 outline-none bg-white", stmt.isTrue ? "focus:ring-emerald-400 border-emerald-200" : "focus:ring-rose-400 border-rose-200")}
+                          className={cn("flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 outline-none bg-white text-slate-800 placeholder:text-slate-400", stmt.isTrue ? "focus:ring-emerald-400 border-emerald-200" : "focus:ring-rose-400 border-rose-200")}
                         />
                       </div>
                     ))}
@@ -334,7 +334,7 @@ function QuestionEditor({
                     value={question.text || ''}
                     onChange={e => onChange({ ...question, text: e.target.value })}
                     rows={2}
-                    className="w-full px-3 py-2 border border-amber-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white font-medium"
+                    className="w-full px-3 py-2 border border-amber-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white font-medium text-slate-800 placeholder:text-slate-400"
                     placeholder="Nhập nội dung câu hỏi..."
                   />
                   <div className="flex gap-2">

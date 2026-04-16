@@ -75,7 +75,7 @@ function htmlToMarkdownWord(html: string): string {
         return `\n${inner}\n`;
       }
       if (el.tagName === 'BR') return '\n';
-      
+
       let inner = '';
       el.childNodes.forEach(child => inner += processNode(child));
       return inner;
@@ -122,20 +122,20 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
 
     for (let i = 1; i < block.length; i++) {
       const line = block[i];
-      
+
       // Bắt hình ảnh
       const imgMatch = line.match(/!\[.*?\]\((data:image\/[a-zA-Z]+;base64,[^)]+)\)/);
       if (imgMatch) {
-         imageUrl = imgMatch[1];
-         continue; // Không nhét ảnh raw base64 đứt đoạn vào qText
+        imageUrl = imgMatch[1];
+        continue; // Không nhét ảnh raw base64 đứt đoạn vào qText
       }
-      
+
       // Bắt bảng (markdown table format)
       if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-         contextStr += line + '\n';
-         continue; 
+        contextStr += line + '\n';
+        continue;
       }
-      
+
       const mc = line.match(mcOptRe);
       const tf = line.match(tfOptRe);
       if (mc) {
@@ -182,7 +182,7 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
     } else {
       questions.push({
         ...parsedQuestion,
-        type: 'short_answer', 
+        type: 'short_answer',
         correctAnswer: '',
         cognitiveLevel: 'Vận dụng'
       } as Question);
@@ -231,7 +231,7 @@ export default function TeacherDashboard() {
   const [uploadingType, setUploadingType] = useState<'word' | 'pdf' | 'html' | 'image' | null>(null);
   const [isUploadDropdownOpen, setIsUploadDropdownOpen] = useState(false);
   const [shouldTriggerClick, setShouldTriggerClick] = useState(false);
-  
+
   // AI Generation states
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[] | null>(null);
@@ -241,7 +241,7 @@ export default function TeacherDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
-  
+
   // AI Answer Prompt States
   const [showAIAnswerPrompt, setShowAIAnswerPrompt] = useState(false);
   const [pendingImageQuestions, setPendingImageQuestions] = useState<Question[]>([]);
@@ -281,7 +281,7 @@ export default function TeacherDashboard() {
       const { id, ...saveData } = updated;
       const newId = await examService.saveExam(saveData);
       if (newId) {
-        setExams(prev => [{...saveData, id: newId}, ...prev]);
+        setExams(prev => [{ ...saveData, id: newId }, ...prev]);
         alert('Đã lưu đề thi mới thành công!');
       } else {
         alert('Có lỗi khi lưu đề thi mới!');
@@ -461,7 +461,7 @@ export default function TeacherDashboard() {
 
   const handleSaveGeneratedExam = async () => {
     if (!generatedQuestions || isUploading) return;
-    
+
     if (!generatedExamTitle.trim()) {
       alert('Vui lòng nhập tiêu đề cho đề thi!');
       return;
@@ -521,7 +521,7 @@ export default function TeacherDashboard() {
 
   const handleUploadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!uploadingType || !e.target.files?.[0]) return;
-    
+
     const file = e.target.files[0];
     setSelectedFile(file);
     setUploadTitle(file.name.split('.')[0]);
@@ -535,9 +535,9 @@ export default function TeacherDashboard() {
     try {
       if (uploadingType === 'image' || uploadingType === 'pdf') {
         const parsedQuestions = await extractQuestionsFromMedia(selectedFile);
-        
+
         // Check if any question is missing answers
-        const needsAnswers = parsedQuestions.some(q => 
+        const needsAnswers = parsedQuestions.some(q =>
           (q.type === 'multiple_choice' && q.correctAnswerIndex === -1) ||
           (q.type === 'short_answer' && !q.correctAnswer) ||
           (q.type === 'true_false' && q.statements.every(s => !s.isTrue)) // Just a heuristic
@@ -567,14 +567,17 @@ export default function TeacherDashboard() {
 
       // Auto-parse questions from Word file (no AI, regex-based)
       let parsedQuestions: Question[] = [];
-      // ── Word: regex extraction ───────────────────────────────────────────────
+      // ── Word: AI Extraction (Pre-processing Fix Format) ────────────────────
       if (uploadingType === 'word') {
         try {
           const mammoth = await import('mammoth');
           const arrayBuffer = await selectedFile.arrayBuffer();
           const result = await mammoth.convertToHtml({ arrayBuffer });
           const markdownText = htmlToMarkdownWord(result.value);
-          parsedQuestions = parseExamQuestionsFromText(markdownText);
+          if (markdownText.trim().length > 50) {
+            const { generateExamFromContext } = await import('../services/ai');
+            parsedQuestions = await generateExamFromContext(markdownText.slice(0, 80000));
+          }
         } catch (e) {
           console.warn('Word auto-parse failed:', e);
         }
@@ -653,7 +656,7 @@ export default function TeacherDashboard() {
 
   const handleDeleteExam = async (examId: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa đề thi này?')) return;
-    
+
     try {
       await examService.deleteExam(examId);
       loadData();
@@ -679,7 +682,7 @@ export default function TeacherDashboard() {
 
   const handleGenerateAnswersOption = async (generate: boolean) => {
     setShowAIAnswerPrompt(false);
-    
+
     let finalQuestions = pendingImageQuestions;
     if (generate) {
       setIsUploading(true);
@@ -704,7 +707,7 @@ export default function TeacherDashboard() {
       questions: finalQuestions,
       createdAt: new Date().toISOString(),
     };
-    
+
     setEditingExam(newExam);
     setPendingImageQuestions([]);
     setUploadingType(null);
@@ -722,47 +725,47 @@ export default function TeacherDashboard() {
           <p className="text-slate-500 mt-1">Quản lý đề thi & Theo dõi tiến độ học sinh (TT 17/2025 BGDĐT)</p>
         </div>
         <div className="flex items-center gap-3">
-            <button 
-              onClick={handleGenerateAI}
-              disabled={isGenerating}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50"
-            >
-              {isGenerating ? <RefreshCw size={20} className="animate-spin" /> : <Sparkles size={20} />}
-              {isGenerating ? 'ĐANG TẠO ĐỀ...' : 'TẠO ĐỀ THI THẬT (AI)'}
-            </button>
+          <button
+            onClick={handleGenerateAI}
+            disabled={isGenerating}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50"
+          >
+            {isGenerating ? <RefreshCw size={20} className="animate-spin" /> : <Sparkles size={20} />}
+            {isGenerating ? 'ĐANG TẠO ĐỀ...' : 'TẠO ĐỀ THI THẬT (AI)'}
+          </button>
           <div className="relative">
-            <button 
+            <button
               onClick={() => setIsUploadDropdownOpen(!isUploadDropdownOpen)}
               className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
             >
               <Upload size={20} /> TẢI ĐỀ THI LÊN
             </button>
-            
+
             {isUploadDropdownOpen && (
               <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-2xl z-20 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <button 
-                  onClick={() => handleTriggerUpload('word')} 
+                <button
+                  onClick={() => handleTriggerUpload('word')}
                   className="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl flex items-center gap-3 font-medium text-slate-700 transition-colors"
                 >
                   <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center"><FileText size={18} /></div>
                   File Word (.docx)
                 </button>
-                <button 
-                  onClick={() => handleTriggerUpload('pdf')} 
+                <button
+                  onClick={() => handleTriggerUpload('pdf')}
                   className="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl flex items-center gap-3 font-medium text-slate-700 transition-colors"
                 >
                   <div className="w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center"><FileText size={18} /></div>
                   File PDF (.pdf)
                 </button>
-                <button 
-                  onClick={() => handleTriggerUpload('html')} 
+                <button
+                  onClick={() => handleTriggerUpload('html')}
                   className="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl flex items-center gap-3 font-medium text-slate-700 transition-colors"
                 >
                   <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center"><FileText size={18} /></div>
                   File HTML (.html)
                 </button>
-                <button 
-                  onClick={() => handleTriggerUpload('image')} 
+                <button
+                  onClick={() => handleTriggerUpload('image')}
                   className="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl flex items-center gap-3 font-medium text-slate-700 transition-colors"
                 >
                   <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center"><FileText size={18} /></div>
@@ -770,8 +773,8 @@ export default function TeacherDashboard() {
                 </button>
               </div>
             )}
-            
-            <input 
+
+            <input
               ref={fileInputRef}
               type="file"
               className="hidden"
@@ -873,7 +876,7 @@ export default function TeacherDashboard() {
       <AnimatePresence>
         {showUploadConfirm && selectedFile && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[80] p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -883,7 +886,7 @@ export default function TeacherDashboard() {
                 <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-indigo-100">
                   <Upload size={40} />
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">XÁC NHẬN TẢI ĐỀ THI</h3>
                   <p className="text-slate-500 font-medium">Bạn có chắc chắn muốn tải đề thi này lên ngân hàng đề không?</p>
@@ -892,7 +895,7 @@ export default function TeacherDashboard() {
                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 text-left space-y-4">
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Tên đề thi</label>
-                    <input 
+                    <input
                       type="text"
                       value={uploadTitle}
                       onChange={(e) => setUploadTitle(e.target.value)}
@@ -911,7 +914,7 @@ export default function TeacherDashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4">
-                  <button 
+                  <button
                     onClick={() => {
                       if (isUploading) return;
                       setShowUploadConfirm(false);
@@ -924,7 +927,7 @@ export default function TeacherDashboard() {
                   >
                     <XCircle size={20} /> HỦY BỎ
                   </button>
-                  <button 
+                  <button
                     onClick={confirmUpload}
                     disabled={isUploading || !uploadTitle.trim()}
                     className="px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -950,7 +953,7 @@ export default function TeacherDashboard() {
       <AnimatePresence>
         {showAIAnswerPrompt && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[95] p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -961,15 +964,15 @@ export default function TeacherDashboard() {
               </div>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">Cần Tạo Đáp Án AI?</h3>
               <p className="text-slate-500 font-medium">Hệ thống phát hiện có thể đề thi chưa có đầy đủ đáp án. Bạn có muốn AI phân tích và tự động tạo đáp án, lời giải chi tiết cho các câu hỏi này không?</p>
-              
+
               <div className="grid grid-cols-2 gap-4 pt-4">
-                <button 
+                <button
                   onClick={() => handleGenerateAnswersOption(false)}
                   className="px-6 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                 >
                   Bỏ qua
                 </button>
-                <button 
+                <button
                   onClick={() => handleGenerateAnswersOption(true)}
                   className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                 >
@@ -985,7 +988,7 @@ export default function TeacherDashboard() {
       <AnimatePresence>
         {showConfirmModal && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[60] p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -1017,11 +1020,11 @@ export default function TeacherDashboard() {
                   />
                 )}
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white">
                 <div className="space-y-4">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Tiêu đề đề thi</label>
-                  <input 
+                  <input
                     type="text"
                     value={generatedExamTitle}
                     onChange={(e) => setGeneratedExamTitle(e.target.value)}
@@ -1079,130 +1082,128 @@ export default function TeacherDashboard() {
                     const hasContext = !!q.context?.trim();
                     const isWarning = refChart && !hasContext;
                     return (
-                    <div key={q.id} className={`p-6 rounded-3xl border-2 ${
-                      isWarning ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-100'
-                    }`}>
-                      <div className="flex items-start gap-4 mb-4">
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                          isWarning ? 'bg-amber-400 text-white' : 'bg-white border border-slate-200 text-slate-400'
+                      <div key={q.id} className={`p-6 rounded-3xl border-2 ${isWarning ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-100'
                         }`}>
-                          {isWarning ? '!' : i + 1}
-                        </span>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
-                              {q.type === 'multiple_choice' ? 'Trắc nghiệm' : q.type === 'true_false' ? 'Đúng/Sai' : 'Trả lời ngắn'}
+                        <div className="flex items-start gap-4 mb-4">
+                          <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isWarning ? 'bg-amber-400 text-white' : 'bg-white border border-slate-200 text-slate-400'
+                            }`}>
+                            {isWarning ? '!' : i + 1}
+                          </span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                                {q.type === 'multiple_choice' ? 'Trắc nghiệm' : q.type === 'true_false' ? 'Đúng/Sai' : 'Trả lời ngắn'}
+                              </div>
+                              {isWarning && (
+                                <span className="text-[10px] font-black px-2 py-0.5 bg-amber-400 text-white rounded-full">⚠️ Thiếu bảng số liệu</span>
+                              )}
                             </div>
-                            {isWarning && (
-                              <span className="text-[10px] font-black px-2 py-0.5 bg-amber-400 text-white rounded-full">⚠️ Thiếu bảng số liệu</span>
-                            )}
+                            <p className="text-slate-800 font-bold text-base leading-relaxed">{renderQText(q.text)}</p>
                           </div>
-                          <p className="text-slate-800 font-bold text-base leading-relaxed">{renderQText(q.text)}</p>
                         </div>
-                      </div>
 
-                      {/* Context: rendered chart + editor */}
-                      <div className="ml-12 mb-4">
-                        {q.context?.trim() ? (
-                          <div className="mb-3">
-                            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                              <CheckCircle2 size={10} /> Bảng số liệu / Biểu đồ (xem trước)
+                        {/* Context: rendered chart + editor */}
+                        <div className="ml-12 mb-4">
+                          {q.context?.trim() ? (
+                            <div className="mb-3">
+                              <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                <CheckCircle2 size={10} /> Bảng số liệu / Biểu đồ (xem trước)
+                              </div>
+                              <div className="border border-emerald-200 rounded-2xl bg-white p-3 overflow-x-auto">
+                                <DataTableChart content={q.context} />
+                              </div>
                             </div>
-                            <div className="border border-emerald-200 rounded-2xl bg-white p-3 overflow-x-auto">
-                              <DataTableChart content={q.context} />
-                            </div>
-                          </div>
-                        ) : (
-                          refChart && (
-                            <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-medium">
-                              🔴 Câu này nhắc đến biểu đồ/bảng nhưng chưa có dữ liệu. Hãy nhập bảng Markdown bên dưới.
-                            </div>
-                          )
-                        )}
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
-                            📊 Dữ liệu bảng/biểu đồ (Markdown Table) {q.type === 'true_false' ? '— Bắt buộc cho Phần II' : '— Tùy chọn'}
-                          </label>
-                          <textarea
-                            value={q.context || ''}
-                            onChange={e => handleQuestionContext(i, e.target.value)}
-                            placeholder={`| Năm | 2019 | 2021 | 2024 |\n|-----|------|------|------|\n| Dân số (tr) | 96.5 | 98.5 | 100.3 |\n\n*Nguồn: GSO 2024*`}
-                            rows={6}
-                            className="w-full p-3 text-xs font-mono border border-slate-200 rounded-xl resize-y focus:ring-2 focus:ring-emerald-400 outline-none bg-white"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Image attach */}
-                      <div className="ml-12 mb-4">
-                        {q.imageUrl ? (
-                          <div className="relative group mb-2">
-                            <img src={q.imageUrl} alt="Hình câu hỏi" className="max-h-48 rounded-xl border border-slate-200 object-contain bg-white" />
-                            <button
-                              onClick={() => handleQuestionImageUrl(i, '')}
-                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Xóa hình"
-                            >✕</button>
-                          </div>
-                        ) : null}
-                        <div className="flex gap-2 items-center">
-                          <input
-                            type="text"
-                            placeholder="Nhập URL hình ảnh (biểu đồ, bản đồ...)..."
-                            value={q.imageUrl && !q.imageUrl.startsWith('data:') ? q.imageUrl : ''}
-                            onChange={e => handleQuestionImageUrl(i, e.target.value)}
-                            className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 outline-none"
-                          />
-                          <label className="cursor-pointer flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-colors whitespace-nowrap">
-                            📷 Tải ảnh lên
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={e => { if (e.target.files?.[0]) handleQuestionImageFile(i, e.target.files[0]); e.target.value = ''; }}
+                          ) : (
+                            refChart && (
+                              <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-medium">
+                                🔴 Câu này nhắc đến biểu đồ/bảng nhưng chưa có dữ liệu. Hãy nhập bảng Markdown bên dưới.
+                              </div>
+                            )
+                          )}
+                          <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                              📊 Dữ liệu bảng/biểu đồ (Markdown Table) {q.type === 'true_false' ? '— Bắt buộc cho Phần II' : '— Tùy chọn'}
+                            </label>
+                            <textarea
+                              value={q.context || ''}
+                              onChange={e => handleQuestionContext(i, e.target.value)}
+                              placeholder={`| Năm | 2019 | 2021 | 2024 |\n|-----|------|------|------|\n| Dân số (tr) | 96.5 | 98.5 | 100.3 |\n\n*Nguồn: GSO 2024*`}
+                              rows={6}
+                              className="w-full p-3 text-xs font-mono border border-slate-200 rounded-xl resize-y focus:ring-2 focus:ring-emerald-400 outline-none bg-white"
                             />
-                          </label>
+                          </div>
                         </div>
-                      </div>
 
-                      {q.type === 'multiple_choice' && q.options && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-12">
-                          {q.options.map((opt, idx) => (
-                            <div key={idx} className={cn(
-                              "p-2.5 rounded-xl border text-sm font-medium",
-                              idx === q.correctAnswerIndex ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-slate-100 text-slate-500"
-                            )}>
-                              {String.fromCharCode(65 + idx)}. {opt}
+                        {/* Image attach */}
+                        <div className="ml-12 mb-4">
+                          {q.imageUrl ? (
+                            <div className="relative group mb-2">
+                              <img src={q.imageUrl} alt="Hình câu hỏi" className="max-h-48 rounded-xl border border-slate-200 object-contain bg-white" />
+                              <button
+                                onClick={() => handleQuestionImageUrl(i, '')}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Xóa hình"
+                              >✕</button>
                             </div>
-                          ))}
+                          ) : null}
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              placeholder="Nhập URL hình ảnh (biểu đồ, bản đồ...)..."
+                              value={q.imageUrl && !q.imageUrl.startsWith('data:') ? q.imageUrl : ''}
+                              onChange={e => handleQuestionImageUrl(i, e.target.value)}
+                              className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-400 outline-none"
+                            />
+                            <label className="cursor-pointer flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-colors whitespace-nowrap">
+                              📷 Tải ảnh lên
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={e => { if (e.target.files?.[0]) handleQuestionImageFile(i, e.target.files[0]); e.target.value = ''; }}
+                              />
+                            </label>
+                          </div>
                         </div>
-                      )}
 
-                      {q.type === 'true_false' && q.statements && (
-                        <div className="space-y-2 ml-12">
-                          {q.statements.map((s, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-2.5 bg-white border border-slate-100 rounded-xl text-sm">
-                              <span className="text-slate-600 font-medium">
-                                <span className="font-black text-indigo-600 mr-2">{['a', 'b', 'c', 'd'][idx]})</span>
-                                {s.text}
-                              </span>
-                              <span className={cn(
-                                "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase shrink-0 ml-2",
-                                s.isTrue ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                        {q.type === 'multiple_choice' && q.options && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-12">
+                            {q.options.map((opt, idx) => (
+                              <div key={idx} className={cn(
+                                "p-2.5 rounded-xl border text-sm font-medium",
+                                idx === q.correctAnswerIndex ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-slate-100 text-slate-500"
                               )}>
-                                {s.isTrue ? 'Đúng' : 'Sai'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                                {String.fromCharCode(65 + idx)}. {opt}
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
-                      {q.type === 'short_answer' && (
-                        <div className="ml-12 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700 font-bold">
-                          Đáp án: {q.correctAnswer} {q.unit}
-                        </div>
-                      )}
-                    </div>
+                        {q.type === 'true_false' && q.statements && (
+                          <div className="space-y-2 ml-12">
+                            {q.statements.map((s, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-2.5 bg-white border border-slate-100 rounded-xl text-sm">
+                                <span className="text-slate-600 font-medium">
+                                  <span className="font-black text-indigo-600 mr-2">{['a', 'b', 'c', 'd'][idx]})</span>
+                                  {s.text}
+                                </span>
+                                <span className={cn(
+                                  "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase shrink-0 ml-2",
+                                  s.isTrue ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                                )}>
+                                  {s.isTrue ? 'Đúng' : 'Sai'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {q.type === 'short_answer' && (
+                          <div className="ml-12 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700 font-bold">
+                            Đáp án: {q.correctAnswer} {q.unit}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -1211,7 +1212,7 @@ export default function TeacherDashboard() {
               <div className="p-8 border-t border-slate-50 bg-slate-50/30 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <p className="text-slate-600 font-bold text-sm">Bạn có muốn lưu đề thi này vào ngân hàng đề không?</p>
                 <div className="flex gap-4 w-full md:w-auto">
-                  <button 
+                  <button
                     onClick={() => {
                       if (isUploading) return;
                       setShowConfirmModal(false);
@@ -1222,7 +1223,7 @@ export default function TeacherDashboard() {
                   >
                     <XCircle size={20} /> KHÔNG LƯU
                   </button>
-                  <button 
+                  <button
                     onClick={handleSaveGeneratedExam}
                     disabled={isUploading}
                     className="flex-1 md:flex-none px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1248,7 +1249,7 @@ export default function TeacherDashboard() {
       <AnimatePresence>
         {viewingExam && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[70] p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -1264,14 +1265,14 @@ export default function TeacherDashboard() {
                     <p className="text-slate-500 text-sm">Xem trước nội dung đề thi</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setViewingExam(null)}
                   className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm"
                 >
                   <XCircle size={24} />
                 </button>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-8 space-y-8">
                 {viewingExam.questions.map((q, i) => (
                   <div key={q.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
@@ -1286,20 +1287,20 @@ export default function TeacherDashboard() {
                         <p className="text-slate-800 font-bold text-lg leading-relaxed">{renderQText(q.text)}</p>
                       </div>
                     </div>
-                    
+
                     {q.imageUrl && (
                       <div className="mb-4 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center ml-12">
                         <img src={q.imageUrl} alt="Hình minh họa" className="max-w-full max-h-72 object-contain" />
                       </div>
                     )}
-                    
+
                     {q.context && (
                       <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 ml-12">
                         <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">📊 Bảng số liệu & Biểu đồ tham khảo</p>
                         <DataTableChart content={q.context} />
                       </div>
                     )}
-                    
+
                     {q.type === 'multiple_choice' && q.options && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-12">
                         {q.options.map((opt, idx) => (
@@ -1312,7 +1313,7 @@ export default function TeacherDashboard() {
                         ))}
                       </div>
                     )}
-                    
+
                     {q.type === 'true_false' && q.statements && (
                       <div className="space-y-2 ml-12">
                         {q.statements.map((s, idx) => (
@@ -1328,7 +1329,7 @@ export default function TeacherDashboard() {
                         ))}
                       </div>
                     )}
-                    
+
                     {q.type === 'short_answer' && (
                       <div className="ml-12 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700 font-bold">
                         Đáp án: {q.correctAnswer} {q.unit}
@@ -1366,7 +1367,7 @@ export default function TeacherDashboard() {
                   </div>
                 ))}
               </div>
-              
+
               <div className="p-6 border-t border-slate-50 bg-slate-50/30 flex flex-col gap-4">
                 <ExamContentToolbar
                   exam={viewingExam}
@@ -1375,7 +1376,7 @@ export default function TeacherDashboard() {
                   onPlayQuiz={() => { setViewingExam(null); setQuizPlayExam(viewingExam); }}
                   onAnalyze={() => { setViewingExam(null); setAnalysisExam(viewingExam); }}
                 />
-                <button 
+                <button
                   onClick={() => setViewingExam(null)}
                   className="self-end text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
                 >
@@ -1390,7 +1391,7 @@ export default function TeacherDashboard() {
       {/* Comment Modal */}
       {commentingId && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             className="bg-white rounded-[2.5rem] p-10 w-full max-w-lg shadow-2xl border border-slate-100"
@@ -1404,11 +1405,11 @@ export default function TeacherDashboard() {
                 <p className="text-slate-500 text-sm">Đánh giá chi tiết để học sinh cải thiện kết quả.</p>
               </div>
             </div>
-            
+
             <div className="space-y-6">
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Lời nhận xét của giáo viên</label>
-                <textarea 
+                <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 outline-none transition-all resize-none text-slate-700 font-medium"
@@ -1425,8 +1426,8 @@ export default function TeacherDashboard() {
                       onClick={() => setProgress(p)}
                       className={cn(
                         "px-4 py-3 rounded-xl text-xs font-bold transition-all border",
-                        progress === p 
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100" 
+                        progress === p
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100"
                           : "bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100"
                       )}
                     >
@@ -1436,13 +1437,13 @@ export default function TeacherDashboard() {
                 </div>
               </div>
               <div className="flex gap-4 pt-4">
-                <button 
+                <button
                   onClick={() => setCommentingId(null)}
                   className="flex-1 px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                 >
                   HỦY BỎ
                 </button>
-                <button 
+                <button
                   onClick={() => handleSubmitComment(commentingId)}
                   disabled={!comment || !progress}
                   className="flex-1 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 disabled:opacity-50 disabled:shadow-none"

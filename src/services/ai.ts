@@ -101,10 +101,10 @@ export async function generateContentWithFallback(prompt: any, config: any = {})
     console.warn(`[AI] Xóa model cũ không hợp lệ: ${storedModel}, dùng ${DEFAULT_MODEL}`);
     localStorage.removeItem('GEMINI_MODEL');
   }
-  
+
   // Try the preferred model first, then the fallback models
   const modelsToTry = [preferredModel, ...FALLBACK_MODELS.filter(m => m !== preferredModel)];
-  
+
   let lastError;
   let firstError: string | undefined;
   for (const model of modelsToTry) {
@@ -118,7 +118,7 @@ export async function generateContentWithFallback(prompt: any, config: any = {})
     } catch (error: any) {
       const msg = error?.message || String(error);
       const code = error?.code || error?.status || '';
-      
+
       // Khối xử lý lỗi Quota
       if (String(code) === '429' || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('exhausted')) {
         throw new Error('API Key của bạn đã hết lượt (quota). Vui lòng lấy API key từ một tài khoản Gmail khác hoặc chờ đến ngày mai để tiếp tục sử dụng.');
@@ -141,9 +141,9 @@ export async function getExplanation(question: Question, userAnswer: any, isCorr
   try {
     const greeting = profile?.name ? `Chào em **${profile.name}**, ` : 'Chào em, ';
     const encouragement = profile?.targetScore ? `Cố gắng ôn luyện để đạt mục tiêu **${profile.targetScore} điểm** nhé!` : 'Chúc em ôn tập thật tốt và đạt điểm cao!';
-    
+
     let questionContext = `Câu hỏi: "${question.text}"\n`;
-    
+
     if (question.type === 'multiple_choice') {
       questionContext += `Các đáp án:\n`;
       question.options.forEach((opt, i) => {
@@ -183,7 +183,7 @@ ${isCorrect ? '- **Lời khen:** Khen ngợi học sinh vì đã trả lời đ�
 Trình bày bằng tiếng Việt, thân thiện, dễ hiểu và khích lệ.`;
 
     const response = await generateContentWithFallback(prompt);
-    
+
     return response.text;
   } catch (error) {
     console.error("Error fetching AI explanation:", error);
@@ -191,7 +191,7 @@ Trình bày bằng tiếng Việt, thân thiện, dễ hiểu và khích lệ.`;
   }
 }
 
-export async function chatWithTutor(message: string, history: {role: 'user' | 'model', text: string}[], imageBase64?: string) {
+export async function chatWithTutor(message: string, history: { role: 'user' | 'model', text: string }[], imageBase64?: string) {
   try {
     const formattedHistory = history.map(h => `${h.role === 'user' ? 'Học sinh' : 'Gia sư AI'}: ${h.text}`).join('\n');
     const prompt = `Vai trò: Bạn là một Gia sư môn Địa lí THPT chuyên nghiệp, tận tâm và tuân thủ chuẩn mực sư phạm của Việt Nam. Đối tượng phục vụ của bạn là học sinh khối 12 đang ôn tập cho kỳ thi Tốt nghiệp THPT theo Chương trình GDPT 2018.
@@ -222,7 +222,7 @@ Gia sư AI:`;
     }
 
     const response = await generateContentWithFallback(contents);
-    
+
     return response.text;
   } catch (error: any) {
     console.error("Error chatting with AI tutor:", error);
@@ -236,11 +236,11 @@ export async function generateLearningPath(attempts: QuizAttempt[], profile?: Us
     
 Lịch sử làm bài:
 ${JSON.stringify(attempts.map(a => ({
-  tên_đề_thi: a.examTitle,
-  điểm_số: a.score,
-  tổng_số_câu: a.totalQuestions,
-  ngày_thi: new Date(a.date).toLocaleDateString('vi-VN')
-})), null, 2)}
+      tên_đề_thi: a.examTitle,
+      điểm_số: a.score,
+      tổng_số_câu: a.totalQuestions,
+      ngày_thi: new Date(a.date).toLocaleDateString('vi-VN')
+    })), null, 2)}
 
 Hãy đóng vai một chuyên gia giáo dục phân tích dữ liệu trên và đưa ra:
 1. **Phân tích tổng quan**: Đánh giá năng lực hiện tại của học sinh.
@@ -262,7 +262,7 @@ ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
 QUY TẮC BẮT BUỘC:
 1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong đề - KHÔNG BỎ SÓT câu nào.
-2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice".
+2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice". ĐẶC BIỆT LƯU Ý: Rất nhiều nội dung thô bị gộp dính các đáp án vào cùng 1 dòng (ví dụ "A. Môtt B. Hại C. Ba"). Tùy thuộc vào bạn, hãy dùng AI và tư duy để NGẮT CHÚNG THÀNH 4 CHUỖI TÁCH BIỆT TRONG MẢNG \`options\`: ["Môtt", "Hại", "Ba", ...]. Tuyệt đối cấm gộp nhiều đáp án vào chung 1 chuỗi.
 3. Với câu Đúng/Sai (có các ý a, b, c, d): dùng type "true_false" với 4 statements.
 4. Với câu tự luận/điền số/tính toán ngắn: dùng type "short_answer".
 5. Phải xác định đáp án đúng dựa trên kiến thức Địa lý hoặc ghi chú trong đề. Nếu đề thi đề cập đến tỉnh/thành đã sáp nhập, hãy ghi chú trong explanation về tên mới sau 1/7/2025.
@@ -514,7 +514,7 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
     let text = response.text.trim();
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
     text = text.replace(/\s*```\s*$/i, '').trim();
-    
+
     const startIdx = text.indexOf('[');
     const endIdx = text.lastIndexOf(']');
     if (startIdx === -1) {
@@ -537,7 +537,7 @@ export async function generateAnswersForQuestions(questions: Question[]): Promis
     const brief: any = { id: q.id, type: q.type, text: q.text };
     if ('context' in q && q.context) brief.context = q.context; // Cực kỳ quan trọng để AI đọc được bảng/tính toán
     if ('options' in q) brief.options = q.options;
-    if ('statements' in q) brief.statements = q.statements.map((s:any) => ({ id: s.id, text: s.text }));
+    if ('statements' in q) brief.statements = q.statements.map((s: any) => ({ id: s.id, text: s.text }));
     return brief;
   });
 
@@ -616,7 +616,7 @@ CHỈ xuất ra mảng JSON, BẮT ĐẦU bằng [ và KẾT THÚC bằng ].`;
     text = text.replace(/\/\*[\s\S]*?\*\//g, '');
     // Clean up any trailing commas before } or ] caused by comment removal
     text = text.replace(/,(\s*[}\]])/g, '$1');
-    
+
     let answerKeys;
     try {
       // Try direct parse first
@@ -650,7 +650,7 @@ CHỈ xuất ra mảng JSON, BẮT ĐẦU bằng [ và KẾT THÚC bằng ].`;
     return questions.map(originalQ => {
       const ans = answerKeys.find((a: any) => a.id === originalQ.id);
       if (!ans) return originalQ;
-      
+
       let statements = (originalQ as any).statements;
       if (originalQ.type === 'true_false' && statements && ans.statements) {
         statements = statements.map((origStmt: any) => {
