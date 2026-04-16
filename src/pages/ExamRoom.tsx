@@ -169,10 +169,10 @@ export default function ExamRoom() {
         } else {
           // No library file — generate fresh AI exam
           try {
-            setLoadingStatus('🤖 AI đang tạo đề thi...');
+            setLoadingStatus('🤖 AI đang tạo đề thi (có thể mất 1 phút)...');
             const aiQuestions = await withTimeout(
               examService.generateAIExam(),
-              25000,
+              90000,
               'generateAIExam'
             );
             setExamQuestions(aiQuestions);

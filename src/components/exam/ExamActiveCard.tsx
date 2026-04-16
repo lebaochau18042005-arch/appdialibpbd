@@ -20,11 +20,14 @@ interface ExamActiveCardProps {
   isQuestionAnswered: (idx: number) => boolean;
 }
 
-// Helper: true when context has real renderable content
+// Helper: true when context has a real Markdown table or substantial content
 function hasValidContext(ctx: string | null | undefined): boolean {
   if (!ctx) return false;
   const trimmed = ctx.trim();
-  return trimmed.length > 5 && !['null', 'undefined', 'none', 'n/a'].includes(trimmed.toLowerCase());
+  if (trimmed.length < 10) return false;
+  if (['null', 'undefined', 'none', 'n/a'].includes(trimmed.toLowerCase())) return false;
+  // Must have actual Markdown table rows (|...|) to be considered valid
+  return trimmed.includes('|');
 }
 
 export default function ExamActiveCard({
