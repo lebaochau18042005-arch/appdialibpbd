@@ -109,14 +109,14 @@ export default function Quiz() {
           const count = countParam === 'all' ? 20 : parseInt(countParam || '10', 10);
 
           // Bước 1: Đọc file thư viện — lỗi bị bỏ qua, AI vẫn chạy không có context
-          let fileContext: string | undefined = undefined;
+          let fileContext: string | File | undefined = undefined;
           if (libraryFileId) {
             try {
               const fileSnap = await get(ref(rtdb, `library_files/${libraryFileId}`));
               if (fileSnap.exists()) {
                 const fileData = fileSnap.val();
                 const fileUrl = fileData.storagePath || fileData.fileUrl;
-                fileContext = await extractTextFromUrl(fileUrl, fileData.fileType);
+                fileContext = await extractTextFromUrl(fileUrl, fileData.fileType, fileData.fileName);
               }
             } catch (fileErr) {
               console.warn('[Quiz] Không đọc được file thư viện, tiếp tục gọi AI không có context:', fileErr);

@@ -74,10 +74,10 @@ function htmlToPlainText(html: string): string {
  * Extracts rich text (including tables as Markdown) from a file URL.
  * Supports:
  *   - Word (.docx/.doc) → mammoth convertToHtml, then tables → Markdown
- *   - PDF (.pdf) → pdfjs-dist (text only; PDFs rarely embed structured tables)
+ *   - PDF (.pdf) → returns a File object so Gemini File API can parse it securely with Vision
  *   - Falls back to empty string for unsupported types
  */
-export async function extractTextFromUrl(url: string, fileType: string): Promise<string> {
+export async function extractTextFromUrl(url: string, fileType: string, fileName?: string): Promise<string | File> {
   const isWord = fileType === 'word' || url.toLowerCase().includes('.doc');
   const isPDF = fileType === 'pdf' || url.toLowerCase().includes('.pdf');
 
@@ -113,32 +113,12 @@ export async function extractTextFromUrl(url: string, fileType: string): Promise
       const plainText = htmlToPlainText(html);
 
       // Interleave: replace table placeholders back into text
-      // Strategy: rebuild by replacing each <table> with its Markdown version
-      // We already have both separately; concatenate plain + tables as a merged doc.
-      // Better: merge by processing the html top-to-bottom
       const merged = mergeHtmlToMarkdown(html);
       return merged || plainText;
     } else {
-      // ── PDF extraction via pdfjs-dist ────────────────────────────────────────
-      const pdfjsLib = await import('pdfjs-dist');
-
-      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-      }
-
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdf = await loadingTask.promise;
-
-      const pages: string[] = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const text = content.items
-          .map((item: any) => item.str)
-          .join(' ');
-        pages.push(text);
-      }
-      return pages.join('\n\n');
+      // ── PDF: Pass raw File directly to AI (Vision API) ───────────
+      const finalName = fileName || (url.split('/').pop()?.split('?')[0]) || 'document.pdf';
+      return new File([arrayBuffer], finalName.endsWith('.pdf') ? finalName : `${finalName}.pdf`, { type: 'application/pdf' });
     }
   } catch (error: any) {
     console.error('File Extractor Error:', error);

@@ -342,7 +342,7 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
   }
 }
 
-function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string, mimeType: string } }> {
+export function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string, mimeType: string } }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -367,7 +367,7 @@ function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string,
 }
 
 // Upload PDF via Gemini File API (required for PDF — inline base64 is NOT supported)
-async function uploadPDFViaFileAPI(file: File): Promise<{ fileData: { mimeType: string, fileUri: string } }> {
+export async function uploadPDFViaFileAPI(file: File): Promise<{ fileData: { mimeType: string, fileUri: string } }> {
   // @ts-ignore
   const apiKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
   if (!apiKey) throw new Error('Chưa thiết lập API Key.');

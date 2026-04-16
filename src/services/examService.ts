@@ -4,7 +4,7 @@ import { collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc, setD
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Question, Exam, QuizAttempt, UserProfile } from '../types';
 import { Type } from "@google/genai";
-import { generateContentWithFallback, KIEN_THUC_HANH_CHINH_2025_EXPORT } from './ai';
+import { generateContentWithFallback, KIEN_THUC_HANH_CHINH_2025_EXPORT, fileToGenerativePart, uploadPDFViaFileAPI } from './ai';
 
 // ===== LocalStorage Fallback Helpers =====
 const LS_EXAM_KEY = 'geo_pro_local_exams';
@@ -71,8 +71,43 @@ export const examService = {
 
 
   // Generate AI Exam based on 2025 structure using Gemini
-  async generateAIExam(fileContext?: string): Promise<Question[]> {
+  async generateAIExam(fileContext?: string | any): Promise<Question[]> {
     try {
+      let documentSummary = '';
+      
+      // BƯỚC 1: TRÍCH XUẤT (EXTRACTION) - NẾU CÓ TÀI LIỆU
+      if (fileContext) {
+        let generativePart = null;
+        let textContext = '';
+        
+        if (typeof fileContext === 'object' && fileContext.name) { 
+          console.log("[AI Bước 1] Bắt đầu đọc file qua File/Base64 API...");
+          const isPDF = fileContext.type === 'application/pdf' || fileContext.name.toLowerCase().endsWith('.pdf');
+          if (isPDF) {
+            generativePart = await uploadPDFViaFileAPI(fileContext as File);
+          } else {
+            generativePart = await fileToGenerativePart(fileContext as File);
+          }
+        } else {
+          textContext = fileContext; 
+        }
+
+        console.log("[AI Bước 1] Đang trích xuất biểu đồ & dữ liệu cốt lõi...");
+        const extractionPrompt = `Bạn là chuyên gia phân tích dữ liệu Địa lý. Hãy đọc kỹ TÀI LIỆU ĐÍNH KÈM và trích xuất TOÀN BỘ số liệu, bảng biểu, biểu đồ, hình học, kiến thức trọng tâm.
+Dữ liệu sẽ dùng cho Bước 2. Yêu cầu:
+1) BẢNG SỐ LIỆU: Trình bày nghiêm ngặt dưới dạng Bảng Markdown đầy đủ cột, dòng, đơn vị. MỖI BẢNG PHẢI KÈM THEO NGUỒN TRÍCH DẪN RÕ RÀNG (nếu tài liệu có nguồn, bắt buộc trích xuất; nếu tài liệu không đề cập rõ, ghi rõ "Nguồn: Số liệu tham khảo/Tổng cục Thống kê (nếu khớp)").
+2) TÍNH KHOA HỌC: Tóm tắt tinh gọn đặc điểm, số liệu, vị trí với ĐỘ CHÍNH XÁC TUYỆT ĐỐI. Tuyệt đối không tự bịa hoặc làm tròn bát nháo số liệu.
+TUYỆT ĐỐI tuân thủ đơn vị hành chính sau sáp nhập 1/7/2025.`;
+        
+        const extractParts: any[] = [extractionPrompt];
+        if (generativePart) extractParts.push(generativePart);
+        if (textContext) extractParts.push(`\n=== TÀI LIỆU VĂN BẢN ===\n${textContext.substring(0, 50000)}`);
+
+        const extractRes = await generateContentWithFallback(extractParts);
+        documentSummary = extractRes.text || '';
+        console.log("[AI Bước 1] Đã tạo bản tóm tắt tinh khiết thành công.");
+      }
+
       // model is selected automatically by generateContentWithFallback
       // ===== KHỐI KIẾN THỨC HÀNH CHÍNH BẮT BUỘC (sau sáp nhập 1/7/2025) =====
       const HANH_CHINH_2025 = KIEN_THUC_HANH_CHINH_2025_EXPORT;
@@ -172,6 +207,7 @@ Bài 16 - Dịch vụ và du lịch:
 
 ${HANH_CHINH_2025}
 
+${CHUONG_TRINH_TT17}
 
       QUY TẮC BIỂU ĐỒ — NGHIÊM NGẶT TUYỆT ĐỐI:
       • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
@@ -179,19 +215,31 @@ ${HANH_CHINH_2025}
       • Dòng đầu context phải ghi: "Biểu đồ: [tên loại]" (cột / đường / tròn / miền / kết hợp)
       • Câu 1 và Câu II.4 PHẢI dùng 2 loại biểu đồ KHÁC NHAU.
       • Số liệu trong bảng PHẢI khớp với phương án đúng / mệnh đề đúng/sai.
-      • Nguồn số liệu: dòng cuối context là "(Nguồn: Tổng cục Thống kê, năm X)"
+      • Nguồn số liệu: BẮT BUỘC phải có dòng cuối ở context ghi rõ "(Nguồn: [Tên nguồn rõ ràng từ tài liệu hoặc Tổng cục Thống kê/Ngân hàng thế giới], năm X)". Cấm để trống nguồn.
       • TUYỆT ĐỐI CẤM context = null/rỗng/chuỗi "null" khi câu tham chiếu biểu đồ.
-      • ⚠️ DỮ LIỆU PHẢI ĐẦY ĐỦ 100%: Nếu câu hỏi hỏi về "cả năm" / "tất cả các tháng" → bảng PHẢI có 12 tháng (T1–T12). KHÔNG ĐƯỢC chỉ có 10 hoặc 11 tháng. Nếu câu tính tổng/trung bình → bảng PHẢI có đủ hàng dữ liệu để tính.
-      • ⚠️ SỐ LIỆU NHẤT QUÁN: correctAnswer PHẢI là kết quả tính đúng từ số liệu trong bảng. Kiểm tra lại sau khi sinh.
+      • ⚠️ DỮ LIỆU CHÍNH XÁC VÀ ĐẦY ĐỦ 100%: Dữ liệu phải tuyệt đối chính xác về mặt khoa học. Nếu dựa vào "Tóm tắt", phải lấy đúng số nguyên bản. Nếu câu hỏi hỏi về "cả năm" / "tất cả các tháng" → bảng PHẢI có 12 tháng.
+      • ⚠️ SỐ LIỆU NHẤT QUÁN: correctAnswer PHẢI là kết quả tính đúng từ số liệu trong bảng. Kiểm tra lại toán học sau khi sinh.
+
+      QUY TẮC TRẮC NGHIỆM ABCD (NGHIÊM CẤM GỘP PHƯƠNG ÁN):
+      • Thuộc tính \`options\` PHẢI LÀ MẢNG GỒM ĐÚNG 4 CHUỖI TÁCH BIỆT NHAU.
+      • ⚠️ NGUYÊN TẮC: Tài liệu gốc thường trình bày gộp trên cùng 1 dòng (ví dụ: "A. Lựa chọn Một. B. Lựa chọn Hai."). BẠN BẮT BUỘC PHẢI NHẬN DIỆN VÀ CHIA CẮT (SPLIT) CHÚNG THÀNH 4 CHUỖI RIÊNG BIỆT DỰA VÀO TIỀN TỐ A., B., C., D.
+      • NGHIÊM CẤM CHỨA CÁC TIỀN TỐ "A. ", "B. ", "C. ", "D. " BÊN TRONG CÁC OPTION. (Ví dụ SAI: ["A. Xong B. Chạy", ...]. Ví dụ ĐÚNG: ["Xong", "Chạy", "Đi", "Nhảy"]).
+      • Nếu AI sinh ra mảng options có phần tử chứa chữ "A.", "B.", "C." hoặc "D." ở giữa chuỗi, hệ thống sẽ BỊ PHẠT 0 ĐIỂM.
+
+      QUY TẮC ĐIỀN KHUYẾT THỐNG KÊ (PHẦN III) — LƯU Ý NGUYÊN TẮC QUAN TRỌNG NHẤT:
+      • Theo format phiếu trả lời Bộ GD&ĐT 2025, Phiếu TLTN câu Trả lời ngắn CHỈ CÓ TỐI ĐA 4 Ô ĐỂ TÔ (bao gồm cả dấu phẩy "," thập phân và dấu âm "-").
+      • KIÊN QUYẾT: Thuộc tính \`correctAnswer\` của Phần III BẮT BUỘC chỉ được chứa TỐI ĐA 4 KÝ TỰ (Ví dụ ĐÚNG: '12.5', '123', '0.55', '-4.2'. Ví dụ SAI: '3000000', '12.456').
+      • KỸ THUẬT RÚT GỌN ĐƠN VỊ: Nếu đáp án tính ra quá lớn (ví dụ 3000000), BẠN PHẢI bắt buộc thay đổi ĐƠN VỊ TRONG CÂU HỎI (để đáp án rút gọn còn '3.0' hoặc '3000'). Ví dụ: Thay vì hỏi "bao nhiêu người" hãy hỏi "bao nhiêu triệu người".
+      • Luôn ghi chú làm tròn trong câu hỏi, ví dụ: "(Làm tròn đến 1 chữ số sau dấu phẩy)".
 
       QUY TẮC KHÁC:
       A. correctAnswerIndex là số nguyên 0/1/2/3 — KHÔNG phải chữ A/B/C/D.
-      B. Phần III correctAnswer PHẢI là con số (string số hoặc number).
+      B. Phần III correctAnswer PHẢI là con số (string số hoặc number, NẾU LÀ SỐ THẬP PHÂN PHẢI DÙNG DẤU CHẤM '.').
       C. Mỗi câu phải có: id, type, text, context, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
       D. Phần II câu I/II/III: CẤM dùng "biểu đồ"/"bảng"/"số liệu" — chỉ hỏi lý thuyết.
       E. KHÔNG dùng tỉnh/thành đã sáp nhập làm đáp án đúng độc lập.
       F. CẤM TUYỆT ĐỐI ra câu hỏi về "Vùng kinh tế trọng điểm" hoặc "KTTĐ".
-      ${fileContext ? `G. Ưu tiên dùng TÀI LIỆU THAM KHẢO được cung cấp làm nguồn kiến thức chính.` : ''}`;
+      ${documentSummary ? `G. ⚠️ CHỈ DÙNG BẢN TÓM TẮT SAU ĐÂY LÀM NGUỒN KIẾN THỨC & SỐ LIỆU: \n\n=== TÓM TẮT TRÍCH XUẤT TỪ TÀI LIỆU GỐC ===\n${documentSummary}` : ''}`;
 
 
       const prompt = `MA TRẬN ĐỀ (tuân thủ nghiêm ngặt):
@@ -269,8 +317,8 @@ Dòng 2+: | Chỉ tiêu | Đơn vị | 2015 | 2019 | 2024 |
 
 ⚠️ KIỂM TRA CUỐI: đếm phải đủ 18+4+6=28. Câu có "biểu đồ" → context ≠ null. Câu 15 không hỏi KTTĐ.
 
-      ${fileContext ? `=== TÀI LIỆU THAM KHẢO ===\n${fileContext.slice(0, 50000)}` : ''}`;
 
+      `;
 
 
       const response = await generateContentWithFallback(prompt, {
@@ -333,8 +381,8 @@ Dòng 2+: | Chỉ tiêu | Đơn vị | 2015 | 2019 | 2024 |
         await Promise.all(needsContext.map(async (q: any) => {
           try {
             const isSEA = /đông nam á|asean|indonesia|singapore|malaysia|philippines|thái lan|myanmar/i.test(q.text);
-            const ctxPrompt = `Tạo ngay một bảng số liệu Markdown đầy đủ cho câu hỏi địa lí sau.
-
+            const ctxPrompt = `Tạo ngay môt bảng số liệu Markdown đầy đủ cho câu hỏi địa lí sau.
+${documentSummary ? `BẮT BUỘC SỬ DỤNG SỐ LIỆU TỪ TÀI LIỆU GỐC SAU ĐÂY:\n${documentSummary}\n` : ''}
 CÂU HỎI: ${q.text}
 
 YÊU CẦU CHÍNH XÁC:
@@ -370,7 +418,7 @@ YÊU CẦU CHÍNH XÁC:
     }
   },
 
-  async generatePracticeQuestions(topicOrLesson: string, mode: 'topic' | 'lesson' | 'format' | string, count: number, fileContext?: string): Promise<Question[]> {
+  async generatePracticeQuestions(topicOrLesson: string, mode: 'topic' | 'lesson' | 'format' | string, count: number, fileContext?: string | any): Promise<Question[]> {
     try {
       // model is selected automatically by generateContentWithFallback
 
@@ -468,7 +516,7 @@ YÊU CẦU CHÍNH XÁC:
 
             const ctxPrompt = `BẮT BUỘC tạo ngay bảng số liệu Markdown HOÀN CHỈNH cho câu hỏi địa lí sau.
 HỌC SINH KHÔNG THỂ LÀM BÀI NẾU THIẾU HOẶC THIẾU DỮ LIỆU.
-
+${fileContext ? `BẮT BUỘC SỬ DỤNG SỐ LIỆU TỪ TÀI LIỆU SAU ĐÂY:\n${typeof fileContext === 'string' ? fileContext.substring(0, 50000) : ''}\n` : ''}
 CÂU HỎI: ${q.text}
 
 QUY TẮC DỮ LIỆU ĐẦY ĐỦ — BẮT BUỘC TUYỆT ĐỐI:

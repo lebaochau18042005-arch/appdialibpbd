@@ -122,11 +122,11 @@ export default function ExamRoom() {
             if (fileSnap.exists()) {
               const fileData = fileSnap.val();
               const fileUrl = fileData.storagePath || fileData.fileUrl;
-              let fileContext = '';
+              let fileContext: string | File | any = '';
               try {
                 fileContext = await withTimeout(
-                  extractTextFromUrl(fileUrl, fileData.fileType),
-                  12000,
+                  extractTextFromUrl(fileUrl, fileData.fileType, fileData.fileName),
+                  30000,
                   'extractText'
                 );
               } catch (extractErr) {
@@ -137,10 +137,10 @@ export default function ExamRoom() {
                 return;
               }
               try {
-                setLoadingStatus('🤖 AI đang tạo đề thi từ tài liệu...');
+                setLoadingStatus('🤖 AI đang trích xuất số liệu và tạo đề thi (có thể mất 1 phút)...');
                 const aiQuestions = await withTimeout(
                   examService.generateAIExam(fileContext),
-                  25000,
+                  90000,
                   'generateAIExam'
                 );
                 setExamQuestions(aiQuestions);

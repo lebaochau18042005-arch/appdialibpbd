@@ -218,21 +218,141 @@ function QuestionEditor({
                 )}
               </div>
 
-              {/* ── For true_false: show BieuDo note ── */}
-              {question.type === 'true_false' && !question.context && !question.imageUrl && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                  <p className="text-amber-700 text-xs font-bold">
-                    💡 <strong>Câu Đúng/Sai về biểu đồ:</strong> Thêm bảng số liệu ở trên để học sinh có dữ liệu trả lời. Dùng nút mẫu cho nhanh!
-                  </p>
+              {/* ── Text editor for multiple choice ── */}
+              {question.type === 'multiple_choice' && (
+                <div className="space-y-3 pt-4 border-t border-slate-200/50">
+                  <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Nội dung câu hỏi & Các phương án</p>
+                  <textarea
+                    value={question.text || ''}
+                    onChange={e => onChange({ ...question, text: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-indigo-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white font-medium"
+                    placeholder="Nhập nội dung câu hỏi..."
+                  />
+                  <div className="space-y-2">
+                    {question.options?.map((opt, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <button
+                          onClick={() => onChange({ ...question, correctAnswerIndex: i })}
+                          className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors", question.correctAnswerIndex === i ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400 hover:bg-slate-200")}
+                        >
+                          {String.fromCharCode(65 + i)}
+                        </button>
+                        <input
+                          type="text"
+                          value={opt || ''}
+                          onChange={e => {
+                            const newOpts = [...(question.options || [])];
+                            newOpts[i] = e.target.value;
+                            onChange({ ...question, options: newOpts });
+                          }}
+                          placeholder={`Phương án ${String.fromCharCode(65 + i)}`}
+                          className={cn("flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 outline-none transition-colors", question.correctAnswerIndex === i ? "bg-emerald-50/30 border-emerald-200 focus:ring-emerald-400" : "bg-white focus:ring-indigo-400")}
+                        />
+                      </div>
+                    ))}
+                    {(!question.options || question.options.length < 4) && (
+                      <button onClick={() => {
+                        const newOpts = [...(question.options || [])];
+                        while(newOpts.length < 4) newOpts.push('');
+                        onChange({ ...question, options: newOpts });
+                      }} className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-xl w-full text-center hover:bg-indigo-100 transition-colors">
+                        <Plus size={14} className="inline mr-1" /> Bổ sung 4 phương án
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* ── For short_answer: show table note ── */}
-              {question.type === 'short_answer' && !question.context && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                  <p className="text-blue-700 text-xs font-bold">
-                    💡 <strong>Câu Trả lời ngắn cần bảng:</strong> Thêm bảng số liệu để học sinh có đủ dữ liệu tính toán!
-                  </p>
+              {/* ── True/False statements ── */}
+              {question.type === 'true_false' && (
+                <div className="space-y-3 pt-4 border-t border-slate-200/50">
+                  <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Nội dung & Khẳng định Đúng / Sai</p>
+                  {(!question.context && !question.imageUrl) && (
+                    <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-amber-700 text-xs font-bold">💡 Thêm bảng số liệu ở trên (hoặc chọn Mẫu 2 năm) để học sinh có dữ liệu đánh giá biểu đồ.</p>
+                    </div>
+                  )}
+                  <textarea
+                    value={question.text || ''}
+                    onChange={e => onChange({ ...question, text: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-emerald-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 outline-none bg-white font-medium"
+                    placeholder="Nhập nội dung câu hỏi..."
+                  />
+                  <div className="space-y-2">
+                    {question.statements?.map((stmt, i) => (
+                      <div key={stmt.id || i} className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const newStmts = [...(question.statements || [])];
+                            newStmts[i] = { ...newStmts[i], isTrue: !newStmts[i].isTrue };
+                            onChange({ ...question, statements: newStmts });
+                          }}
+                          className={cn("w-12 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors", stmt.isTrue ? "bg-emerald-500 text-white" : "bg-rose-500 text-white")}
+                        >
+                          {stmt.isTrue ? 'ĐÚNG' : 'SAI'}
+                        </button>
+                        <input
+                          type="text"
+                          value={stmt.text || ''}
+                          onChange={e => {
+                            const newStmts = [...(question.statements || [])];
+                            newStmts[i] = { ...newStmts[i], text: e.target.value };
+                            onChange({ ...question, statements: newStmts });
+                          }}
+                          placeholder={`Khẳng định ${String.fromCharCode(97 + i)}`}
+                          className={cn("flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 outline-none bg-white", stmt.isTrue ? "focus:ring-emerald-400 border-emerald-200" : "focus:ring-rose-400 border-rose-200")}
+                        />
+                      </div>
+                    ))}
+                    {(!question.statements || question.statements.length < 4) && (
+                      <button onClick={() => {
+                        const newStmts = [...(question.statements || [])];
+                        while(newStmts.length < 4) {
+                          newStmts.push({ id: `stmt-${Date.now()}-${newStmts.length}`, text: '', isTrue: false });
+                        }
+                        onChange({ ...question, statements: newStmts });
+                      }} className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl w-full text-center hover:bg-emerald-100 transition-colors">
+                        <Plus size={14} className="inline mr-1" /> Bổ sung 4 nhận định
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Short Answer ── */}
+              {question.type === 'short_answer' && (
+                <div className="space-y-3 pt-4 border-t border-slate-200/50">
+                  <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Nội dung & Đáp án Trả lời ngắn</p>
+                  {!question.context && (
+                    <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-blue-700 text-xs font-bold">💡 Thêm bảng số liệu ở phần trên để học sinh có đủ dữ liệu tính toán công thức!</p>
+                    </div>
+                  )}
+                  <textarea
+                    value={question.text || ''}
+                    onChange={e => onChange({ ...question, text: e.target.value })}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-amber-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white font-medium"
+                    placeholder="Nhập nội dung câu hỏi..."
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={question.correctAnswer || ''}
+                      onChange={e => onChange({ ...question, correctAnswer: e.target.value })}
+                      placeholder="Đáp án đúng (vd: 12.5)"
+                      className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm font-bold text-amber-700 bg-amber-50 focus:ring-2 focus:ring-amber-400 outline-none placeholder:font-normal placeholder:text-amber-300"
+                    />
+                    <input
+                      type="text"
+                      value={question.unit || ''}
+                      onChange={e => onChange({ ...question, unit: e.target.value })}
+                      placeholder="Đơn vị (vd: %)"
+                      className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm text-center focus:ring-2 focus:ring-amber-400 outline-none bg-white"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -271,9 +391,28 @@ export default function ExamEditor({ exam, onSave, onClose }: ExamEditorProps) {
   const trueFalseQs = questions.filter(q => q.type === 'true_false');
   const shortAnswerQs = questions.filter(q => q.type === 'short_answer');
   const mcQs = questions.filter(q => q.type === 'multiple_choice');
-  const needsAttention = questions.filter(q =>
-    (q.type === 'true_false' || q.type === 'short_answer') && !q.context && !q.imageUrl
-  );
+  const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|lược đồ|hình dưới|số liệu sau/i;
+  
+  const needsAttention = questions.filter(q => {
+    // 1. Missing chart context when requested
+    if (CHART_RE.test(q.text || '') && !q.context && !q.imageUrl) return true;
+    
+    // 2. Missing text
+    if (!q.text || q.text.trim() === '') return true;
+
+    // 3. Missing answers
+    if (q.type === 'multiple_choice') {
+      if (!q.options || q.options.length < 4) return true;
+      if (q.options.some(o => !o.trim())) return true;
+      if (typeof q.correctAnswerIndex !== 'number' || q.correctAnswerIndex < 0 || q.correctAnswerIndex >= q.options.length) return true;
+    } else if (q.type === 'true_false') {
+      if (!q.statements || q.statements.length !== 4) return true;
+      if (q.statements.some(stmt => !stmt.text.trim() || typeof stmt.isTrue !== 'boolean')) return true;
+    } else if (q.type === 'short_answer') {
+      if (q.correctAnswer === undefined || q.correctAnswer === null || String(q.correctAnswer).trim() === '') return true;
+    }
+    return false;
+  });
 
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[90] p-4">
@@ -326,10 +465,10 @@ export default function ExamEditor({ exam, onSave, onClose }: ExamEditorProps) {
             <span className="text-amber-600 text-lg shrink-0">⚠️</span>
             <div>
               <p className="text-amber-800 text-sm font-bold">
-                {needsAttention.length} câu Đúng/Sai hoặc Trả lời ngắn chưa có bảng số liệu / hình ảnh
+                {needsAttention.length} câu hỏi cần bổ sung thông tin (Đề lỗi)
               </p>
               <p className="text-amber-600 text-xs mt-0.5">
-                Click vào từng câu để mở rộng và thêm bảng Markdown hoặc hình ảnh biểu đồ.
+                Các câu này có thể thiếu bảng số liệu, hoặc chưa có đáp án, nội dung phương án. Click vào từng câu để sửa!
               </p>
             </div>
           </div>
