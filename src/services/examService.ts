@@ -442,6 +442,53 @@ YÊU CẦU CHÍNH XÁC:
       if (!text) throw new Error("AI không trả về nội dung.");
       
       const questions = JSON.parse(text);
+
+      // ===== POST-PROCESSING BẮT BUỘC: Auto-repair context bị thiếu =====
+      // Nếu câu hỏi có từ "biểu đồ" / "bảng số liệu" mà context rỗng → BẮT BUỘC sinh bảng Markdown.
+      // Học sinh không thể làm bài nếu không có dữ liệu tham khảo.
+      const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|số liệu sau|dưới đây|theo bảng/i;
+      const needsContext = questions.filter((q: any) =>
+        CHART_RE.test(q.text || '') && (!q.context || q.context.trim().length < 20 || ['null', 'undefined', 'none'].includes((q.context || '').trim().toLowerCase()))
+      );
+
+      if (needsContext.length > 0) {
+        console.log(`[Practice] Auto-repairing context for ${needsContext.length} question(s)...`);
+        await Promise.all(needsContext.map(async (q: any) => {
+          try {
+            const isSEA = /đông nam á|asean|indonesia|singapore|malaysia|philippines|thái lan|myanmar/i.test(q.text);
+            const isPercentage = /cơ cấu|tỉ trọng|tỉ lệ|%|phần trăm/i.test(q.text);
+            const chartType = isPercentage ? 'Tròn (cơ cấu)' : isSEA ? 'Cột nhóm (so sánh)' : 'Kết hợp cột và đường';
+
+            const ctxPrompt = `BẮT BUỘC tạo ngay bảng số liệu Markdown cho câu hỏi địa lí sau. Học sinh KHÔNG THỂ làm bài nếu thiếu bảng này.
+
+CÂU HỎI: ${q.text}
+
+YÊU CẦU CHÍNH XÁC:
+- Dòng 1: "Biểu đồ: ${chartType}" (không có gì khác)
+- Dòng 2 trở đi: bảng Markdown với CỘT ĐƠN VỊ bắt buộc:
+  | Chỉ tiêu | Đơn vị | Cột năm 1 | Cột năm 2 | Cột năm 3 |
+  |---|---|---|---|---|
+  | ... | ... | ... | ... | ... |
+- Ít nhất 3-4 hàng dữ liệu với số liệu thực tế 2019-2024
+- ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể' : 'Dùng số liệu Việt Nam cụ thể theo chủ đề câu hỏi'}
+- Số liệu PHẢI khớp với đáp án/mệnh đề đúng trong câu hỏi
+- Dòng cuối: "(Nguồn: Tổng cục Thống kê / World Bank, 2024)"
+- CHỈ trả về bảng Markdown, không có text hay giải thích khác`;
+
+            const ctxRes = await generateContentWithFallback(ctxPrompt);
+            const generated = ctxRes.text?.trim() || '';
+            if (generated.includes('|') && generated.includes('---')) {
+              q.context = generated;
+              console.log(`[Practice] ✅ Context generated for question: ${q.id}`);
+            } else {
+              console.warn(`[Practice] ⚠️ Failed to generate valid context for: ${q.id}`);
+            }
+          } catch (e) {
+            console.warn(`[Practice] Context repair failed for ${q.id}:`, e);
+          }
+        }));
+      }
+
       return questions;
     } catch (error) {
       console.error("AI Practice Generation Error:", error);
