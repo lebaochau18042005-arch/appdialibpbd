@@ -40,9 +40,10 @@ function renderQText(text: string) {
 }
 
 // ── Mảng trợ giúp chuyển đổi HTML Word (giữ lại bảng + hình ảnh) ─────────────
-function htmlToMarkdownWord(html: string): string {
+function htmlToMarkdownWord(html: string): { text: string, images: { inlineData: { mimeType: string, data: string } }[] } {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
+  const extractedImages: { inlineData: { mimeType: string, data: string } }[] = [];
 
   function processNode(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
@@ -51,8 +52,14 @@ function htmlToMarkdownWord(html: string): string {
       if (el.tagName === 'IMG') {
         const src = (el as HTMLImageElement).src;
         // Strip heavy base64 strings to prevent AI token overflow and hallucinated truncations
-        if (src.startsWith('data:image')) {
-          return `\n[HÌNH ẢNH/BIỂU ĐỒ NẰM Ở ĐÂY - GIÁO VIÊN CẦN BỔ SUNG LẠI BẢNG SỐ LIỆU SAU KHI TẠO ĐỀ]\n`;
+        if (src.startsWith('data:image/')) {
+          const match = src.match(/^data:(image\/[a-zA-Z0-9+-.]+);base64,(.+)$/);
+          if (match) {
+            extractedImages.push({
+              inlineData: { mimeType: match[1], data: match[2] }
+            });
+            return `\n[TÀI LIỆU GỐC CÓ BAO GỒM 1 HÌNH ẢNH/BIỂU ĐỒ TẠI VỊ TRÍ NÀY - HÃY QUAN SÁT TỪ CÁC ẢNH GÓC BÊN DƯỚI ĐỂ ĐỌC DỮ LIỆU/VẼ BẢNG]\n`;
+          }
         }
         return `\n![chart](${src})\n`;
       }
@@ -87,7 +94,8 @@ function htmlToMarkdownWord(html: string): string {
   }
 
   const result = processNode(doc.body);
-  return result.replace(/\n{3,}/g, '\n\n').trim();
+  const finalString = result.replace(/\n{3,}/g, '\n\n').trim();
+  return { text: finalString, images: extractedImages };
 }
 
 // ── Regex-based Word exam question parser (no AI) ───────────────────────────
@@ -576,10 +584,10 @@ export default function TeacherDashboard() {
           const mammoth = await import('mammoth');
           const arrayBuffer = await selectedFile.arrayBuffer();
           const result = await mammoth.convertToHtml({ arrayBuffer });
-          const markdownText = htmlToMarkdownWord(result.value);
+          const { text: markdownText, images } = htmlToMarkdownWord(result.value);
           if (markdownText.trim().length > 50) {
             const { generateExamFromContext } = await import('../services/ai');
-            parsedQuestions = await generateExamFromContext(markdownText.slice(0, 80000));
+            parsedQuestions = await generateExamFromContext(markdownText.slice(0, 80000), images.slice(0, 50));
           }
         } catch (e) {
           console.warn('Word auto-parse failed:', e);

@@ -255,8 +255,8 @@ Hãy đóng vai một chuyên gia giáo dục phân tích dữ liệu trên và 
   }
 }
 
-export async function generateExamFromContext(context: string): Promise<Question[]> {
-  const prompt = `Bạn là một chuyên gia phân tích đề thi môn Địa lý THPT, nắm vững cấu trúc đề 2025 và các thay đổi theo TT 17/2025/TT-BGDĐT. Nhiệm vụ của bạn là TRÍCH XUẤT TOÀN BỘ câu hỏi từ ĐỀ THI được cung cấp bên dưới.
+export async function generateExamFromContext(context: string, imageParts: any[] = []): Promise<Question[]> {
+  const prompt = `Bạn là một chuyên gia phân tích đề thi môn Địa lý THPT, nắm vững cấu trúc đề 2025 và các thay đổi theo TT 17/2025/TT-BGDĐT. Nhiệm vụ của bạn là TRÍCH XUẤT TOÀN BỘ câu hỏi từ ĐỀ THI được cung cấp bên dưới. ĐỀ THI BÊN DƯỚI DƯỚI DẠNG VĂN BẢN (Text) NHƯNG CÓ THỂ KÈM THEO CÁC BỨC ẢNH GÓC BÊN DƯỚI. HÃY KẾT HỢP XEM CẢ CHỮ VÀ ẢNH!
 
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
@@ -317,7 +317,8 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
 ]`;
 
   try {
-    const response = await generateContentWithFallback(prompt);
+    const contents: any[] = [prompt, ...imageParts];
+    const response = await generateContentWithFallback(contents);
     let text = response.text.trim();
     // Strip markdown code fences
     text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
@@ -454,8 +455,8 @@ export async function extractQuestionsFromMedia(file: File): Promise<Question[]>
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
 QUY TẮC BẮT BUỘC:
-1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong ảnh - KHÔNG BỎ SÓT câu nào.
-2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice". ĐẶC BIỆT LƯU Ý: Mảng "options" BẮT BUỘC phải chứa CHÍNH XÁC 4 phần tử tách biệt cho A, B, C, D. Tuyệt đối không gộp 2 đáp án (ví dụ A và B) vào chung một chuỗi!
+1. TRÍCH XUẤT ĐẦY ĐỦ TẤT CẢ câu hỏi có trong ảnh. NẾU BỘ TÀI LIỆU CÓ ĐỦ 28 HAY 40 CÂU, BẮT BUỘC PHẢI IN TRẢ VỀ ĐÚNG BẤY NHIÊU CÂU JSON! TUYỆT ĐỐI NGHIÊM CẤM LƯỜI BIẾNG CHỈ IN RA 3-4 CÂU ĐẦU TIÊN RỒI DỪNG LẠI (LỖI ĐỨT GÃY HỆ THỐNG TRẦM TRỌNG). KHÔNG BỎ SÓT BẤT CỨ CÂU NÀO!
+2. Với câu trắc nghiệm nhiều lựa chọn (4 đáp án A/B/C/D): dùng type "multiple_choice". ĐẶC BIỆT LƯU Ý: Rất nhiều nội dung thô bị gộp dính các đáp án vào cùng 1 dòng (ví dụ "A. Môtt B. Hại C. Ba"). Tùy thuộc vào bạn, hãy dùng AI và tư duy Vision để NGẮT CHÚNG THÀNH 4 CHUỖI TÁCH BIỆT TRONG MẢNG \`options\`: ["Môtt", "Hại", "Ba", ...]. Tuyệt đối cấm gộp nhiều đáp án vào chung 1 chuỗi. Mảng "options" BẮT BUỘC phải chứa CHÍNH XÁC 4 phần tử tách biệt cho A, B, C, D.
 3. Với câu Đúng/Sai (có các ý a, b, c, d): dùng type "true_false" với 4 statements.
 4. Với câu tự luận/điền số/tính toán ngắn: dùng type "short_answer".
 5. ⚠️ NẾU TRONG ĐỀ KHÔNG CÓ ĐÁP ÁN (Bản thân thí sinh phải tự giải): 
