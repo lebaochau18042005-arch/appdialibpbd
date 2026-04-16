@@ -217,7 +217,7 @@ ${CHUONG_TRINH_TT17}
       • Câu 1 và Câu II.4 PHẢI dùng 2 loại biểu đồ KHÁC NHAU.
       • Số liệu trong bảng PHẢI khớp với phương án đúng / mệnh đề đúng/sai.
       • Nguồn số liệu: BẮT BUỘC phải có dòng cuối ở context ghi rõ "(Nguồn: [Tên nguồn rõ ràng từ tài liệu hoặc Tổng cục Thống kê/Ngân hàng thế giới], năm X)". Cấm để trống nguồn.
-      • TUYỆT ĐỐI CẤM context = null/rỗng/chuỗi "null" khi câu tham chiếu biểu đồ.
+      • ⚠️ VỊ TRÍ ĐẶT BẢNG (TRƯỜNG CONTEXT): Bảng số liệu BẮT BUỘC phải nằm trọn vẹn trong trường "context" (có xuống dòng \n đàng hoàng). TUYỆT ĐỐI CẤM gộp/nhét bảng Markdown inline vào trường "text" của câu hỏi. Trường "text" chỉ chứa câu dẫn.
       • ⚠️ DỮ LIỆU CẦN ĐỦ 12 THÁNG NẾU HỎI CẢ NĂM: Nếu câu hỏi hỏi về "cả năm" / "tất cả các tháng", TẠO BẢNG CHÍNH XÁC 14 CỘT: 1 Cột Tên - 1 Cột Đơn vị - 12 Cột Tháng (từ 1 đến 12), tuyệt đối không gộp hay cắt bớt.
       • ⚠️ DỮ LIỆU CHÍNH XÁC VÀ ĐẦY ĐỦ 100%: Dữ liệu phải tuyệt đối chính xác về mặt khoa học. Nếu dựa vào "Tóm tắt", phải lấy đúng số nguyên bản.
       • ⚠️ SỐ LIỆU NHẤT QUÁN: correctAnswer PHẢI là kết quả tính đúng từ số liệu trong bảng. Kiểm tra lại toán học sau khi sinh.
