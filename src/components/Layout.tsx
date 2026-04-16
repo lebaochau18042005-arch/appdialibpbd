@@ -176,22 +176,31 @@ export default function Layout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* RIGHT ACTIONS */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* API Key button */}
-            <button
-              onClick={() => setIsApiKeyModalOpen(true)}
-              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
-              style={{
-                background: 'rgba(245,158,11,0.1)',
-                border: '1px solid rgba(245,158,11,0.4)',
-                color: '#fbbf24',
-                boxShadow: '0 0 8px rgba(245,158,11,0.15)'
-              }}
-              title="Cài đặt API Key AI"
-            >
-              <Settings size={12} />
-              API Key
-            </button>
+          <div className="flex items-center gap-3 shrink-0">
+            {/* API Key container */}
+            <div className="flex flex-col items-center justify-center">
+              <button
+                onClick={() => setIsApiKeyModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold transition-all"
+                style={{
+                  background: 'rgba(245,158,11,0.15)',
+                  border: '1px solid rgba(245,158,11,0.5)',
+                  color: '#fbbf24',
+                  boxShadow: '0 0 10px rgba(245,158,11,0.2)'
+                }}
+                title="Cài đặt API Key AI"
+              >
+                <Settings size={14} />
+                <span className="hidden sm:inline">Settings</span>
+                <span className="sm:hidden">API</span>
+              </button>
+              <span 
+                className="text-[9px] sm:text-[10px] font-black mt-1 animate-pulse" 
+                style={{ color: '#ef4444', textShadow: '0 0 4px rgba(239, 68, 68, 0.4)' }}
+              >
+                Lấy API key để sử dụng app
+              </span>
+            </div>
 
             {(user || isTeacherMode) ? (
               <div className="flex items-center gap-2">

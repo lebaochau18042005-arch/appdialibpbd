@@ -3,9 +3,18 @@ import { Question, UserProfile, QuizAttempt } from '../types';
 
 const FALLBACK_MODELS = [
   'gemini-2.5-flash',
-  'gemini-2.5-pro',
+  'gemini-3-flash-preview',
   'gemini-2.5-flash-lite',
+  'gemini-2.5-pro',
 ];
+
+const VALID_MODELS_SET = new Set([
+  'gemini-2.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-pro',
+  'gemini-3-pro-preview'
+]);
 
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 
@@ -13,8 +22,7 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 // Clear any stale/invalid model IDs (from previous versions) that would cause 404.
 (function cleanupStaleModel() {
   const stored = localStorage.getItem('GEMINI_MODEL');
-  const valid = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite']);
-  if (stored && !valid.has(stored)) {
+  if (stored && !VALID_MODELS_SET.has(stored)) {
     console.warn('[AI] Xóa model cũ không hợp lệ khỏi localStorage:', stored);
     localStorage.removeItem('GEMINI_MODEL');
   }
@@ -85,7 +93,7 @@ export async function generateContentWithFallback(prompt: any, config: any = {})
   const ai = new GoogleGenAI({ apiKey });
   const storedModel = localStorage.getItem('GEMINI_MODEL');
   // Clear stored model if it's an old/invalid name
-  const VALID_MODELS = new Set(FALLBACK_MODELS);
+  const VALID_MODELS = VALID_MODELS_SET;
   const preferredModel = (storedModel && VALID_MODELS.has(storedModel))
     ? storedModel
     : DEFAULT_MODEL;
@@ -94,6 +102,7 @@ export async function generateContentWithFallback(prompt: any, config: any = {})
     localStorage.removeItem('GEMINI_MODEL');
   }
   
+  // Try the preferred model first, then the fallback models
   const modelsToTry = [preferredModel, ...FALLBACK_MODELS.filter(m => m !== preferredModel)];
   
   let lastError;
@@ -109,6 +118,12 @@ export async function generateContentWithFallback(prompt: any, config: any = {})
     } catch (error: any) {
       const msg = error?.message || String(error);
       const code = error?.code || error?.status || '';
+      
+      // Khối xử lý lỗi Quota
+      if (String(code) === '429' || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('exhausted')) {
+        throw new Error('API Key của bạn đã hết lượt (quota). Vui lòng lấy API key từ một tài khoản Gmail khác hoặc chờ đến ngày mai để tiếp tục sử dụng.');
+      }
+
       console.warn(`[AI Fallback] Model ${model} failed (${code}):`, msg);
       if (!firstError) firstError = `${model}: ${msg}`;
       lastError = error;

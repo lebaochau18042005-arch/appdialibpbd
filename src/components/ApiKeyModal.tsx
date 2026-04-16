@@ -8,19 +8,19 @@ interface ApiKeyModalProps {
 }
 
 const MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Nhanh, ổn định, dùng làm mặc định (Khuyên dùng)' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Chất lượng cao nhất, tư duy sâu, phù hợp tạo đề phức tạp' },
-  { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', desc: 'Siêu nhẹ, tiết kiệm quota, phản hồi nhanh nhất' }
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', desc: 'Thế hệ mới nhất, phản hồi nhanh (Khuyên dùng)' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', desc: 'Chất lượng dịch thuật cực cao, tư duy sâu rộng' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Nhanh, ổn định, tiết kiệm quota' }
 ];
 
 export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
 
   useEffect(() => {
     if (isOpen) {
       const savedKey = localStorage.getItem('GEMINI_API_KEY') || '';
-      const savedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-2.5-flash';
+      const savedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-3-flash-preview';
       setApiKey(savedKey);
       setSelectedModel(savedModel);
     }
