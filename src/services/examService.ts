@@ -213,7 +213,7 @@ ${CHUONG_TRINH_TT17}
       • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
       • Cột đơn vị BẮT BUỘC: | Chỉ tiêu | Đơn vị | 2015 | 2020 | 2024 |
       • Dòng đầu context phải ghi: "Biểu đồ: [tên loại]" (cột / đường / tròn / miền / kết hợp)
-      • QUY TẮC BIỂU ĐỒ TRÒN/MIỀN (CƠ CẤU): Nếu câu hỏi nói về "Cơ cấu" hoặc tạo biểu đồ "Tròn"/"Miền", CỘT ĐƠN VỊ CỦA BẢNG BẮT BUỘC ĐƯỢC CHUYỂN ĐỔI SANG "%", tuyệt đối KHÔNG dùng giá trị thô gốc (Nghìn tỷ, Triệu người,...). Tổng các thành phần phải xấp xỉ 100%.
+      • QUY TẮC BIỂU ĐỒ TRÒN/MIỀN (CƠ CẤU): Nếu câu hỏi nói về "Cơ cấu" hoặc tạo biểu đồ "Tròn"/"Miền", CỘT ĐƠN VỊ CỦA BẢNG BẮT BUỘC ĐƯỢC CHUYỂN ĐỔI SANG "%", tuyệt đối KHÔNG dùng giá trị thô gốc (Nghìn tỷ, Triệu người,...). Tổng các thành phần phải xấp xỉ 100%. NGHIÊM CẤM CHÈN THÊM CÁC HÀNG THỪA NHƯ "Tốc độ tăng trưởng", "Tổng số" vào bảng cơ cấu.
       • Câu 1 và Câu II.4 PHẢI dùng 2 loại biểu đồ KHÁC NHAU.
       • Số liệu trong bảng PHẢI khớp với phương án đúng / mệnh đề đúng/sai.
       • Nguồn số liệu: BẮT BUỘC phải có dòng cuối ở context ghi rõ "(Nguồn: [Tên nguồn rõ ràng từ tài liệu hoặc Tổng cục Thống kê/Ngân hàng thế giới], năm X)". Cấm để trống nguồn.
@@ -240,7 +240,7 @@ ${CHUONG_TRINH_TT17}
       C. Mỗi câu phải có: id, type, text, context, topic, lesson, cognitiveLevel, explanation, tips, mnemonics.
       D. Phần II câu I/II/III: CẤM dùng "biểu đồ"/"bảng"/"số liệu" — chỉ hỏi lý thuyết.
       E. KHÔNG dùng tỉnh/thành đã sáp nhập làm đáp án đúng độc lập.
-      F. CẤM TUYỆT ĐỐI ra câu hỏi về "Vùng kinh tế trọng điểm" hoặc "KTTĐ".
+      F. ⚠️ NGHIÊM CẤM 100% CÁC NỘI DUNG ĐÃ BỊ LƯỢC BỎ BỞI TT17/2025: TUYỆT ĐỐI KHÔNG hỏi "Vùng kinh tế trọng điểm" (đã bãi bỏ). TUYỆT ĐỐI KHÔNG hỏi "Phân bố mạng lưới đô thị". TUYỆT ĐỐI KHÔNG hỏi chi tiết "Chuyển dịch cơ cấu kinh tế theo ngành/thành phần/lãnh thổ". Ưu tiên điểm mới: Phát triển bền vững, Nông nghiệp công nghệ cao, Biến đổi khí hậu.
       ${documentSummary ? `G. ⚠️ CHỈ DÙNG BẢN TÓM TẮT SAU ĐÂY LÀM NGUỒN KIẾN THỨC & SỐ LIỆU: \n\n=== TÓM TẮT TRÍCH XUẤT TỪ TÀI LIỆU GỐC ===\n${documentSummary}` : ''}`;
 
 
