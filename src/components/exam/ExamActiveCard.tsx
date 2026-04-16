@@ -53,9 +53,9 @@ export default function ExamActiveCard({
       <div className="p-6 md:p-10">
         <div className="flex items-center gap-2 mb-6">
           <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-md">
-            {currentQuestion.type === 'multiple_choice' ? 'Phần I: Trắc nghiệm' : 
-             currentQuestion.type === 'true_false' ? 'Phần II: Đúng/Sai' : 
-             'Phần III: Trả lời ngắn'}
+            {currentQuestion.type === 'multiple_choice' ? 'Phần I: Trắc nghiệm' :
+              currentQuestion.type === 'true_false' ? 'Phần II: Đúng/Sai' :
+                'Phần III: Trả lời ngắn'}
           </span>
           {currentQuestion.cognitiveLevel && (
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md uppercase">
@@ -86,8 +86,8 @@ export default function ExamActiveCard({
           </div>
         )}
 
-        {/* Warn when question mentions chart/table but context is missing/invalid */}
-        {!contextValid && CHART_RE.test(currentQuestion.text) && (
+        {/* Warn when question mentions chart/table but context is missing/invalid, and no fallback image or text-table exists */}
+        {!contextValid && !currentQuestion.imageUrl && !currentQuestion.text?.includes('|') && CHART_RE.test(currentQuestion.text) && (
           <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-start gap-3">
             <span className="text-amber-500 text-xl shrink-0">⚠️</span>
             <div>
@@ -105,15 +105,15 @@ export default function ExamActiveCard({
               onClick={() => handleAnswer(idx)}
               className={cn(
                 "w-full text-left p-5 rounded-2xl border-2 transition-all flex items-center gap-4 group",
-                answer === idx 
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm" 
+                answer === idx
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-900 shadow-sm"
                   : "border-slate-100 hover:border-emerald-200 hover:bg-slate-50 text-slate-700"
               )}
             >
               <span className={cn(
                 "flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold transition-colors",
-                answer === idx 
-                  ? "border-emerald-500 bg-emerald-500 text-white" 
+                answer === idx
+                  ? "border-emerald-500 bg-emerald-500 text-white"
                   : "border-slate-200 text-slate-400 group-hover:border-emerald-300"
               )}>{String.fromCharCode(65 + idx)}</span>
               <span className="text-lg">{option}</span>
@@ -210,15 +210,15 @@ export default function ExamActiveCard({
           <ChevronLeft className="w-5 h-5" />
           Câu trước
         </button>
-        
+
         <div className="hidden md:flex gap-1">
           {examQuestions.map((_, idx) => (
-            <div 
+            <div
               key={idx}
               className={cn(
                 "w-1.5 h-1.5 rounded-full transition-all",
-                idx === currentIndex ? "w-6 bg-emerald-500" : 
-                isQuestionAnswered(idx) ? "bg-emerald-200" : "bg-slate-200"
+                idx === currentIndex ? "w-6 bg-emerald-500" :
+                  isQuestionAnswered(idx) ? "bg-emerald-200" : "bg-slate-200"
               )}
             />
           ))}

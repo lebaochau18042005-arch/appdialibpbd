@@ -74,13 +74,13 @@ export const examService = {
   async generateAIExam(fileContext?: string | any): Promise<Question[]> {
     try {
       let documentSummary = '';
-      
+
       // BƯỚC 1: TRÍCH XUẤT (EXTRACTION) - NẾU CÓ TÀI LIỆU
       if (fileContext) {
         let generativePart = null;
         let textContext = '';
-        
-        if (typeof fileContext === 'object' && fileContext.name) { 
+
+        if (typeof fileContext === 'object' && fileContext.name) {
           console.log("[AI Bước 1] Bắt đầu đọc file qua File/Base64 API...");
           const isPDF = fileContext.type === 'application/pdf' || fileContext.name.toLowerCase().endsWith('.pdf');
           if (isPDF) {
@@ -89,7 +89,7 @@ export const examService = {
             generativePart = await fileToGenerativePart(fileContext as File);
           }
         } else {
-          textContext = fileContext; 
+          textContext = fileContext;
         }
 
         console.log("[AI Bước 1] Đang trích xuất biểu đồ & dữ liệu cốt lõi...");
@@ -98,7 +98,7 @@ Dữ liệu sẽ dùng cho Bước 2. Yêu cầu:
 1) BẢNG SỐ LIỆU: Trình bày nghiêm ngặt dưới dạng Bảng Markdown đầy đủ cột, dòng, đơn vị. MỖI BẢNG PHẢI KÈM THEO NGUỒN TRÍCH DẪN RÕ RÀNG (nếu tài liệu có nguồn, bắt buộc trích xuất; nếu tài liệu không đề cập rõ, ghi rõ "Nguồn: Số liệu tham khảo/Tổng cục Thống kê (nếu khớp)").
 2) TÍNH KHOA HỌC: Tóm tắt tinh gọn đặc điểm, số liệu, vị trí với ĐỘ CHÍNH XÁC TUYỆT ĐỐI. Tuyệt đối không tự bịa hoặc làm tròn bát nháo số liệu.
 TUYỆT ĐỐI tuân thủ đơn vị hành chính sau sáp nhập 1/7/2025.`;
-        
+
         const extractParts: any[] = [extractionPrompt];
         if (generativePart) extractParts.push(generativePart);
         if (textContext) extractParts.push(`\n=== TÀI LIỆU VĂN BẢN ===\n${textContext.substring(0, 50000)}`);
@@ -213,11 +213,13 @@ ${CHUONG_TRINH_TT17}
       • Mọi câu hỏi có từ "biểu đồ" / "bảng số liệu" / "hình" PHẢI có context là bảng Markdown đầy đủ.
       • Cột đơn vị BẮT BUỘC: | Chỉ tiêu | Đơn vị | 2015 | 2020 | 2024 |
       • Dòng đầu context phải ghi: "Biểu đồ: [tên loại]" (cột / đường / tròn / miền / kết hợp)
+      • QUY TẮC BIỂU ĐỒ TRÒN/MIỀN (CƠ CẤU): Nếu câu hỏi nói về "Cơ cấu" hoặc tạo biểu đồ "Tròn"/"Miền", CỘT ĐƠN VỊ CỦA BẢNG BẮT BUỘC ĐƯỢC CHUYỂN ĐỔI SANG "%", tuyệt đối KHÔNG dùng giá trị thô gốc (Nghìn tỷ, Triệu người,...). Tổng các thành phần phải xấp xỉ 100%.
       • Câu 1 và Câu II.4 PHẢI dùng 2 loại biểu đồ KHÁC NHAU.
       • Số liệu trong bảng PHẢI khớp với phương án đúng / mệnh đề đúng/sai.
       • Nguồn số liệu: BẮT BUỘC phải có dòng cuối ở context ghi rõ "(Nguồn: [Tên nguồn rõ ràng từ tài liệu hoặc Tổng cục Thống kê/Ngân hàng thế giới], năm X)". Cấm để trống nguồn.
       • TUYỆT ĐỐI CẤM context = null/rỗng/chuỗi "null" khi câu tham chiếu biểu đồ.
-      • ⚠️ DỮ LIỆU CHÍNH XÁC VÀ ĐẦY ĐỦ 100%: Dữ liệu phải tuyệt đối chính xác về mặt khoa học. Nếu dựa vào "Tóm tắt", phải lấy đúng số nguyên bản. Nếu câu hỏi hỏi về "cả năm" / "tất cả các tháng" → bảng PHẢI có 12 tháng.
+      • ⚠️ DỮ LIỆU CẦN ĐỦ 12 THÁNG NẾU HỎI CẢ NĂM: Nếu câu hỏi hỏi về "cả năm" / "tất cả các tháng", TẠO BẢNG CHÍNH XÁC 14 CỘT: 1 Cột Tên - 1 Cột Đơn vị - 12 Cột Tháng (từ 1 đến 12), tuyệt đối không gộp hay cắt bớt.
+      • ⚠️ DỮ LIỆU CHÍNH XÁC VÀ ĐẦY ĐỦ 100%: Dữ liệu phải tuyệt đối chính xác về mặt khoa học. Nếu dựa vào "Tóm tắt", phải lấy đúng số nguyên bản.
       • ⚠️ SỐ LIỆU NHẤT QUÁN: correctAnswer PHẢI là kết quả tính đúng từ số liệu trong bảng. Kiểm tra lại toán học sau khi sinh.
 
       QUY TẮC TRẮC NGHIỆM ABCD (NGHIÊM CẤM GỘP PHƯƠNG ÁN):
@@ -363,7 +365,7 @@ Dòng 2+: | Chỉ tiêu | Đơn vị | 2015 | 2019 | 2024 |
 
       const text = response.text;
       if (!text) throw new Error("AI không trả về nội dung.");
-      
+
       const examQuestions = JSON.parse(text);
       if (!Array.isArray(examQuestions) || examQuestions.length === 0) {
         throw new Error("Dữ liệu đề thi không hợp lệ.");
@@ -374,7 +376,7 @@ Dòng 2+: | Chỉ tiêu | Đơn vị | 2015 | 2019 | 2024 |
       // Detect these and call AI to generate a proper data table with unit column.
       const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|lược đồ|hình dưới|số liệu sau/i;
       const needsContext = examQuestions.filter((q: any) =>
-        CHART_RE.test(q.text || '') && (!q.context || q.context.trim().length < 20)
+        CHART_RE.test(q.text || '') && (!q.context || !q.context.includes('|') || q.context.trim().length < 20 || ['null', 'undefined', 'none'].includes((q.context || '').trim().toLowerCase()))
       );
 
       if (needsContext.length > 0) {
@@ -388,9 +390,11 @@ CÂU HỎI: ${q.text}
 YÊU CẦU CHÍNH XÁC:
 - Dòng 1: "Biểu đồ: ${isSEA ? 'Cột nhóm' : 'Kết hợp cột và đường'}" (không có gì khác)
 - Dòng 2 trở đi: bảng Markdown với CỘT ĐƠN VỊ bắt buộc:
-  | Chỉ tiêu | Đơn vị | Cột năm 1 | Cột năm 2 | Cột năm 3 |
-  |---|---|---|---|---|
-  | ... | ... | ... | ... | ... |
+  | Chỉ tiêu | Đơn vị | [cột 1] | [cột 2] | ... | [cột cuối] |
+  |---|---|---|---|---|---|
+  | ... | ... | ... | ... | ... | ... |
+- NẾU BIỂU ĐỒ TRÒN/CƠ CẤU: Cột Đơn Vị BẮT BUỘC là "%".
+- NẾU BẢNG KHÍ HẬU (12 THÁNG): BẮT BUỘC CÓ 14 CỘT DỌC (Chỉ tiêu, Đơn vị, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12). Tuyệt đối không sinh 9 tháng rồi cắt ngang.
 - Ít nhất 3 hàng dữ liệu với số liệu thực tế 2019-2024
 - ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể' : 'Dùng số liệu Việt Nam cụ thể theo chủ đề câu hỏi'}
 - Dòng cuối: "(Nguồn: Tổng cục Thống kê / World Bank, 2024)"
@@ -495,7 +499,7 @@ YÊU CẦU CHÍNH XÁC:
 
       const text = response.text;
       if (!text) throw new Error("AI không trả về nội dung.");
-      
+
       const questions = JSON.parse(text);
 
       // ===== POST-PROCESSING BẮT BUỘC: Auto-repair context bị thiếu =====
@@ -503,7 +507,7 @@ YÊU CẦU CHÍNH XÁC:
       // Học sinh không thể làm bài nếu không có dữ liệu tham khảo.
       const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|số liệu sau|dưới đây|theo bảng/i;
       const needsContext = questions.filter((q: any) =>
-        CHART_RE.test(q.text || '') && (!q.context || q.context.trim().length < 20 || ['null', 'undefined', 'none'].includes((q.context || '').trim().toLowerCase()))
+        CHART_RE.test(q.text || '') && (!q.context || !q.context.includes('|') || q.context.trim().length < 20 || ['null', 'undefined', 'none'].includes((q.context || '').trim().toLowerCase()))
       );
 
       if (needsContext.length > 0) {
@@ -520,7 +524,7 @@ ${fileContext ? `BẮT BUỘC SỬ DỤNG SỐ LIỆU TỪ TÀI LIỆU SAU ĐÂY
 CÂU HỎI: ${q.text}
 
 QUY TẮC DỮ LIỆU ĐẦY ĐỦ — BẮT BUỘC TUYỆT ĐỐI:
-1. Nếu câu hỏi hỏi về "cả năm" / "trung bình năm" / "tất cả các tháng" → bảng PHẢI có ĐỦ 12 CỘT tháng (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12). KHÔNG được chỉ có 10 tháng!
+1. Nếu hỏi về "cả năm" / "các tháng" → BẮT BUỘC TẠO CHÍNH XÁC 14 CỘT DỌC THEO THỨ TỰ: Chỉ tiêu, Đơn vị, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12. NGHIÊM CẤM bỏ bớt bất cứ cột nào!
 2. Nếu câu tính toán → số liệu phải đủ để tính ra kết quả ĐÚNG.
 3. Nếu câu về nhiều năm → phải có đủ cột năm theo yêu cầu.
 
@@ -530,6 +534,7 @@ CẤU TRÚC BẮT BUỘC:
   | Chỉ tiêu | Đơn vị | [cột 1] | [cột 2] | ... | [cột cuối] |
   |---|---|---|---|---|---|
   | ... | ... | ... | ... | ... | ... |
+- NẾU BIỂU ĐỒ TRÒN/CƠ CẤU: Cột Đơn Vị BẮT BUỘC là "%".
 - Ít nhất 3-4 hàng dữ liệu với số liệu thực tế, cụ thể
 - ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể' : 'Dùng số liệu Việt Nam cụ thể theo chủ đề câu hỏi'}
 - Số liệu PHẢI khớp với đáp án/mệnh đề đúng trong câu hỏi
@@ -840,7 +845,7 @@ CẤU TRÚC BẮT BUỘC:
       if (examSnap.exists()) {
         const exam = examSnap.data() as Exam;
         const safeTitle = (exam.title || 'De_thi').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        
+
         if (exam.type === 'upload' && exam.fileUrl) {
           const link = document.createElement('a');
           link.href = exam.fileUrl;
@@ -854,7 +859,7 @@ CẤU TRÚC BẮT BUỘC:
 
         let content = `ĐỀ THI: ${exam.title.toUpperCase()}\n`;
         content += `Cấu trúc: TT 17/2025 BGDĐT\n\n`;
-        
+
         if (exam.questions && exam.questions.length > 0) {
           exam.questions.forEach((q, i) => {
             content += `Câu ${i + 1}: ${q.text}\n`;
@@ -929,8 +934,8 @@ ${adminNote}${contextBlock}
 CÂU HỎI: ${question.text}
 LOẠI CÂU HỎI: ${question.type}
 ĐÁP ÁN ĐÚNG: ${question.type === 'multiple_choice' ? (question as any).options[(question as any).correctAnswerIndex] :
-                    question.type === 'true_false' ? JSON.stringify((question as any).statements.filter((s: any) => s.isTrue).map((s: any) => s.text)) :
-                    (question as any).correctAnswer}
+          question.type === 'true_false' ? JSON.stringify((question as any).statements.filter((s: any) => s.isTrue).map((s: any) => s.text)) :
+            (question as any).correctAnswer}
 CÂU TRẢ LỜI CỦA HỌC SINH: ${JSON.stringify(userAnswer)}
 
 YÊU CẦU:

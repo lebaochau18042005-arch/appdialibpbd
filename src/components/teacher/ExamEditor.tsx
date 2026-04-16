@@ -254,7 +254,7 @@ function QuestionEditor({
                     {(!question.options || question.options.length < 4) && (
                       <button onClick={() => {
                         const newOpts = [...(question.options || [])];
-                        while(newOpts.length < 4) newOpts.push('');
+                        while (newOpts.length < 4) newOpts.push('');
                         onChange({ ...question, options: newOpts });
                       }} className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-xl w-full text-center hover:bg-indigo-100 transition-colors">
                         <Plus size={14} className="inline mr-1" /> Bổ sung 4 phương án
@@ -309,7 +309,7 @@ function QuestionEditor({
                     {(!question.statements || question.statements.length < 4) && (
                       <button onClick={() => {
                         const newStmts = [...(question.statements || [])];
-                        while(newStmts.length < 4) {
+                        while (newStmts.length < 4) {
                           newStmts.push({ id: `stmt-${Date.now()}-${newStmts.length}`, text: '', isTrue: false });
                         }
                         onChange({ ...question, statements: newStmts });
@@ -392,11 +392,11 @@ export default function ExamEditor({ exam, onSave, onClose }: ExamEditorProps) {
   const shortAnswerQs = questions.filter(q => q.type === 'short_answer');
   const mcQs = questions.filter(q => q.type === 'multiple_choice');
   const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|lược đồ|hình dưới|số liệu sau/i;
-  
+
   const needsAttention = questions.filter(q => {
     // 1. Missing chart context when requested
-    if (CHART_RE.test(q.text || '') && !q.context && !q.imageUrl) return true;
-    
+    if (CHART_RE.test(q.text || '') && !q.context && !q.imageUrl && !q.text?.includes('|')) return true;
+
     // 2. Missing text
     if (!q.text || q.text.trim() === '') return true;
 
