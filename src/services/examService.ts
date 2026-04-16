@@ -512,10 +512,14 @@ YÊU CẦU CHÍNH XÁC:
       // ===== POST-PROCESSING BẮT BUỘC: Auto-repair context bị thiếu =====
       // Nếu câu hỏi có từ "biểu đồ" / "bảng số liệu" mà context rỗng → BẮT BUỘC sinh bảng Markdown.
       // Học sinh không thể làm bài nếu không có dữ liệu tham khảo.
-      const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|số liệu sau|dưới đây|theo bảng/i;
-      const needsContext = questions.filter((q: any) =>
-        CHART_RE.test(q.text || '') && (!q.context || !q.context.includes('|') || q.context.trim().length < 20 || ['null', 'undefined', 'none'].includes((q.context || '').trim().toLowerCase()))
-      );
+      const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|bảng trên|số liệu sau|dưới đây|theo bảng|tổng số giờ|tháng|lượng mưa|nhiệt độ|sản lượng|diện tích|căn cứ vào|tính toán|tính ra|tính được|theo hình/i;
+      const needsContext = questions.filter((q: any) => {
+        const hasContextKeyword = CHART_RE.test(q.text || '');
+        const missingContext = !q.context || !q.context.includes('|') || q.context.trim().length < 20 || ['null', 'undefined', 'none'].includes((q.context || '').trim().toLowerCase());
+        // For short_answer, also catch questions that expect a numeric calculation but have no context
+        const isCalculation = q.type === 'short_answer' && /bao nhiêu|tính|tổng|trung bình|tỉ lệ|tốc độ/i.test(q.text || '');
+        return (hasContextKeyword || isCalculation) && missingContext;
+      });
 
       if (needsContext.length > 0) {
         console.log(`[Practice] Auto-repairing context for ${needsContext.length} question(s)...`);
