@@ -380,8 +380,9 @@ Dòng 2+: | Chỉ tiêu | Đơn vị | 2015 | 2019 | 2024 |
       );
 
       if (needsContext.length > 0) {
-        await Promise.all(needsContext.map(async (q: any) => {
+        for (const q of needsContext) {
           try {
+            await new Promise(r => setTimeout(r, 800)); // Rate limit prevention
             const isSEA = /đông nam á|asean|indonesia|singapore|malaysia|philippines|thái lan|myanmar/i.test(q.text);
             const ctxPrompt = `Tạo ngay môt bảng số liệu Markdown đầy đủ cho câu hỏi địa lí sau.
 ${documentSummary ? `BẮT BUỘC SỬ DỤNG SỐ LIỆU TỪ TÀI LIỆU GỐC SAU ĐÂY:\n${documentSummary}\n` : ''}
@@ -394,9 +395,15 @@ YÊU CẦU CHÍNH XÁC:
   |---|---|---|---|---|---|
   | ... | ... | ... | ... | ... | ... |
 - NẾU BIỂU ĐỒ TRÒN/CƠ CẤU: Cột Đơn Vị BẮT BUỘC là "%".
-- NẾU BẢNG KHÍ HẬU (12 THÁNG): BẮT BUỘC CÓ 14 CỘT DỌC (Chỉ tiêu, Đơn vị, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12). Tuyệt đối không sinh 9 tháng rồi cắt ngang.
-- Ít nhất 3 hàng dữ liệu với số liệu thực tế 2019-2024
-- ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể' : 'Dùng số liệu Việt Nam cụ thể theo chủ đề câu hỏi'}
+- NẾU BẢNG KHÍ HẬU (THÁNG): TUYỆT ĐỐI KHÔNG dàn ngang 14 cột. BẮT BUỘC DÀN THEO CHIỀU DỌC MỖI THÁNG LÀ 1 HÀNG:
+  | Tháng | Nhiệt độ (°C) | Lượng mưa (mm) |
+  |---|---|---|
+  | 1 | ... | ... |
+  | ... | ... | ... |
+  | 12 | ... | ... |
+  Nghiêm cấm làm mất các tháng cuối năm.
+- Ít nhất 3 hàng (hoặc 12 hàng nếu là bảng tháng) dữ liệu thực tế 2019-2024.
+- ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể (NẾU HỎI QUỐC GIA)' : 'Dùng số liệu Việt Nam (NẾU DỮ LIỆU TRONG NƯỚC)'}
 - Dòng cuối: "(Nguồn: Tổng cục Thống kê / World Bank, 2024)"
 - CHỈ trả về bảng Markdown, không có text, giải thích khác`;
             const ctxRes = await generateContentWithFallback(ctxPrompt);
@@ -404,10 +411,10 @@ YÊU CẦU CHÍNH XÁC:
             if (generated.includes('|') && generated.includes('---')) {
               q.context = generated;
             }
-          } catch {
-            // If repair fails, leave context — warning shown in UI
+          } catch (e) {
+            console.warn(`[Auto-Repair] Context repair failed for ${q.id}:`, e);
           }
-        }));
+        }
       }
 
       // Validate final count — must be 28
@@ -512,8 +519,9 @@ YÊU CẦU CHÍNH XÁC:
 
       if (needsContext.length > 0) {
         console.log(`[Practice] Auto-repairing context for ${needsContext.length} question(s)...`);
-        await Promise.all(needsContext.map(async (q: any) => {
+        for (const q of needsContext) {
           try {
+            await new Promise(r => setTimeout(r, 800)); // Rate limit prevention
             const isSEA = /đông nam á|asean|indonesia|singapore|malaysia|philippines|thái lan|myanmar/i.test(q.text);
             const isPercentage = /cơ cấu|tỉ trọng|tỉ lệ|%|phần trăm/i.test(q.text);
             const chartType = isPercentage ? 'Tròn (cơ cấu)' : isSEA ? 'Cột nhóm (so sánh)' : 'Kết hợp cột và đường';
@@ -524,9 +532,9 @@ ${fileContext ? `BẮT BUỘC SỬ DỤNG SỐ LIỆU TỪ TÀI LIỆU SAU ĐÂY
 CÂU HỎI: ${q.text}
 
 QUY TẮC DỮ LIỆU ĐẦY ĐỦ — BẮT BUỘC TUYỆT ĐỐI:
-1. Nếu hỏi về "cả năm" / "các tháng" → BẮT BUỘC TẠO CHÍNH XÁC 14 CỘT DỌC THEO THỨ TỰ: Chỉ tiêu, Đơn vị, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12. NGHIÊM CẤM bỏ bớt bất cứ cột nào!
+1. NẾU BẢNG LÀ CÁC THÁNG TRONG NĂM: TUYỆT ĐỐI KHÔNG dàn ngang 14 cột. BẮT BUỘC DÀN THEO CHIỀU DỌC MỖI THÁNG LÀ 1 HÀNG (từ tháng 1 -> 12).
 2. Nếu câu tính toán → số liệu phải đủ để tính ra kết quả ĐÚNG.
-3. Nếu câu về nhiều năm → phải có đủ cột năm theo yêu cầu.
+3. Nếu câu về nhiều năm hoặc nhiều quốc gia → phải có đủ cột dữ liệu.
 
 CẤU TRÚC BẮT BUỘC:
 - Dòng 1: "Biểu đồ: ${chartType}" (không có gì khác)
@@ -534,9 +542,15 @@ CẤU TRÚC BẮT BUỘC:
   | Chỉ tiêu | Đơn vị | [cột 1] | [cột 2] | ... | [cột cuối] |
   |---|---|---|---|---|---|
   | ... | ... | ... | ... | ... | ... |
+- NẾU BẢNG KHÍ HẬU/THÁNG:
+  | Tháng | Nhiệt độ (°C) | Lượng mưa (mm) |
+  |---|---|---|
+  | 1 | ... | ... |
+  ...
+  | 12| ... | ... |
 - NẾU BIỂU ĐỒ TRÒN/CƠ CẤU: Cột Đơn Vị BẮT BUỘC là "%".
-- Ít nhất 3-4 hàng dữ liệu với số liệu thực tế, cụ thể
-- ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể' : 'Dùng số liệu Việt Nam cụ thể theo chủ đề câu hỏi'}
+- Ít nhất 3-4 hàng dữ liệu (hoặc 12 hàng cho bảng tháng)
+- ${isSEA ? 'Dùng 5-6 quốc gia ĐNÁ cụ thể (nếu hỏi các biểu đồ quốc gia)' : 'Dùng số liệu cụ thể'}
 - Số liệu PHẢI khớp với đáp án/mệnh đề đúng trong câu hỏi
 - Dòng cuối: "(Nguồn: Tổng cục Thống kê / World Bank, 2024)"
 - CHỈ trả về bảng Markdown, không có text hay giải thích khác`;
@@ -552,7 +566,7 @@ CẤU TRÚC BẮT BUỘC:
           } catch (e) {
             console.warn(`[Practice] Context repair failed for ${q.id}:`, e);
           }
-        }));
+        }
       }
 
       return questions;
