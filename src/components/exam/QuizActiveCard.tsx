@@ -37,7 +37,7 @@ export default function QuizActiveCard({
   isAnswerCorrect
 }: QuizActiveCardProps) {
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-x-hidden mb-6">
       <div className="p-6 md:p-8">
         <div className="flex items-start gap-3 mb-6">
           <span className="flex-shrink-0 w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold">

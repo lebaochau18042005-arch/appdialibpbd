@@ -165,7 +165,7 @@ Trình bày bằng tiếng Việt, thân thiện, dễ hiểu và khích lệ.`;
   }
 }
 
-export async function chatWithTutor(message: string, history: {role: 'user' | 'model', text: string}[]) {
+export async function chatWithTutor(message: string, history: {role: 'user' | 'model', text: string}[], imageBase64?: string) {
   try {
     const formattedHistory = history.map(h => `${h.role === 'user' ? 'Học sinh' : 'Gia sư AI'}: ${h.text}`).join('\n');
     const prompt = `Vai trò: Bạn là một Gia sư môn Địa lí THPT chuyên nghiệp, tận tâm và tuân thủ chuẩn mực sư phạm của Việt Nam. Đối tượng phục vụ của bạn là học sinh khối 12 đang ôn tập cho kỳ thi Tốt nghiệp THPT theo Chương trình GDPT 2018.
@@ -182,7 +182,20 @@ ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 ${formattedHistory ? `Lịch sử trò chuyện:\n${formattedHistory}\n` : ''}Học sinh: ${message}
 Gia sư AI:`;
 
-    const response = await generateContentWithFallback(prompt);
+    const contents: any[] = [prompt];
+    if (imageBase64) {
+      const match = imageBase64.match(/^data:(image\/[a-zA-Z]+);base64,(.*)$/);
+      if (match) {
+        contents.unshift({ // Add image before text
+          inlineData: {
+            mimeType: match[1],
+            data: match[2]
+          }
+        });
+      }
+    }
+
+    const response = await generateContentWithFallback(contents);
     
     return response.text;
   } catch (error: any) {

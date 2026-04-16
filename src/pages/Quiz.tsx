@@ -107,17 +107,24 @@ export default function Quiz() {
         setIsGenerating(true);
         try {
           const count = countParam === 'all' ? 20 : parseInt(countParam || '10', 10);
-          
-          let fileContext = undefined;
+
+          // Bước 1: Đọc file thư viện — lỗi bị bỏ qua, AI vẫn chạy không có context
+          let fileContext: string | undefined = undefined;
           if (libraryFileId) {
-            const fileSnap = await get(ref(rtdb, `library_files/${libraryFileId}`));
-            if (fileSnap.exists()) {
-              const fileData = fileSnap.val();
-              const fileUrl = fileData.storagePath || fileData.fileUrl;
-              fileContext = await extractTextFromUrl(fileUrl, fileData.fileType);
+            try {
+              const fileSnap = await get(ref(rtdb, `library_files/${libraryFileId}`));
+              if (fileSnap.exists()) {
+                const fileData = fileSnap.val();
+                const fileUrl = fileData.storagePath || fileData.fileUrl;
+                fileContext = await extractTextFromUrl(fileUrl, fileData.fileType);
+              }
+            } catch (fileErr) {
+              console.warn('[Quiz] Không đọc được file thư viện, tiếp tục gọi AI không có context:', fileErr);
+              // Tiếp tục — fileContext = undefined → AI vẫn tạo câu hỏi từ filter/topic
             }
           }
 
+          // Bước 2: Gọi AI — chỉ lỗi ở đây mới hủy luồng
           const aiQuestions = await examService.generatePracticeQuestions(filter, mode, count, fileContext);
           setQuizQuestions(aiQuestions);
           applyPracticeScoring(aiQuestions);
@@ -127,7 +134,7 @@ export default function Quiz() {
           if (msg.includes('API Key') || msg.includes('apiKey') || msg.includes('Chưa thiết lập') || msg.includes('API_KEY_INVALID')) {
             alert('⚠️ Chưa thiết lập API Key cho AI.\nVào Trang chủ → Cấu hình AI → nhập Google Gemini API Key để dùng tính năng này.\n\nHệ thống sẽ dùng ngân hàng câu hỏi có sẵn.');
           } else {
-            alert('Không thể tạo câu hỏi AI lúc này. Hệ thống sẽ dùng ngân hàng câu hỏi có sẵn.');
+            alert(`Không thể tạo câu hỏi AI lúc này (${msg.slice(0, 80)}). Hệ thống sẽ dùng ngân hàng câu hỏi có sẵn.`);
           }
           // Fallback to static questions
           loadStaticQuestions();

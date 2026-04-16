@@ -45,7 +45,7 @@ export default function ExamActiveCard({
       key={currentIndex}
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden"
+      className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-x-hidden"
     >
       <div className="p-6 md:p-10">
         <div className="flex items-center gap-2 mb-6">
