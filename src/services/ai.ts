@@ -2,20 +2,21 @@ import { GoogleGenAI } from '@google/genai';
 import { Question, UserProfile, QuizAttempt } from '../types';
 
 const FALLBACK_MODELS = [
-  'gemini-1.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-pro',
+  'gemini-2.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-pro',
 ];
 
 const VALID_MODELS_SET = new Set([
-  'gemini-1.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-pro',
-  'gemini-2.0-flash-lite-preview-02-05',
-  'gemini-2.5-flash'
+  'gemini-2.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-pro',
+  'gemini-3-pro-preview'
 ]);
 
-const DEFAULT_MODEL = 'gemini-1.5-flash';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 // ── Boot-time localStorage cleanup ────────────────────────────────────────────
 // Clear any stale/invalid model IDs (from previous versions) that would cause 404.
