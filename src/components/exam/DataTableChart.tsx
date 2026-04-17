@@ -303,7 +303,7 @@ export default function DataTableChart({ content }: { content: string }) {
               {numericKeys.map((k, i) => (
                 <Area key={k} type="monotone" dataKey={k}
                   stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]}
-                  fillOpacity={0.3} strokeWidth={2} stackId={numericKeys.length > 2 ? 'a' : undefined} />
+                  fillOpacity={0.3} strokeWidth={2} stackId="1" />
               ))}
             </AreaChart>
           </ResponsiveContainer>

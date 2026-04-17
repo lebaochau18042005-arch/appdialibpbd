@@ -272,8 +272,8 @@ QUY TẮC BẮT BUỘC:
 
 ⚠️ QUY TẮC VÀNG VỀ BẢNG SỐ LIỆU / BIỂU ĐỒ:
 - Nếu câu hỏi tham chiếu đến bảng số liệu, biểu đồ, hình, lược đồ (text có chứa "bảng", "biểu đồ", "hình", "lược đồ", "số liệu dưới đây", "theo bảng") → trường "context" BẮT BUỘC phải chứa toàn bộ bảng dưới dạng MARKDOWN TABLE (cú pháp pipe |...|).
+- NẾU PHÁT HIỆN 1 CHUỖI CÂU HỎI DÙNG CHUNG DỮ LIỆU: Thường tài liệu gốc sẽ in bảng số liệu 1 lần, rồi bên dưới là các câu hỏi 23, 24, 25. Khi phân tích tới câu 24, 25 và thấy cụm từ "Căn cứ vào bảng số liệu trên", "Căn cứ biểu đồ trên", BẮT BUỘC PHẢI DÒ LÊN MẶT TRÊN của tài liệu để TÌM LẠI bảng số liệu gốc, và SAO CHÉP Y HỆT toàn bộ bảng Markdown đó DÁN VÀO TRƯỜNG "context" của BẤT KỲ CÂU NÀO ĐANG HỎI. Không được phép để rỗng hay bịa bảng mới.
 - Nếu trong đề thi đã có bảng số liệu (Markdown table hoặc bảng plain-text), hãy chuyển đổi nguyên si sang Markdown table và đặt vào "context".
-- Nếu câu hỏi KHÔNG tham chiếu bảng/biểu đồ → "context" để null hoặc bỏ qua.
 - KHÔNG BAO GIỜ để "context" rỗng khi text câu hỏi có từ "biểu đồ" hay "bảng số liệu".
 
 [ĐỀ THI CẦN PHÂN TÍCH]:
@@ -468,9 +468,10 @@ QUY TẮC BẮT BUỘC:
 
 ⚠️ QUY TẮC VÀNG VỀ BẢNG SỐ LIỆU / BIỂU ĐỒ (BẮT BUỘC TUÂN THỦ TẠI MỌI CÂU):
 - Nếu bài thi CÓ BẢNG SỐ LIỆU HOẶC BIỂU ĐỒ (được vẽ hoặc chụp trong file): Bạn PHẢI chuyển đổi toàn bộ số liệu đó thành BẢNG MARKDOWN (sử dụng cú pháp |..|..|) và GHI VÀO TRƯỜNG "context".
+- NẾU PHÁT HIỆN 1 CHUỖI CÂU HỎI DÙNG CHUNG DỮ LIỆU: Thường tài liệu gốc sẽ in bảng số liệu 1 lần, rồi bên dưới là các câu hỏi 23, 24, 25. Khi phân tích tới câu 24, 25 và thấy cụm từ "Căn cứ vào bảng số liệu trên", "Căn cứ biểu đồ trên", BẮT BUỘC PHẢI DÒ LÊN MẶT TRÊN của tài liệu để TÌM LẠI bảng số liệu gốc, và SAO CHÉP Y HỆT toàn bộ bảng Markdown đó DÁN VÀO TRƯỜNG "context" của BẤT KỲ CÂU NÀO ĐANG HỎI. Không được phép để rỗng hay bịa bảng mới.
 - Tuyệt đối KHÔNG gộp chung Bảng số liệu vào trường "text". Thân câu hỏi ở "text", bảng số liệu ở "context".
 - Nếu là BẢNG: sao chép y hệt thành Markdown. Nếu là BIỂU ĐỒ: Đọc các giá trị trên cột/đường/tròn và lập thành Bảng Markdown.
-- LỖI NGHIÊM TRỌNG HẬU QUẢ LỚN: Nếu để "context": null, học sinh sẽ không thấy bảng dữ liệu và phần mềm sẽ sụp đổ. Bạn bắt buộc phải chuyển mọi dữ liệu dạng bảng/hình thành bảng Markdown vào "context"!
+- LỖI NGHIÊM TRỌNG HẬU QUẢ LỚN: Nếu để "context": null khi câu hỏi có nhắc tới biểu đồ, phần mềm sẽ sụp đổ. Bắt buộc phải sao chép dữ liệu dạng bảng Markdown vào "context"!
 
 Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương tự cấu trúc sau, CHỈ BAO GỒM mảng JSON, không có code block quotes hay văn bản nào khác.
 [
