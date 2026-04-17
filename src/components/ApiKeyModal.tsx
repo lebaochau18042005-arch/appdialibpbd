@@ -8,19 +8,19 @@ interface ApiKeyModalProps {
 }
 
 const MODELS = [
-  { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', desc: 'Thế hệ mới nhất, phản hồi nhanh (Khuyên dùng)' },
-  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', desc: 'Chất lượng dịch thuật cực cao, tư duy sâu rộng' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Nhanh, ổn định, tiết kiệm quota' }
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Thế hệ phổ biến nhất, phản hồi siêu tốc (Khuyên dùng)' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'Sáng tạo xuất sắc, tối ưu tư duy đa phương thức' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Chất lượng phân tích cực sâu, logic phức tạp' }
 ];
 
 export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
+  const [selectedModel, setSelectedModel] = useState('gemini-1.5-flash');
 
   useEffect(() => {
     if (isOpen) {
       const savedKey = localStorage.getItem('GEMINI_API_KEY') || '';
-      const savedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-3-flash-preview';
+      const savedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-1.5-flash';
       setApiKey(savedKey);
       setSelectedModel(savedModel);
     }
@@ -105,14 +105,14 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
             </div>
 
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-              <button 
-                onClick={onClose} 
+              <button
+                onClick={onClose}
                 className="px-6 py-3 text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition-colors"
               >
                 Đóng
               </button>
-              <button 
-                onClick={handleSave} 
+              <button
+                onClick={handleSave}
                 disabled={!apiKey.trim()}
                 className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
               >

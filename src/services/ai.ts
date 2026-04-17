@@ -2,21 +2,20 @@ import { GoogleGenAI } from '@google/genai';
 import { Question, UserProfile, QuizAttempt } from '../types';
 
 const FALLBACK_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-3-flash-preview',
-  'gemini-2.5-flash-lite',
-  'gemini-2.5-pro',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-pro',
 ];
 
 const VALID_MODELS_SET = new Set([
-  'gemini-2.5-flash',
-  'gemini-3-flash-preview',
-  'gemini-2.5-flash-lite',
-  'gemini-2.5-pro',
-  'gemini-3-pro-preview'
+  'gemini-1.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-pro',
+  'gemini-2.0-flash-lite-preview-02-05',
+  'gemini-2.5-flash'
 ]);
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-1.5-flash';
 
 // ── Boot-time localStorage cleanup ────────────────────────────────────────────
 // Clear any stale/invalid model IDs (from previous versions) that would cause 404.
@@ -85,7 +84,8 @@ LƯU Ý: Khi giải thích bất kỳ câu hỏi nào về tỉnh thành, vùng 
 
 export async function generateContentWithFallback(prompt: any, config: any = {}) {
   // @ts-ignore
-  const apiKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  let rawApiKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  const apiKey = rawApiKey.trim();
   if (!apiKey) {
     throw new Error('Chưa thiết lập API Key. Vui lòng cập nhật thông tin trong Cấu hình Google AI.');
   }
