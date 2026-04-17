@@ -75,9 +75,13 @@ export default function Quiz() {
   useEffect(() => {
     const savedProfile = localStorage.getItem('examGeoProfile');
     if (savedProfile) {
-      const parsed = JSON.parse(savedProfile);
-      setProfile(parsed);
-      setStudentName(parsed.name || 'Học sinh ẩn danh');
+      try {
+        const parsed = JSON.parse(savedProfile);
+        setProfile(parsed);
+        setStudentName(parsed.name || 'Học sinh ẩn danh');
+      } catch (e) {
+        setStudentName(`Học sinh ${Math.floor(Math.random() * 1000)}`);
+      }
     } else {
       setStudentName(`Học sinh ${Math.floor(Math.random() * 1000)}`);
     }

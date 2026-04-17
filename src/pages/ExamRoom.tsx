@@ -8,14 +8,14 @@ import { ref, get } from 'firebase/database';
 import { rtdb } from '../firebase';
 import { extractTextFromUrl } from '../utils/fileExtractor';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowRight, 
-  ArrowLeft, 
-  Clock, 
-  LayoutGrid, 
-  Send, 
+import {
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  ArrowLeft,
+  Clock,
+  LayoutGrid,
+  Send,
   Home,
   RefreshCcw,
   ChevronRight,
@@ -37,14 +37,14 @@ export default function ExamRoom() {
   const examId = searchParams.get('examId');
   const mode = searchParams.get('mode');
   const libraryFileId = searchParams.get('libraryFileId');
-  
+
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
   const [examTitle, setExamTitle] = useState('Đề thi ôn luyện');
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+
   // Answers state: key is question index, value is the answer
   const [answers, setAnswers] = useState<Record<number, any>>({});
-  
+
   const [isFinished, setIsFinished] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [timeLeft, setTimeLeft] = useState(3000); // 50 minutes
@@ -71,9 +71,11 @@ export default function ExamRoom() {
   useEffect(() => {
     const savedProfile = localStorage.getItem('examGeoProfile');
     if (savedProfile) {
-      const p = JSON.parse(savedProfile);
-      setProfile(p);
-      sessionKeyRef.current = liveExamService.makeSessionKey(p.name || 'unknown', p.className || '');
+      try {
+        const p = JSON.parse(savedProfile);
+        setProfile(p);
+        sessionKeyRef.current = liveExamService.makeSessionKey(p.name || 'unknown', p.className || '');
+      } catch (e) { }
     }
   }, []);
 
@@ -186,14 +188,17 @@ export default function ExamRoom() {
         generateRandomExam();
       }
     }
-    
+
     setStartTime(Date.now());
     setTimeLeft(3000);
 
     // Join live monitoring session if this is an assigned exam
     if (examId) {
       const savedProfile = localStorage.getItem('examGeoProfile');
-      const p = savedProfile ? JSON.parse(savedProfile) : null;
+      let p: any = null;
+      if (savedProfile) {
+        try { p = JSON.parse(savedProfile); } catch (e) { }
+      }
       if (p?.name) {
         const key = liveExamService.makeSessionKey(p.name, p.className || '');
         sessionKeyRef.current = key;
@@ -223,17 +228,17 @@ export default function ExamRoom() {
 
   useEffect(() => {
     if (isFinished || examQuestions.length === 0) return;
-    
+
     if (timeLeft <= 0) {
       setTimeRanOut(true);
       handleSubmitExam();
       return;
     }
-    
+
     const timer = setInterval(() => {
       setTimeLeft(prev => prev - 1);
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [timeLeft, isFinished, examQuestions.length]);
 
@@ -294,7 +299,7 @@ export default function ExamRoom() {
     setFinalScore(totalPoints);
     setMaxPossibleScore(maxPoints);
     setIsFinished(true);
-    
+
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
     // Build rich answers for topic analysis
@@ -315,9 +320,12 @@ export default function ExamRoom() {
         userAnswer: answer,
       };
     });
-    
+
     const savedProfile = localStorage.getItem('examGeoProfile');
-    const parsedProfile = savedProfile ? JSON.parse(savedProfile) : null;
+    let parsedProfile: any = null;
+    if (savedProfile) {
+      try { parsedProfile = JSON.parse(savedProfile); } catch (e) { }
+    }
 
     const attempt: Omit<QuizAttempt, 'id'> = {
       userId: user?.uid || 'anonymous',
@@ -344,12 +352,12 @@ export default function ExamRoom() {
   const isQuestionAnswered = (index: number) => {
     const ans = answers[index];
     if (ans === undefined || ans === null) return false;
-    
+
     const q = examQuestions[index];
     if (q.type === 'multiple_choice') return true;
     if (q.type === 'true_false') return Object.keys(ans).length === q.statements.length;
     if (q.type === 'short_answer') return ans.trim() !== '';
-    
+
     return false;
   };
 
@@ -378,7 +386,7 @@ export default function ExamRoom() {
 
   const handleGetDetailedExplanation = async (index: number) => {
     if (detailedExplanations[index]) return;
-    
+
     setLoadingExplanation(index);
     try {
       const result = await examService.generateDetailedExplanation(examQuestions[index], answers[index]);
@@ -393,7 +401,7 @@ export default function ExamRoom() {
   if (examQuestions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
-              <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mb-4" />
+        <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mb-4" />
         <p className="text-slate-600 font-medium">{loadingStatus}</p>
         <p className="text-slate-400 text-xs mt-2">Nếu màn hình không tiến triển sau 30 giây, hãy tải lại trang.</p>
       </div>
@@ -421,7 +429,7 @@ export default function ExamRoom() {
 
   if (isFinished) {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="max-w-2xl mx-auto bg-white p-8 rounded-3xl shadow-sm border border-slate-100 text-center"
@@ -437,7 +445,7 @@ export default function ExamRoom() {
         </div>
         <h2 className="text-3xl font-bold text-slate-800 mb-2">Hoàn thành bài thi!</h2>
         <p className="text-slate-600 mb-8">Hệ thống đã ghi nhận kết quả của bạn.</p>
-        
+
         <div className="grid grid-cols-2 gap-4 mb-8 text-left">
           <div className="bg-slate-50 p-6 rounded-2xl">
             <div className="text-sm text-slate-500 mb-1">Điểm số</div>
@@ -456,14 +464,14 @@ export default function ExamRoom() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button 
+          <button
             onClick={() => setIsReviewMode(true)}
             className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
           >
             <Search className="w-5 h-5" />
             Xem lại bài làm
           </button>
-          <button 
+          <button
             onClick={() => navigate(0)}
             className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-xl font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
           >
@@ -506,8 +514,8 @@ export default function ExamRoom() {
               <Clock className="w-4 h-4" />
               {formatTime(timeLeft)}
             </div>
-            
-            <button 
+
+            <button
               onClick={() => setShowQuestionMap(!showQuestionMap)}
               className="p-2 bg-white rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
               title="Sơ đồ câu hỏi"
@@ -515,7 +523,7 @@ export default function ExamRoom() {
               <LayoutGrid className="w-5 h-5" />
             </button>
 
-            <button 
+            <button
               onClick={() => setShowSubmitConfirm(true)}
               className="hidden md:flex items-center gap-2 bg-emerald-600 text-white px-5 py-1.5 rounded-full font-bold hover:bg-emerald-700 transition-colors shadow-sm"
             >
@@ -556,13 +564,13 @@ export default function ExamRoom() {
       {/* Mobile Submit Button - z-30 so it overlays Layout's bottom nav (z-20) */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 md:hidden z-30" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="p-3">
-        <button
-          onClick={() => setShowSubmitConfirm(true)}
-          className="w-full py-3.5 bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg"
-        >
-          <Send className="w-5 h-5" />
-          Nộp bài thi
-        </button>
+          <button
+            onClick={() => setShowSubmitConfirm(true)}
+            className="w-full py-3.5 bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg"
+          >
+            <Send className="w-5 h-5" />
+            Nộp bài thi
+          </button>
         </div>
       </div>
 

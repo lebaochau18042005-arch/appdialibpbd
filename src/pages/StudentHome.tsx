@@ -21,7 +21,7 @@ function getProfile() {
 }
 function getDoneIds(): Set<string> {
   try {
-    const a: any[] = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]');
+    const a: any[] = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]'); } catch { return []; } })();
     return new Set(a.map((x: any) => x.examId).filter(Boolean));
   } catch { return new Set(); }
 }
@@ -114,7 +114,7 @@ export default function StudentHome() {
       sessionService.heartbeat({ name: profile.name, className: profile.className, school: profile.school });
     }, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function StudentHome() {
       if (alert) setAlertDismissed(false);
     });
     return () => unsub();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -134,17 +134,17 @@ export default function StudentHome() {
       setPendingAssignments(list.filter(a => !doneIds.has(a.examId)));
     });
     return () => unsub();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const attempts = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]');
+    const attempts = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]'); } catch { return []; } })();
     setRecentAttempts(attempts.slice(0, 3));
   }, []);
 
-  const totalAttempts = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]').length;
+  const totalAttempts = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]'); } catch { return []; } })().length;
   const avgScore = (() => {
-    const a = JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]');
+    const a = (() => { try { return JSON.parse(localStorage.getItem('geo_pro_local_attempts') || '[]'); } catch { return []; } })();
     if (!a.length) return 0;
     return (a.reduce((s: number, x: any) => s + (x.score || 0), 0) / a.length).toFixed(1);
   })();
