@@ -164,9 +164,9 @@ export default function QuizActiveCard({
                   Phần II — Đúng / Sai (4 mệnh đề)
                 </p>
                 <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">1Đ</span>
-                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">2→0.25</span>
-                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">3→0.5</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">1→0.1đ</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">2→0.25đ</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 rounded">3→0.5đ</span>
                   <span className="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded">4→1.0đ</span>
                 </div>
               </div>

@@ -333,6 +333,8 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
     if (endIdx === -1 || endIdx < startIdx) {
       // Try to close truncated JSON
       text = text.substring(startIdx) + ']';
+      // Replace common trailing comma issues before replacing
+      text = text.replace(/,(\s*[}\]])/g, '$1');
     } else {
       text = text.substring(startIdx, endIdx + 1);
     }
@@ -340,6 +342,9 @@ Trả về DUY NHẤT một mảng JSON chứa TẤT CẢ câu hỏi, không kè
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error('Lỗi trích xuất câu hỏi:', msg);
+    if (msg.includes('Unterminated string in JSON') || msg.includes('Unexpected end of JSON')) {
+      throw new Error('Đề thi quá dài khiến AI tự động ngắt kết nối giữa chừng (vượt giới hạn bộ nhớ). Vui lòng chia nhỏ đề thi ra làm nhiều phần (mỗi phần tối đa 10-15 câu) để tiếp tục.');
+    }
     throw new Error(msg);
   }
 }
@@ -530,6 +535,9 @@ Vui lòng trả về định dạng mảng JSON chứa các câu hỏi tương t
   } catch (error: any) {
     console.error("Lỗi trích xuất đa phương tiện:", error);
     const msg = error?.message || String(error);
+    if (msg.includes('Unterminated string in JSON') || msg.includes('Unexpected end of JSON')) {
+      throw new Error('Ảnh/Tài liệu chứa quá nhiều nội dung khiến AI tự động ngắt kết nối. Vui lòng cắt nhỏ ảnh hoặc giảm số lượng câu hỏi để tiếp tục.');
+    }
     throw new Error("Không thể đọc tài liệu: " + msg);
   }
 }

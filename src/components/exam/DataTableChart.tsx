@@ -294,11 +294,11 @@ export default function DataTableChart({ content }: { content: string }) {
       {canChart && view === 'area' && (
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={chartData} margin={margin}>
+            <AreaChart data={chartData} margin={margin} stackOffset="expand">
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis {...xProps} />
-              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} width={65} tickFormatter={yFmt} />
-              <Tooltip content={<CustomTooltip />} />
+              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} width={65} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
+              <Tooltip content={<CustomTooltip isExpandedArea={true} />} />
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
               {numericKeys.map((k, i) => (
                 <Area key={k} type="monotone" dataKey={k}
@@ -398,18 +398,27 @@ export default function DataTableChart({ content }: { content: string }) {
   );
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, isExpandedArea }: any) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl text-sm">
       <p className="font-bold text-slate-800 mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} style={{ color: p.fill || p.stroke || p.color }}>
-          {p.name}: <span className="font-bold">
-            {typeof p.value === 'number' ? p.value.toLocaleString('vi-VN') : p.value}
-          </span>
-        </p>
-      ))}
+      {payload.map((p: any, i: number) => {
+        // If it's an expanded area chart, the `p.value` is an array of [bottom, top] (ranging 0 to 1) 
+        // We should show the original percentage based on the data item.
+        let displayValue = p.value;
+        if (isExpandedArea && p.payload) {
+          displayValue = p.payload[p.dataKey];
+        }
+
+        return (
+          <p key={i} style={{ color: p.fill || p.stroke || p.color }}>
+            {p.name}: <span className="font-bold">
+              {typeof displayValue === 'number' ? displayValue.toLocaleString('vi-VN') : displayValue}
+            </span>
+          </p>
+        );
+      })}
     </div>
   );
 };
