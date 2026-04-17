@@ -7,6 +7,24 @@ import RichContent from './RichContent';
 import DataTableChart from './DataTableChart';
 import { isShortAnswerCorrect } from '../../utils/scoreUtils';
 
+// Helper: true when context has a real Markdown table (pipe syntax)
+function hasMarkdownTable(ctx: string | null | undefined): boolean {
+  if (!ctx) return false;
+  const trimmed = ctx.trim();
+  if (trimmed.length < 10) return false;
+  if (['null', 'undefined', 'none', 'n/a'].includes(trimmed.toLowerCase())) return false;
+  return trimmed.includes('|');
+}
+
+// Helper: true when context has any meaningful content (including plain text)
+function hasAnyContext(ctx: string | null | undefined): boolean {
+  if (!ctx) return false;
+  const trimmed = ctx.trim();
+  if (trimmed.length < 10) return false;
+  if (['null', 'undefined', 'none', 'n/a'].includes(trimmed.toLowerCase())) return false;
+  return true;
+}
+
 interface QuizActiveCardProps {
   currentQuestion: Question;
   currentIndex: number;
@@ -46,9 +64,9 @@ export default function QuizActiveCard({
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">
-                {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm khách quan' : 
-                 currentQuestion.type === 'true_false' ? 'Phần 2: Trắc nghiệm Đúng/Sai' : 
-                 'Phần 3: Trả lời ngắn'}
+                {currentQuestion.type === 'multiple_choice' ? 'Phần 1: Trắc nghiệm khách quan' :
+                  currentQuestion.type === 'true_false' ? 'Phần 2: Trắc nghiệm Đúng/Sai' :
+                    'Phần 3: Trả lời ngắn'}
               </span>
               {currentQuestion.cognitiveLevel && (
                 <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider">
@@ -65,10 +83,16 @@ export default function QuizActiveCard({
                   className="max-w-full max-h-72 object-contain" />
               </div>
             )}
-            {currentQuestion.context && (
+            {hasMarkdownTable(currentQuestion.context) && (
               <div className="mt-4 p-4 bg-indigo-50/70 rounded-xl border border-indigo-200">
                 <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">📊 Bảng số liệu &amp; Biểu đồ tham khảo</p>
-                <DataTableChart content={currentQuestion.context} />
+                <DataTableChart content={currentQuestion.context!} />
+              </div>
+            )}
+            {!hasMarkdownTable(currentQuestion.context) && hasAnyContext(currentQuestion.context) && (
+              <div className="mt-4 p-4 bg-amber-50/80 rounded-xl border border-amber-200">
+                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2">📋 Ngữ cảnh / Số liệu tham khảo</p>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{currentQuestion.context}</p>
               </div>
             )}
           </div>
@@ -274,8 +298,8 @@ export default function QuizActiveCard({
                   className={cn(
                     "flex-1 p-4 rounded-xl border-2 outline-none transition-shadow text-lg font-medium",
                     isSubmitted && isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer) ? "border-emerald-500 bg-emerald-50 text-emerald-800" :
-                    isSubmitted && !isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer) ? "border-rose-500 bg-rose-50 text-rose-800 font-bold" :
-                    "border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 bg-white text-indigo-700 font-bold"
+                      isSubmitted && !isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer) ? "border-rose-500 bg-rose-50 text-rose-800 font-bold" :
+                        "border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 bg-white text-indigo-700 font-bold"
                   )}
                 />
                 {currentQuestion.unit && (
@@ -285,10 +309,10 @@ export default function QuizActiveCard({
               {isSubmitted && (
                 <div className="mt-4">
                   {isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer) ? (
-                    <span className="text-emerald-600 flex items-center gap-1 font-medium"><CheckCircle2 className="w-5 h-5"/> Chính xác!</span>
+                    <span className="text-emerald-600 flex items-center gap-1 font-medium"><CheckCircle2 className="w-5 h-5" /> Chính xác!</span>
                   ) : (
                     <div className="text-rose-600 font-medium">
-                      <span className="flex items-center gap-1 mb-1"><XCircle className="w-5 h-5"/> Sai rồi.</span>
+                      <span className="flex items-center gap-1 mb-1"><XCircle className="w-5 h-5" /> Sai rồi.</span>
                       <span className="text-slate-700">Đáp án đúng là: <strong className="text-emerald-600">{currentQuestion.correctAnswer}</strong>{currentQuestion.unit ? ` ${currentQuestion.unit}` : ''}</span>
                     </div>
                   )}

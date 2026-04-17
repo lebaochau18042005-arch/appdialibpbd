@@ -34,13 +34,13 @@ export default function Quiz() {
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   // Answer states
   const [mcAnswer, setMcAnswer] = useState<number | null>(null);
   const [tfAnswer, setTfAnswer] = useState<Record<string, boolean>>({});
   const [saAnswer, setSaAnswer] = useState<string>('');
   const [detailedAnswers, setDetailedAnswers] = useState<Record<string, { topic: string; isCorrect: boolean; userAnswer: any }>>({}); // per-question rich results
-  
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
   const [score, setScore] = useState(0); // Raw score for simplicity
@@ -48,14 +48,14 @@ export default function Quiz() {
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [scoringConfig, setScoringConfig] = useState<ScoringConfig>(DEFAULT_BGD_SCORING);
-  
+
   // Timer states (50 minutes = 3000 seconds)
   const [timeLeft, setTimeLeft] = useState(3000);
   const [timeRanOut, setTimeRanOut] = useState(false);
-  
+
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [studentSessionId] = useState<string>(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [studentName, setStudentName] = useState<string>('');
@@ -144,7 +144,7 @@ export default function Quiz() {
       } else {
         loadStaticQuestions();
       }
-      
+
       setStartTime(Date.now());
       setTimeLeft(3000); // Reset timer to 50 minutes
     };
@@ -162,11 +162,11 @@ export default function Quiz() {
       const getQuestions = (type: QuestionType, count: number) => {
         let selected = preferredPool.filter(q => q.type === type);
         selected = selected.sort(() => 0.5 - Math.random());
-        
+
         if (selected.length >= count) {
           return selected.slice(0, count);
         }
-        
+
         const remaining = count - selected.length;
         let others = questions.filter(q => q.type === type && !selected.includes(q));
         others = others.sort(() => 0.5 - Math.random());
@@ -211,17 +211,17 @@ export default function Quiz() {
 
   useEffect(() => {
     if (isFinished || quizQuestions.length === 0) return;
-    
+
     if (timeLeft <= 0) {
       setTimeRanOut(true);
       finishQuiz();
       return;
     }
-    
+
     const timer = setInterval(() => {
       setTimeLeft(prev => prev - 1);
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [timeLeft, isFinished, quizQuestions.length]);
 
@@ -243,12 +243,12 @@ export default function Quiz() {
 
   const handleSubmit = async () => {
     if (!isAnswerComplete() || isSubmitted) return;
-    
+
     setIsSubmitted(true);
     let isCorrect = false;
     let userAnswerForAi: any = null;
     let pointsEarned = 0;
-    
+
     if (currentQuestion.type === 'multiple_choice') {
       isCorrect = mcAnswer === currentQuestion.correctAnswerIndex;
       userAnswerForAi = mcAnswer;
@@ -261,16 +261,16 @@ export default function Quiz() {
       isCorrect = correctCount === currentQuestion.statements.length;
       userAnswerForAi = tfAnswer;
       pointsEarned = getPoints('true_false', isCorrect, correctCount, scoringConfig);
-      
+
     } else if (currentQuestion.type === 'short_answer') {
       isCorrect = isShortAnswerCorrect(saAnswer, currentQuestion.correctAnswer);
       userAnswerForAi = saAnswer.trim();
       pointsEarned = getPoints('short_answer', isCorrect, 0, scoringConfig);
     }
-    
+
     setScore(s => s + pointsEarned);
     setIsAnswerCorrect(isCorrect);
-    
+
     // Record rich answer data for topic analysis
     setDetailedAnswers(prev => ({
       ...prev,
@@ -280,12 +280,12 @@ export default function Quiz() {
         userAnswer: userAnswerForAi,
       }
     }));
-    
+
     if (mode === 'exam') {
       const newScore = score + pointsEarned;
       liveTrackingService.updateLiveProgress(examId || 'exam_local', studentSessionId, currentIndex + 1, newScore);
     }
-    
+
     setIsAiLoading(true);
     const explanation = await getExplanation(
       currentQuestion,
@@ -314,17 +314,17 @@ export default function Quiz() {
   const finishQuiz = async () => {
     setIsFinished(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    
+
     if (mode === 'exam') {
       liveTrackingService.finishLiveExam(examId || 'exam_local', studentSessionId, timeSpent);
     }
-    
+
     const attempt: Omit<QuizAttempt, 'id'> = {
       userId: user?.uid || 'anonymous',
       userName: profile?.name || user?.displayName || 'Học sinh ẩn danh',
       className: profile?.className || 'Chưa xác định',
       examId: examId || 'local',
-      examTitle: mode === 'exam' ? 'Đề thi tham khảo 2025' : (filter || 'Luyện tập'),
+      examTitle: mode === 'exam' ? 'Đề thi tham khảo 2026' : (filter || 'Luyện tập'),
       date: new Date().toISOString(),
       mode,
       score: Number(score.toFixed(2)),
@@ -388,7 +388,7 @@ export default function Quiz() {
           maxPossibleScore={maxScore}
           detailedExplanations={{}}
           loadingExplanation={null}
-          handleGetDetailedExplanation={async () => {}}
+          handleGetDetailedExplanation={async () => { }}
           setIsReviewMode={setIsReviewMode}
           navigate={navigate}
           isCorrect={isCorrectFn}

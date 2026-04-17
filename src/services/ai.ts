@@ -548,10 +548,11 @@ export async function generateAnswersForQuestions(questions: Question[]): Promis
 
 ${KIEN_THUC_HANH_CHINH_2025_EXPORT}
 
-QUY TẮC QUAN TRỌNG TỰ TẠO BẢNG SỐ LIỆU (MỚI KHẨN CẤP):
+QUY TẮC QUAN TRỌNG VỀ CONTEXT (BẮT BUỘC):
 Nếu nội dung câu hỏi nói "Cho biểu đồ sau" / "Theo bảng số liệu" / "Căn cứ vào Atlat" HOẶC yêu cầu tính toán dựa vào số liệu MÀ trường "context" bị rỗng/thiếu/null:
--> BẠN PHẢI THỂ HIỆN SỰ THÔNG MINH! Hãy tự bịa ra/tạo ra 1 bảng dữ liệu Markdown HỢP LÝ nhất khớp với nội dung câu hỏi và TRẢ VỀ TRONG TRƯỜNG "context" của câu đó. 
--> Ví dụ: nếu câu hỏi yêu cầu tính GDP thì bạn tự tạo ra 1 bảng GDP. Điều này giúp hệ thống tự vẽ biểu đồ thay thế bảng bị lỗi gốc.
+-> BẮT BUỘC tạo bảng Markdown HỢP LÝ với CÚ PHÁP PIPE |...| và trả về trong trường "context".
+-> TUYỆT ĐỐI KHÔNG dùng văn xuôi cho context. Chỉ chấp nhận định dạng bảng Markdown đầy đủ (có header, separator ---, và các dòng data).
+-> Ví dụ đúng: "| Tháng | 1 | 2 | 3 |\\n|---|---|---|---|\\n| Lượng mưa (mm) | 50 | 45 | 60 |"
 
 QUY TẮC JSON:
 - Với câu multiple_choice: trả về "correctAnswerIndex": (0-3)

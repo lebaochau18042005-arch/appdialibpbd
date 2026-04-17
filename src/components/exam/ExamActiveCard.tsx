@@ -20,14 +20,22 @@ interface ExamActiveCardProps {
   isQuestionAnswered: (idx: number) => boolean;
 }
 
-// Helper: true when context has a real Markdown table or substantial content
-function hasValidContext(ctx: string | null | undefined): boolean {
+// Helper: true when context has a real Markdown table (pipe syntax)
+function hasMarkdownTable(ctx: string | null | undefined): boolean {
   if (!ctx) return false;
   const trimmed = ctx.trim();
   if (trimmed.length < 10) return false;
   if (['null', 'undefined', 'none', 'n/a'].includes(trimmed.toLowerCase())) return false;
-  // Must have actual Markdown table rows (|...|) to be considered valid
   return trimmed.includes('|');
+}
+
+// Helper: true when context has any meaningful content (including plain text)
+function hasAnyContext(ctx: string | null | undefined): boolean {
+  if (!ctx) return false;
+  const trimmed = ctx.trim();
+  if (trimmed.length < 10) return false;
+  if (['null', 'undefined', 'none', 'n/a'].includes(trimmed.toLowerCase())) return false;
+  return true;
 }
 
 export default function ExamActiveCard({
@@ -40,7 +48,8 @@ export default function ExamActiveCard({
   setShowQuestionMap,
   isQuestionAnswered
 }: ExamActiveCardProps) {
-  const contextValid = hasValidContext(currentQuestion.context);
+  const hasTable = hasMarkdownTable(currentQuestion.context);
+  const hasCtx = hasAnyContext(currentQuestion.context);
   const CHART_RE = /biểu đồ|bảng số liệu|bảng dưới đây|số liệu|hình dưới/i;
 
   return (
@@ -78,16 +87,24 @@ export default function ExamActiveCard({
           </div>
         )}
 
-        {/* Render DataTableChart only when context is genuinely valid */}
-        {contextValid && (
+        {/* Render DataTableChart khi context có cú pháp bảng Markdown (pipe |) */}
+        {hasTable && (
           <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200">
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">📊 Bảng số liệu &amp; Biểu đồ tham khảo</p>
             <DataTableChart content={currentQuestion.context!} />
           </div>
         )}
 
-        {/* Warn when question mentions chart/table but context is missing/invalid, and no fallback image or text-table exists */}
-        {!contextValid && !currentQuestion.imageUrl && !currentQuestion.text?.includes('|') && CHART_RE.test(currentQuestion.text) && (
+        {/* Fallback: hiển thị context văn xuôi (không có |) dưới dạng text block */}
+        {!hasTable && hasCtx && (
+          <div className="mb-6 p-4 bg-amber-50/80 rounded-2xl border border-amber-200">
+            <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2">📋 Ngữ cảnh / Số liệu tham khảo</p>
+            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{currentQuestion.context}</p>
+          </div>
+        )}
+
+        {/* Cảnh báo khi câu hỏi đề cập bảng/biểu đồ nhưng context hoàn toàn rỗng */}
+        {!hasCtx && !currentQuestion.imageUrl && !currentQuestion.text?.includes('|') && CHART_RE.test(currentQuestion.text) && (
           <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-start gap-3">
             <span className="text-amber-500 text-xl shrink-0">⚠️</span>
             <div>

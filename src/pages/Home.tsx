@@ -77,7 +77,7 @@ export default function Home() {
       }));
     });
     return () => unsub();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTeacherMode]);
 
 
@@ -96,7 +96,7 @@ export default function Home() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-8 pb-20 md:pb-0"
@@ -166,7 +166,7 @@ export default function Home() {
                 )}
               </motion.div>
               {profile?.className && (
-                <motion.p 
+                <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
@@ -177,17 +177,17 @@ export default function Home() {
               )}
             </>
           ) : (
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
               className="text-3xl md:text-4xl font-bold mb-4"
             >
-              Ôn thi Địa lí THPT Quốc gia 2025
+              ÔN THI TNTHPTQG 2026 MÔN ĐỊA LÍ
             </motion.h1>
           )}
-          
-          <motion.p 
+
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -195,7 +195,7 @@ export default function Home() {
           >
             Hệ thống luyện tập thông minh với AI phân tích lỗi sai, giúp bạn nắm vững kiến thức và tự tin đạt điểm cao.
           </motion.p>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
