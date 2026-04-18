@@ -8,6 +8,7 @@ import { ref, get } from 'firebase/database';
 import { rtdb } from '../firebase';
 import { extractTextFromUrl } from '../utils/fileExtractor';
 import { useAuth } from '../contexts/AuthContext';
+import { isShortAnswerCorrect } from '../utils/scoreUtils';
 import {
   CheckCircle2,
   AlertCircle,
@@ -286,7 +287,7 @@ export default function ExamRoom() {
         }
       } else if (q.type === 'short_answer') {
         maxPoints += 0.25;
-        if (answer && answer.trim() === q.correctAnswer.toString()) totalPoints += 0.25;
+        if (answer && isShortAnswerCorrect(answer.toString(), q.correctAnswer)) totalPoints += 0.25;
       }
     });
     return { totalPoints, maxPoints };
@@ -312,7 +313,7 @@ export default function ExamRoom() {
       } else if (q.type === 'true_false') {
         correct = answer ? q.statements.every(stmt => answer[stmt.id] === stmt.isTrue) : false;
       } else if (q.type === 'short_answer') {
-        correct = answer ? answer.toString().trim().toLowerCase() === q.correctAnswer.toString().toLowerCase() : false;
+        correct = answer ? isShortAnswerCorrect(answer.toString(), q.correctAnswer) : false;
       }
       detailedAnswers[q.id || String(idx)] = {
         topic: q.topic || 'Chung',
@@ -371,7 +372,7 @@ export default function ExamRoom() {
     } else if (q.type === 'true_false') {
       return q.statements.every(stmt => answer[stmt.id] === stmt.isTrue);
     } else if (q.type === 'short_answer') {
-      return answer.toString().trim().toLowerCase() === q.correctAnswer.toString().toLowerCase();
+      return isShortAnswerCorrect(answer.toString(), q.correctAnswer);
     }
     return false;
   };
