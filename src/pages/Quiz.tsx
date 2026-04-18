@@ -124,18 +124,24 @@ export default function Quiz() {
               }
             } catch (fileErr) {
               console.warn('[Quiz] Không đọc được file thư viện, tiếp tục gọi AI không có context:', fileErr);
-              // Tiếp tục — fileContext = undefined → AI vẫn tạo câu hỏi từ filter/topic
             }
           }
 
-          // Bước 2: Gọi AI — chỉ lỗi ở đây mới hủy luồng
-          const aiQuestions = await examService.generatePracticeQuestions(filter, mode, count, fileContext);
+          // Bước 2: Gọi AI với timeout 60 giây để tránh màn hình loading vô hạn
+          const aiPromise = examService.generatePracticeQuestions(filter, mode, count, fileContext);
+          const timeoutPromise = new Promise<Question[]>((_, reject) =>
+            setTimeout(() => reject(new Error('AI_TIMEOUT')), 60000)
+          );
+          const aiQuestions = await Promise.race([aiPromise, timeoutPromise]);
           setQuizQuestions(aiQuestions);
           applyPracticeScoring(aiQuestions);
         } catch (err: any) {
           console.error('Lỗi khi tạo câu hỏi AI:', err);
           const msg = err?.message || String(err);
-          if (msg.includes('API Key') || msg.includes('apiKey') || msg.includes('Chưa thiết lập') || msg.includes('API_KEY_INVALID')) {
+          if (msg === 'AI_TIMEOUT') {
+            // Timeout — im lặng fallback mà không cần alert để trải nghiệm mượt hơn
+            console.warn('[Quiz] AI timeout sau 60s — fallback sang ngân hàng câu hỏi');
+          } else if (msg.includes('API Key') || msg.includes('apiKey') || msg.includes('Chưa thiết lập') || msg.includes('API_KEY_INVALID')) {
             alert('⚠️ Chưa thiết lập API Key cho AI.\nVào Trang chủ → Cấu hình AI → nhập Google Gemini API Key để dùng tính năng này.\n\nHệ thống sẽ dùng ngân hàng câu hỏi có sẵn.');
           } else {
             alert(`Không thể tạo câu hỏi AI lúc này (${msg.slice(0, 80)}). Hệ thống sẽ dùng ngân hàng câu hỏi có sẵn.`);

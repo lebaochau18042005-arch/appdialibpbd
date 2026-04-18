@@ -522,8 +522,10 @@ YÊU CẦU CHÍNH XÁC:
       });
 
       if (needsContext.length > 0) {
-        console.log(`[Practice] Auto-repairing context for ${needsContext.length} question(s)...`);
-        for (const q of needsContext) {
+        const REPAIR_LIMIT = 3; // Giới hạn tối đa 3 câu auto-repair để tránh timeout
+        const toRepair = needsContext.slice(0, REPAIR_LIMIT);
+        console.log(`[Practice] Auto-repairing context for ${toRepair.length}/${needsContext.length} question(s) (limit ${REPAIR_LIMIT})...`);
+        for (const q of toRepair) {
           try {
             await new Promise(r => setTimeout(r, 800)); // Rate limit prevention
             const isSEA = /đông nam á|asean|indonesia|singapore|malaysia|philippines|thái lan|myanmar/i.test(q.text);
