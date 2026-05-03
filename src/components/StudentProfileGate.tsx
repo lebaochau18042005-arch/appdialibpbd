@@ -27,6 +27,7 @@ export default function StudentProfileGate({ children }: { children: React.React
   const [googleLoading, setGoogleLoading] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [autoClass, setAutoClass] = useState('');
+  const [creatorId, setCreatorId] = useState('');
   const lookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-detect class from roster when student types their name (debounced)
@@ -38,10 +39,12 @@ export default function StudentProfileGate({ children }: { children: React.React
       const found = await rosterService.findClassForStudent(name.trim());
       setLookingUp(false);
       if (found) {
-        setAutoClass(found);
-        setClassName(found); // auto-fill
+        setAutoClass(found.className);
+        setClassName(found.className); // auto-fill
+        setCreatorId(found.creatorId);
       } else {
         setAutoClass('');
+        setCreatorId('');
       }
     }, 800);
     return () => { if (lookupTimer.current) clearTimeout(lookupTimer.current); };
@@ -62,6 +65,7 @@ export default function StudentProfileGate({ children }: { children: React.React
         setName(saved.name || '');
         setClassName(saved.className || '');
         setSchool(saved.school || '');
+        setCreatorId(saved.creatorId || '');
         return;
       } catch { /* fall through to show gate */ }
     }
@@ -82,11 +86,17 @@ export default function StudentProfileGate({ children }: { children: React.React
     setGoogleLoading(false);
   };
 
-  const handleStudentSubmit = () => {
+  const handleStudentSubmit = async () => {
     if (!name.trim()) { setError('Vui lòng nhập họ và tên.'); return; }
     if (!className.trim()) { setError('Vui lòng nhập lớp học.'); return; }
     setSaving(true);
-    const profile = { name: name.trim(), className: className.trim(), school: school.trim() };
+    let cId = creatorId;
+    if (!cId) {
+      const found = await rosterService.findClassForStudent(name.trim());
+      if (found) cId = found.creatorId;
+      else cId = 'global';
+    }
+    const profile = { name: name.trim(), className: className.trim(), school: school.trim(), creatorId: cId };
     localStorage.setItem(LS_PROFILE_KEY, JSON.stringify(profile));
     localStorage.setItem(LS_ROLE_KEY, 'student');
     setTimeout(() => { setSaving(false); setStep(null); }, 400);

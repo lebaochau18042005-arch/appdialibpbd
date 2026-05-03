@@ -20,6 +20,7 @@ export interface LibraryVideo {
   description: string;
   tags: string;
   createdAt: string;
+  authorId?: string;
 }
 
 export interface LibraryFile {
@@ -31,18 +32,21 @@ export interface LibraryFile {
   fileSize: number;
   storagePath: string;
   createdAt: string;
+  authorId?: string;
 }
 
 // ── Videos ────────────────────────────────────────────────────────────────────
 export const libraryService = {
   // Subscribe to all videos
-  subscribeToVideos(callback: (items: LibraryVideo[]) => void): () => void {
+  subscribeToVideos(authorId: string | undefined, callback: (items: LibraryVideo[]) => void): () => void {
     const ref = rtdbRef(rtdb, 'library_videos');
     const unsub = onValue(ref, (snap) => {
       if (!snap.exists()) { callback([]); return; }
       const items: LibraryVideo[] = [];
       snap.forEach((child) => {
-        items.push({ id: child.key!, ...child.val() });
+        const data = child.val();
+        if (authorId && data.authorId && data.authorId !== authorId && authorId !== 'global') return;
+        items.push({ id: child.key!, ...data });
       });
       callback(items.reverse()); // newest first
     }, () => callback([]));
@@ -50,10 +54,11 @@ export const libraryService = {
   },
 
   // Teacher: add video link
-  async addVideo(title: string, url: string, description: string, tags: string): Promise<void> {
+  async addVideo(title: string, url: string, description: string, tags: string, authorId?: string): Promise<void> {
     await push(rtdbRef(rtdb, 'library_videos'), {
       title, url, description, tags,
       createdAt: new Date().toISOString(),
+      ...(authorId ? { authorId } : {})
     });
   },
 
@@ -64,13 +69,15 @@ export const libraryService = {
 
   // ── Files ───────────────────────────────────────────────────────────────────
   // Subscribe to all files
-  subscribeToFiles(callback: (items: LibraryFile[]) => void): () => void {
+  subscribeToFiles(authorId: string | undefined, callback: (items: LibraryFile[]) => void): () => void {
     const ref = rtdbRef(rtdb, 'library_files');
     const unsub = onValue(ref, (snap) => {
       if (!snap.exists()) { callback([]); return; }
       const items: LibraryFile[] = [];
       snap.forEach((child) => {
-        items.push({ id: child.key!, ...child.val() });
+        const data = child.val();
+        if (authorId && data.authorId && data.authorId !== authorId && authorId !== 'global') return;
+        items.push({ id: child.key!, ...data });
       });
       callback(items.reverse());
     }, () => callback([]));
@@ -81,7 +88,8 @@ export const libraryService = {
   async uploadFile(
     file: File,
     title: string,
-    onProgress?: (pct: number) => void
+    onProgress?: (pct: number) => void,
+    authorId?: string
   ): Promise<void> {
     if (file.size > MAX_UPLOAD_BYTES) {
       throw new Error(
@@ -94,8 +102,8 @@ export const libraryService = {
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
     const fileType = ['pdf'].includes(ext) ? 'pdf'
       : ['doc', 'docx'].includes(ext) ? 'word'
-      : ['ppt', 'pptx'].includes(ext) ? 'ppt'
-      : 'other';
+        : ['ppt', 'pptx'].includes(ext) ? 'ppt'
+          : 'other';
 
     const formData = new FormData();
     formData.append('file', file);
@@ -134,6 +142,7 @@ export const libraryService = {
       fileSize: file.size,
       storagePath: fileUrl, // store URL as storagePath for compatibility
       createdAt: new Date().toISOString(),
+      ...(authorId ? { authorId } : {})
     });
   },
 
@@ -143,6 +152,7 @@ export const libraryService = {
     title: string,
     fileName: string,
     fileType: string,
+    authorId?: string
   ): Promise<void> {
     await push(rtdbRef(rtdb, 'library_files'), {
       title: title || fileName,
@@ -152,6 +162,7 @@ export const libraryService = {
       fileSize: 0, // unknown
       storagePath: url,
       createdAt: new Date().toISOString(),
+      ...(authorId ? { authorId } : {})
     });
   },
 

@@ -56,14 +56,12 @@ export const examService = {
   },
 
   subscribeToExams(creatorId: string, callback: (exams: Exam[]) => void): Unsubscribe {
-    const q = collection(db, 'exams'); // Global bank - show all exams
+    const q = query(collection(db, 'exams'), where('creatorId', '==', creatorId));
     const unsub = onSnapshot(q, (snapshot) => {
       const fsExams = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
-      // Show all local exams not already in Firestore (no creatorId filter — localStorage is device-specific)
       const lsExams = lsGetExams().filter(le => !fsExams.find(fe => fe.id === le.id));
       callback([...fsExams, ...lsExams]);
     }, (_error) => {
-      // Firestore failed - use all local exams
       callback(lsGetExams());
     });
     return unsub;
@@ -648,7 +646,18 @@ CẤU TRÚC BẮT BUỘC:
   },
 
   async getExamsByCreator(creatorId: string): Promise<Exam[]> {
-    return this.getAllExams();
+    const lsExams = lsGetExams().filter(e => e.creatorId === creatorId);
+    try {
+      const q = query(collection(db, 'exams'), where('creatorId', '==', creatorId));
+      const querySnapshot = await getDocs(q);
+      const fsExams = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
+      const onlyLocal = lsExams.filter(le => !fsExams.find(fe => fe.id === le.id));
+      return [...fsExams, ...onlyLocal];
+    } catch (error) {
+      if (isPermissionError(error)) return lsExams;
+      handleFirestoreError(error, OperationType.LIST, 'exams');
+      return lsExams;
+    }
   },
 
   async getAllExams(): Promise<Exam[]> {

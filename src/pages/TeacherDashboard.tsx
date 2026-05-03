@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
-import { Upload, History, MessageSquare, FileText, ShieldCheck, RefreshCw, Download, Search, User, BarChart, Lock, LogIn, Sparkles, CheckCircle2, XCircle, AlertCircle, Trash2, Brain, Users, LayoutDashboard, BookOpen } from 'lucide-react';
+import { Upload, History, MessageSquare, FileText, ShieldCheck, RefreshCw, Download, Search, User, BarChart, Lock, LogIn, Sparkles, CheckCircle2, XCircle, AlertCircle, Trash2, Brain, Users, LayoutDashboard, BookOpen, ShieldAlert } from 'lucide-react';
 import { examService } from '../services/examService';
 import { QuizAttempt, Exam, Question } from '../types';
 import { cn } from '../utils/cn';
@@ -214,9 +214,11 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
   return questions;
 }
 
-type DashboardTab = 'overview' | 'exams' | 'history' | 'students' | 'assign' | 'roster';
+import AdminSettings from '../components/teacher/AdminSettings';
 
-const TABS: { id: DashboardTab; label: string; icon: React.ReactNode }[] = [
+type DashboardTab = 'overview' | 'exams' | 'history' | 'students' | 'assign' | 'roster' | 'admin';
+
+const BASE_TABS: { id: DashboardTab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Tổng quan', icon: <LayoutDashboard size={16} /> },
   { id: 'assign', label: 'Giao đề', icon: <BookOpen size={16} /> },
   { id: 'roster', label: 'Danh sách lớp', icon: <Users size={16} /> },
@@ -226,7 +228,13 @@ const TABS: { id: DashboardTab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export default function TeacherDashboard() {
-  const { user, profile, loading: authLoading, isTeacherMode } = useAuth();
+  const { user, profile, loading: authLoading, isTeacherMode, isAdmin } = useAuth();
+
+  const TABS = [...BASE_TABS];
+  if (isAdmin) {
+    TABS.push({ id: 'admin', label: 'Hệ Thống', icon: <ShieldAlert size={16} /> });
+  }
+
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
@@ -883,6 +891,10 @@ export default function TeacherDashboard() {
         <StudentManagement attempts={attempts} onRefresh={loadData} />
       )}
 
+      {activeTab === 'admin' && isAdmin && (
+        <AdminSettings />
+      )}
+
 
       <AnimatePresence>
         {showUploadConfirm && selectedFile && (
@@ -1324,10 +1336,18 @@ export default function TeacherDashboard() {
                       </div>
                     )}
 
-                    {q.context && (
+                    {q.context ? (
                       <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 ml-12">
                         <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">📊 Bảng số liệu & Biểu đồ tham khảo</p>
                         <DataTableChart content={q.context} />
+                      </div>
+                    ) : /biểu đồ|bảng số liệu|bảng dưới đây|số liệu|hình dưới/i.test(q.text) && (
+                      <div className="mb-4 ml-12 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2">
+                        <span className="text-amber-500 text-lg shrink-0">⚠️</span>
+                        <div>
+                          <p className="text-xs font-bold text-amber-800">Câu hỏi tham chiếu bảng/biểu đồ nhưng dữ liệu chưa được nhập.</p>
+                          <p className="text-[11px] text-amber-600 mt-0.5">Vào chỉnh sửa đề → điền trường "Bảng số liệu" cho câu này, hoặc tái tạo đề bằng AI để tự động thêm bảng.</p>
+                        </div>
                       </div>
                     )}
 

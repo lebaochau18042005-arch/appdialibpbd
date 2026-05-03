@@ -22,7 +22,7 @@ export const rosterService = {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
   },
 
-  saveRoster(className: string, students: StudentEntry[]): ClassRoster {
+  saveRoster(className: string, students: StudentEntry[], creatorId?: string): ClassRoster {
     const rosters = this.getRosters();
     const existing = rosters.find(r => r.className.toLowerCase() === className.toLowerCase());
     const roster: ClassRoster = {
@@ -34,14 +34,17 @@ export const rosterService = {
     const updated = rosters.filter(r => r.id !== roster.id);
     updated.unshift(roster);
     localStorage.setItem(LS_KEY, JSON.stringify(updated));
-    // Sync to RTDB for cross-device student auto-detect
-    this.syncRosterToRTDB(roster);
+    // Sync to RTDB for cross-device student auto-detect if creatorId provided
+    if (creatorId) {
+      this.syncRosterToRTDB(roster, creatorId);
+    }
     return roster;
   },
 
   // ─── RTDB sync ────────────────────────────────────────────────────────────
 
-  async syncRosterToRTDB(roster: ClassRoster) {
+  async syncRosterToRTDB(roster: ClassRoster, creatorId: string) {
+    if (!creatorId) return;
     try {
       const safeClass = roster.className.replace(/[.#$[\]/]/g, '_');
       const studentsObj: Record<string, string> = {};
@@ -49,7 +52,7 @@ export const rosterService = {
         const key = s.name.replace(/[.#$[\]/]/g, '_').slice(0, 80) || `s${i}`;
         studentsObj[key] = s.name;
       });
-      await set(ref(rtdb, `rosters/${safeClass}`), {
+      await set(ref(rtdb, `rosters/${creatorId}/${safeClass}`), {
         className: roster.className,
         updatedAt: roster.updatedAt,
         students: studentsObj,
@@ -60,31 +63,37 @@ export const rosterService = {
   },
 
   // Student: find which class they belong to by name (RTDB lookup)
-  async findClassForStudent(studentName: string): Promise<string | null> {
+  async findClassForStudent(studentName: string): Promise<{ className: string; creatorId: string } | null> {
     if (!studentName.trim()) return null;
     const nameLower = studentName.trim().toLowerCase();
     try {
       const snap = await get(ref(rtdb, 'rosters'));
       if (!snap.exists()) return null;
       let foundClass: string | null = null;
-      snap.forEach((classSnap: any) => {
+      let foundCreator: string | null = null;
+      snap.forEach((creatorSnap: any) => {
         if (foundClass) return;
-        const data = classSnap.val();
-        const students: Record<string, string> = data.students || {};
-        const match = Object.values(students).find(
-          (name: string) => name.trim().toLowerCase() === nameLower
-        );
-        if (match) {
-          foundClass = data.className || classSnap.key;
-        }
+        creatorSnap.forEach((classSnap: any) => {
+          if (foundClass) return;
+          const data = classSnap.val();
+          const students: Record<string, string> = data.students || {};
+          const match = Object.values(students).find(
+            (name: string) => name.trim().toLowerCase() === nameLower
+          );
+          if (match) {
+            foundClass = data.className || classSnap.key;
+            foundCreator = creatorSnap.key;
+          }
+        });
       });
-      return foundClass;
+      if (foundClass && foundCreator) return { className: foundClass, creatorId: foundCreator };
+      return null;
     } catch (e) {
       // RTDB failed, try localStorage
       const rosters = this.getRosters();
       for (const r of rosters) {
         if (r.students.some(s => s.name.trim().toLowerCase() === nameLower)) {
-          return r.className;
+          return { className: r.className, creatorId: 'local' };
         }
       }
       return null;
@@ -92,8 +101,9 @@ export const rosterService = {
   },
 
   // Teacher: subscribe to rosters from RTDB (for session grouping view)
-  subscribeToRosters(callback: (rosters: ClassRoster[]) => void): () => void {
-    const rostersRef = ref(rtdb, 'rosters');
+  subscribeToRosters(creatorId: string, callback: (rosters: ClassRoster[]) => void): () => void {
+    if (!creatorId) { callback(this.getRosters()); return () => { }; }
+    const rostersRef = ref(rtdb, `rosters/${creatorId}`);
     const handler = (snap: any) => {
       const localRosters = this.getRosters();
       if (!snap.exists()) { callback(localRosters); return; }
@@ -128,11 +138,13 @@ export const rosterService = {
     return () => off(rostersRef, 'value', handler);
   },
 
-  deleteRoster(id: string) {
+  deleteRoster(id: string, creatorId?: string) {
     const updated = this.getRosters().filter(r => r.id !== id);
     localStorage.setItem(LS_KEY, JSON.stringify(updated));
     // Also remove from RTDB
-    try { remove(ref(rtdb, `rosters/${id}`)); } catch {}
+    if (creatorId) {
+      try { remove(ref(rtdb, `rosters/${creatorId}/${id}`)); } catch { }
+    }
   },
 
   getClassNames(): string[] {

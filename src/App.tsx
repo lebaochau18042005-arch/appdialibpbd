@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import StudentProfileGate from './components/StudentProfileGate';
-import AppLogin from './components/AppLogin';
 import Home from './pages/Home';
 import StudentHome from './pages/StudentHome';
 import AssignedExamsPage from './pages/AssignedExamsPage';
@@ -42,21 +41,6 @@ function AppRoutes() {
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem('app_authenticated') === 'true'
-  );
-
-  if (!isAuthenticated) {
-    return (
-      <AppLogin 
-        onLoginSuccess={() => {
-          localStorage.setItem('app_authenticated', 'true');
-          setIsAuthenticated(true);
-        }} 
-      />
-    );
-  }
-
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -69,5 +53,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
-

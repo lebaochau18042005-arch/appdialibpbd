@@ -6,6 +6,7 @@ import { liveTrackingService, LiveStudent } from '../../services/liveTrackingSer
 import { sessionService, StudentSession } from '../../services/sessionService';
 import LiveExamMonitor from './LiveExamMonitor';
 import { assignmentService } from '../../services/assignmentService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ToastItem { id: string; message: string; studentName: string; timestamp: number; }
 
@@ -29,13 +30,16 @@ export default function LiveStudentTracker() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
   };
 
+  const { user, isTeacherMode, profile } = useAuth();
+  const creatorId = isTeacherMode ? user?.uid : (profile as any)?.creatorId;
+
   // Load assignment list from RTDB for exam selector
   useEffect(() => {
-    const unsub = assignmentService.subscribeToAssignments((list) => {
+    const unsub = assignmentService.subscribeToAssignments(creatorId, (list) => {
       setAssignments(list);
     });
     return () => unsub();
-  }, []);
+  }, [creatorId]);
 
   // Live exam tracking (legacy)
   useEffect(() => {
@@ -266,8 +270,8 @@ export default function LiveStudentTracker() {
                         <span className="font-bold text-slate-800 text-sm truncate">{student.name}</span>
                         <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-500 rounded-lg">{student.className}</span>
                         {student.isFinished
-                          ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg"><CheckCircle2 size={10}/>Đã nộp</span>
-                          : <span className="flex items-center gap-1 text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg"><Loader2 size={10} className="animate-spin"/>Đang thi</span>
+                          ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg"><CheckCircle2 size={10} />Đã nộp</span>
+                          : <span className="flex items-center gap-1 text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg"><Loader2 size={10} className="animate-spin" />Đang thi</span>
                         }
                       </div>
                       <div className="flex items-center gap-3">
@@ -283,7 +287,7 @@ export default function LiveStudentTracker() {
                       <div className="text-[9px] text-slate-400 font-bold uppercase">Điểm</div>
                       {student.isFinished && (
                         <div className="flex items-center gap-1 text-[9px] text-slate-400 mt-0.5">
-                          <Clock size={9}/>{formatTime(student.timeSpent)}
+                          <Clock size={9} />{formatTime(student.timeSpent)}
                         </div>
                       )}
                     </div>

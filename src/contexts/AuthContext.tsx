@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { UserProfile } from '../types';
 import { syncService } from '../services/syncService';
 
@@ -9,12 +9,14 @@ const TEACHER_CODE = 'GEO2025VN';
 const LS_TEACHER_KEY = 'geo_pro_teacher_mode';
 const LS_PROFILE_KEY = 'examGeoProfile';
 const LS_ROLE_KEY = 'examGeoRole';
+const SUPER_ADMIN_EMAIL = 'lebaochau18042005@gmail.com';
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
   isTeacherMode: boolean;
+  isAdmin: boolean;
   isSynced: boolean;         // true = Google user, data synced to Firestore
   login: () => Promise<void>;
   logout: () => Promise<void>;
@@ -28,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isTeacherMode, setIsTeacherMode] = useState<boolean>(
     () => localStorage.getItem(LS_TEACHER_KEY) === 'true'
   );
@@ -45,11 +48,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!firebaseUser.isAnonymous) {
           // ── Signed in with Google ──────────────────────────────────────────
           try {
+            const isSuperAdmin = firebaseUser.email === SUPER_ADMIN_EMAIL;
+            setIsAdmin(isSuperAdmin);
+
+            let hasTeacherAccess = isSuperAdmin;
+
+            // Check if user is in approved_teachers
+            if (!isSuperAdmin && firebaseUser.email) {
+              const q = query(collection(db, 'approved_teachers'), where('email', '==', firebaseUser.email));
+              const approvedSnap = await getDocs(q);
+              if (!approvedSnap.empty) {
+                hasTeacherAccess = true;
+              }
+            }
+
+            if (hasTeacherAccess) {
+              localStorage.setItem(LS_TEACHER_KEY, 'true');
+              setIsTeacherMode(true);
+              localStorage.setItem(LS_ROLE_KEY, 'teacher');
+            } else {
+              localStorage.removeItem(LS_TEACHER_KEY);
+              setIsTeacherMode(false);
+            }
+
             const profileSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
             if (profileSnap.exists()) {
               const existing = profileSnap.data() as UserProfile;
 
-              // Auto-sync Firestore profile → localStorage (cross-device magic)
+              // Auto-sync Firestore profile → localStorage
               if (existing.name && existing.className) {
                 localStorage.setItem(LS_PROFILE_KEY, JSON.stringify({
                   name: existing.name,
@@ -57,35 +83,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   school: existing.school || '',
                   targetScore: (existing as any).targetScore || '',
                 }));
-                localStorage.setItem(LS_ROLE_KEY, 'student');
+                if (!hasTeacherAccess) localStorage.setItem(LS_ROLE_KEY, 'student');
               }
 
-              // ── Auto-enable teacher mode if Firestore says so ────────────
-              if (existing.role === 'teacher') {
-                localStorage.setItem(LS_TEACHER_KEY, 'true');
-                setIsTeacherMode(true);
-                localStorage.setItem(LS_ROLE_KEY, 'teacher');
+              // Update role in DB if it changed
+              if (hasTeacherAccess && existing.role !== 'teacher') {
+                await setDoc(doc(db, 'users', firebaseUser.uid), { role: 'teacher' }, { merge: true });
+                existing.role = 'teacher';
+              } else if (!hasTeacherAccess && existing.role === 'teacher') {
+                await setDoc(doc(db, 'users', firebaseUser.uid), { role: 'student' }, { merge: true });
+                existing.role = 'student';
               }
-
               setProfile(existing);
             } else {
-              // New Google user — check if they have a local profile to migrate
+              // New Google user
               const localProfile = (() => {
                 try { return JSON.parse(localStorage.getItem(LS_PROFILE_KEY) || '{}'); } catch { return {}; }
               })();
               const newProfile: UserProfile = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email || '',
-                name: localProfile.name || firebaseUser.displayName || 'Học sinh',
-                role: 'student',
-                className: localProfile.className || '',
+                name: localProfile.name || firebaseUser.displayName || (hasTeacherAccess ? 'Giáo viên' : 'Học sinh'),
+                role: hasTeacherAccess ? 'teacher' : 'student',
+                className: hasTeacherAccess ? 'teacher' : (localProfile.className || ''),
                 school: localProfile.school || '',
               };
               await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
               setProfile(newProfile);
 
-              // Migrate all local attempts to Firestore in background
-              syncService.migrateLocalToCloud(firebaseUser.uid).catch(() => {});
+              // Migrate local attempts to Firestore in background
+              syncService.migrateLocalToCloud(firebaseUser.uid).catch(() => { });
             }
           } catch (e) {
             console.warn('Could not sync from Firestore:', e);
@@ -96,10 +123,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // ── Anonymous User ─────────────────────────────────────────────────
           const lp = (() => { try { return JSON.parse(localStorage.getItem(LS_PROFILE_KEY) || '{}'); } catch { return {}; } })();
           setProfile({ name: lp.name || 'Học sinh', className: lp.className || '' } as UserProfile);
+          setIsAdmin(false);
+          if (!localStorage.getItem(LS_TEACHER_KEY)) {
+            setIsTeacherMode(false);
+          }
         }
       } else {
         setProfile(null);
-        // Automatically sign in anonymously to satisfy Firebase Storage/Firestore rules for guests
+        setIsAdmin(false);
+        setIsTeacherMode(false);
+        localStorage.removeItem(LS_TEACHER_KEY);
+        // Automatically sign in anonymously
         signInAnonymously(auth).catch(e => console.error("Anonymous auth failed", e));
       }
       setLoading(false);
@@ -120,10 +154,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithTeacherCode = (code: string): boolean => {
+    // Keep it just in case, but prefer Gmail
     if (code.trim().toUpperCase() === TEACHER_CODE) {
       localStorage.setItem(LS_TEACHER_KEY, 'true');
       setIsTeacherMode(true);
-      // If Google user is signed in → save teacher role to Firestore for cross-device sync
       const currentUser = auth.currentUser;
       if (currentUser && !currentUser.isAnonymous) {
         setDoc(doc(db, 'users', currentUser.uid), {
@@ -133,7 +167,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: currentUser.displayName || 'Giáo viên',
           className: 'teacher',
           updatedAt: new Date().toISOString(),
-        }, { merge: true }).catch(() => {});
+        }, { merge: true }).catch(() => { });
+        // Automatically approve them since they have the code
+        setDoc(doc(db, 'approved_teachers', currentUser.uid), {
+          email: currentUser.email,
+          approvedAt: new Date().toISOString()
+        }).catch(() => { });
       }
       return true;
     }
@@ -143,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logoutTeacherMode = () => {
     localStorage.removeItem(LS_TEACHER_KEY);
     setIsTeacherMode(false);
+    setIsAdmin(false);
   };
 
   const logout = async () => {
@@ -152,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isTeacherMode, isSynced, login, logout, loginWithTeacherCode, logoutTeacherMode }}>
+    <AuthContext.Provider value={{ user, profile, loading, isTeacherMode, isAdmin, isSynced, login, logout, loginWithTeacherCode, logoutTeacherMode }}>
       {children}
     </AuthContext.Provider>
   );

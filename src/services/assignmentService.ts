@@ -30,7 +30,8 @@ export const assignmentService = {
     targetClass: string,
     dueDate?: string,
     targetStudents?: string[],
-    examQuestions?: any[]
+    examQuestions?: any[],
+    creatorId?: string
   ): Promise<string> {
     const createdAt = new Date().toISOString();
     const assignDoc: Record<string, any> = {
@@ -39,6 +40,7 @@ export const assignmentService = {
       assignedBy,
       targetClass,
       createdAt,
+      creatorId,
       ...(dueDate ? { dueDate } : {}),
       ...(targetStudents?.length ? { targetStudents } : {}),
       ...(examQuestions?.length ? { questions: examQuestions } : {}),
@@ -46,11 +48,20 @@ export const assignmentService = {
 
     // Write to RTDB
     let id = `local_${Date.now()}`;
-    try {
-      const newRef = await push(ref(rtdb, 'assignments'), assignDoc);
-      id = newRef.key || id;
-    } catch (e) {
-      console.warn('assignmentService: RTDB write failed, using localStorage', e);
+    if (creatorId) {
+      try {
+        const newRef = await push(ref(rtdb, `assignments/${creatorId}`), assignDoc);
+        id = newRef.key || id;
+      } catch (e) {
+        console.warn('assignmentService: RTDB write failed, using localStorage', e);
+      }
+    } else {
+      try {
+        const newRef = await push(ref(rtdb, 'assignments/global'), assignDoc);
+        id = newRef.key || id;
+      } catch (e) {
+        console.warn('assignmentService: RTDB write failed, using localStorage', e);
+      }
     }
 
     const assignment: ExamAssignment = { id, examId, examTitle, assignedBy, targetClass, createdAt, ...(dueDate ? { dueDate } : {}) };
@@ -64,23 +75,26 @@ export const assignmentService = {
       const snap = await get(ref(rtdb, 'assignments'));
       if (!snap.exists()) return null;
       let result: { title: string; questions: any[] } | null = null;
-      snap.forEach((child: any) => {
+      snap.forEach((creatorSnap: any) => {
         if (result) return;
-        const d = child.val();
-        if (d.examId === examId && d.questions?.length) {
-          result = { title: d.examTitle || 'Đề thi', questions: d.questions };
-        }
+        creatorSnap.forEach((child: any) => {
+          if (result) return;
+          const d = child.val();
+          if (d.examId === examId && d.questions?.length) {
+            result = { title: d.examTitle || 'Đề thi', questions: d.questions };
+          }
+        });
       });
       return result;
     } catch { return null; }
   },
 
   // Teacher: subscribe to ALL assignments (realtime)
-  subscribeToAssignments(callback: (assignments: ExamAssignment[]) => void): () => void {
-    const assignRef = ref(rtdb, 'assignments');
+  subscribeToAssignments(creatorId: string, callback: (assignments: ExamAssignment[]) => void): () => void {
+    if (!creatorId) { callback(lsGet()); return () => { }; }
+    const assignRef = ref(rtdb, `assignments/${creatorId}`);
     const handler = (snap: any) => {
       if (!snap.exists()) {
-        // Fall back to localStorage
         callback(lsGet());
         return;
       }
@@ -97,7 +111,6 @@ export const assignmentService = {
           createdAt: d.createdAt || '',
         });
       });
-      // Sort newest first
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       callback(list);
     };
@@ -130,17 +143,19 @@ export const assignmentService = {
 
     function parseSnap(snap: any): ExamAssignment[] {
       const list: ExamAssignment[] = [];
-      snap.forEach((child: any) => {
-        const d = child.val();
-        if (!matchesStudent(d)) return;
-        list.push({
-          id: child.key,
-          examId: d.examId || child.key,
-          examTitle: d.examTitle || '',
-          assignedBy: d.assignedBy || 'Giáo viên',
-          targetClass: d.targetClass || '',
-          dueDate: d.dueDate,
-          createdAt: d.createdAt || '',
+      snap.forEach((creatorSnap: any) => {
+        creatorSnap.forEach((child: any) => {
+          const d = child.val();
+          if (!matchesStudent(d)) return;
+          list.push({
+            id: child.key,
+            examId: d.examId || child.key,
+            examTitle: d.examTitle || '',
+            assignedBy: d.assignedBy || 'Giáo viên',
+            targetClass: d.targetClass || '',
+            dueDate: d.dueDate,
+            createdAt: d.createdAt || '',
+          });
         });
       });
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -178,8 +193,10 @@ export const assignmentService = {
   },
 
   // Teacher: delete assignment
-  async deleteAssignment(id: string): Promise<void> {
-    try { await remove(ref(rtdb, `assignments/${id}`)); } catch {}
+  async deleteAssignment(id: string, creatorId?: string): Promise<void> {
+    if (creatorId) {
+      try { await remove(ref(rtdb, `assignments/${creatorId}/${id}`)); } catch { }
+    }
     lsSet(lsGet().filter(a => a.id !== id));
   },
 

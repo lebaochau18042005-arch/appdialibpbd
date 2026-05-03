@@ -9,6 +9,7 @@ import { lessons, topics } from '../data';
 import { cn } from '../utils/cn';
 import AITutorChatbot from '../components/ai/AITutorChatbot';
 import { libraryService, LibraryFile } from '../services/libraryService';
+import { useAuth } from '../contexts/AuthContext';
 
 // ── Keyword matcher: score a library file based on selection term ──────────────
 function scoreMatch(file: LibraryFile, query: string): number {
@@ -42,10 +43,13 @@ export default function PracticeSetup() {
   const [autoMatchDismissed, setAutoMatchDismissed] = useState(false);
   const navigate = useNavigate();
 
+  const { user, isTeacherMode, profile } = useAuth();
+
   useEffect(() => {
-    const unsubFiles = libraryService.subscribeToFiles(setLibraryFiles);
+    const authorId = isTeacherMode ? user?.uid : (profile as any)?.creatorId;
+    const unsubFiles = libraryService.subscribeToFiles(authorId, setLibraryFiles);
     return () => unsubFiles();
-  }, []);
+  }, [isTeacherMode, user, profile]);
 
   // ── Auto-match library file when selection changes ─────────────────────────
   // Include both Word and PDF files

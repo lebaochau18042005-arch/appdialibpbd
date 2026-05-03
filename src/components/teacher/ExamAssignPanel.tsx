@@ -178,7 +178,11 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
 
   const teacherName = (profile as any)?.name || (user as any)?.displayName || 'Giáo viên';
 
-  useEffect(() => { const unsub = assignmentService.subscribeToAssignments(setAssignments); return () => unsub(); }, []);
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsub = assignmentService.subscribeToAssignments(user.uid, setAssignments);
+    return () => unsub();
+  }, [user]);
   useEffect(() => { const unsub = examService.subscribeToAttempts(setAttemptsList); return () => unsub(); }, []);
 
   const handleAssign = async () => {
@@ -189,13 +193,14 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
 
     const targetClass = assignTarget.type === 'all' ? 'all'
       : assignTarget.type === 'class' ? assignTarget.targetClass
-      : assignTarget.targetClass;
+        : assignTarget.targetClass;
     const targetStudents = assignTarget.type === 'individuals' ? assignTarget.students : [];
 
     await assignmentService.assignExam(
       exam.id, exam.title, teacherName, targetClass,
       dueDate || undefined, targetStudents,
-      exam.questions || []
+      exam.questions || [],
+      user?.uid
     );
     setSuccess(`Đã giao đề "${exam.title}" cho ${assignTarget.type === 'individuals' ? `${targetStudents.length} học sinh` : `lớp "${targetClass}"`}!`);
     setSelectedExamId('');

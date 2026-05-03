@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Check, ChevronDown, GraduationCap } from 'lucide-react';
 import { rosterService, StudentEntry, ClassRoster } from '../../services/rosterService';
+import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
 
 export type AssignTarget =
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function StudentPicker({ value, onChange }: Props) {
+  const { user } = useAuth();
   const [rosters, setRosters] = useState<ClassRoster[]>(() => rosterService.getRosters());
   const [tab, setTab] = useState<'class' | 'individual'>('class');
   const [selectedClass, setSelectedClass] = useState('');
@@ -24,9 +26,10 @@ export default function StudentPicker({ value, onChange }: Props) {
 
   // Subscribe to RTDB rosters for cross-device sync
   useEffect(() => {
-    const unsub = rosterService.subscribeToRosters(setRosters);
+    if (!user?.uid) return;
+    const unsub = rosterService.subscribeToRosters(user.uid, setRosters);
     return () => unsub();
-  }, []);
+  }, [user]);
 
   const students: StudentEntry[] = selectedClass
     ? rosterService.getStudentsForClass(selectedClass)
@@ -90,8 +93,8 @@ export default function StudentPicker({ value, onChange }: Props) {
   // Display summary
   const summary = !value ? '' :
     value.type === 'class' ? `Lớp ${value.targetClass} (cả lớp)` :
-    value.type === 'individuals' ? `${value.students.length} HS được chọn — Lớp ${value.targetClass}` :
-    'Tất cả học sinh';
+      value.type === 'individuals' ? `${value.students.length} HS được chọn — Lớp ${value.targetClass}` :
+        'Tất cả học sinh';
 
   return (
     <div className="relative">

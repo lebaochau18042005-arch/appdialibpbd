@@ -90,7 +90,7 @@ function DocPreviewModal({ file, onClose }: { file: LibraryFile; onClose: () => 
 }
 
 // ── Teacher: Add Video Modal ──────────────────────────────────────────────────
-function AddVideoModal({ onClose }: { onClose: () => void }) {
+function AddVideoModal({ onClose, authorId }: { onClose: () => void, authorId?: string }) {
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [desc, setDesc] = useState('');
@@ -102,7 +102,7 @@ function AddVideoModal({ onClose }: { onClose: () => void }) {
     if (!title.trim() || !url.trim()) return;
     setSaving(true);
     try {
-      await libraryService.addVideo(title.trim(), url.trim(), desc.trim(), tags.trim());
+      await libraryService.addVideo(title.trim(), url.trim(), desc.trim(), tags.trim(), authorId);
       setDone(true);
       setTimeout(onClose, 900);
     } catch (e: any) {
@@ -162,7 +162,7 @@ function AddVideoModal({ onClose }: { onClose: () => void }) {
 }
 
 // ── Teacher: Upload File Modal ────────────────────────────────────────────────
-function UploadFileModal({ onClose }: { onClose: () => void }) {
+function UploadFileModal({ onClose, authorId }: { onClose: () => void, authorId?: string }) {
   const [mode, setMode] = useState<'choose' | 'upload' | 'link'>('choose');
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -187,7 +187,7 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
         setMode('link');
         setDriveName(f.name);
         const ext = f.name.split('.').pop()?.toLowerCase() || 'pdf';
-        setDriveType(['doc','docx'].includes(ext) ? 'word' : ['ppt','pptx'].includes(ext) ? 'ppt' : 'pdf');
+        setDriveType(['doc', 'docx'].includes(ext) ? 'word' : ['ppt', 'pptx'].includes(ext) ? 'ppt' : 'pdf');
         if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
         return;
       }
@@ -201,7 +201,7 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
     if (!file) return;
     setUploading(true);
     try {
-      await libraryService.uploadFile(file, title || file.name, setProgress);
+      await libraryService.uploadFile(file, title || file.name, setProgress, authorId);
       setDone(true);
       setTimeout(onClose, 1000);
     } catch (e: any) {
@@ -215,7 +215,7 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
     if (!driveUrl.trim()) return;
     setUploading(true);
     try {
-      await libraryService.addFileLink(driveUrl.trim(), title || driveName, driveName || title, driveType);
+      await libraryService.addFileLink(driveUrl.trim(), title || driveName, driveName || title, driveType, authorId);
       setDone(true);
       setTimeout(onClose, 1000);
     } catch (e: any) {
@@ -353,7 +353,7 @@ function UploadFileModal({ onClose }: { onClose: () => void }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function LibraryPage() {
-  const { isTeacherMode } = useAuth();
+  const { isTeacherMode, user, profile } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('video');
   const [search, setSearch] = useState('');
@@ -364,11 +364,13 @@ export default function LibraryPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<LibraryFile | null>(null);
 
+  const authorId = isTeacherMode ? user?.uid : (profile as any)?.creatorId;
+
   useEffect(() => {
-    const u1 = libraryService.subscribeToVideos(setVideos);
-    const u2 = libraryService.subscribeToFiles(setFiles);
+    const u1 = libraryService.subscribeToVideos(authorId, setVideos);
+    const u2 = libraryService.subscribeToFiles(authorId, setFiles);
     return () => { u1(); u2(); };
-  }, []);
+  }, [authorId]);
 
   const filtered = (tab === 'video' ? videos : tab === 'file' ? files : GAMES).filter((i: any) => {
     const q = search.toLowerCase();
@@ -410,8 +412,8 @@ export default function LibraryPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-24 space-y-5">
       {/* Modals */}
-      {showAddVideo && <AddVideoModal onClose={() => setShowAddVideo(false)} />}
-      {showUploadFile && <UploadFileModal onClose={() => setShowUploadFile(false)} />}
+      {showAddVideo && <AddVideoModal onClose={() => setShowAddVideo(false)} authorId={authorId} />}
+      {showUploadFile && <UploadFileModal onClose={() => setShowUploadFile(false)} authorId={authorId} />}
       {previewFile && <DocPreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
 
       {/* Header */}

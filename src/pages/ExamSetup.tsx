@@ -13,12 +13,12 @@ import { libraryService, LibraryFile } from '../services/libraryService';
 export default function ExamSetup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, isTeacherMode, profile } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [exams, setExams] = useState<Exam[]>([]);
   const [loadingExams, setLoadingExams] = useState(true);
-  
+
   const [libraryFiles, setLibraryFiles] = useState<LibraryFile[]>([]);
   const [selectedLibraryFileId, setSelectedLibraryFileId] = useState<string>('');
 
@@ -30,9 +30,10 @@ export default function ExamSetup() {
 
   useEffect(() => {
     // Fetch files for AI reference
-    const unsubFiles = libraryService.subscribeToFiles(setLibraryFiles);
+    const authorId = isTeacherMode ? user?.uid : (profile as any)?.creatorId;
+    const unsubFiles = libraryService.subscribeToFiles(authorId, setLibraryFiles);
     return () => unsubFiles();
-  }, []);
+  }, [isTeacherMode, user, profile]);
 
   useEffect(() => {
     setLoadingExams(true);
@@ -87,7 +88,7 @@ export default function ExamSetup() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-12 space-y-16">
       <div className="text-center space-y-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-indigo-100"
@@ -108,11 +109,11 @@ export default function ExamSetup() {
           className="bg-white p-10 rounded-[3rem] shadow-xl shadow-indigo-50 border border-slate-100 flex flex-col group relative overflow-hidden"
         >
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50 group-hover:bg-indigo-100 transition-colors" />
-          
+
           <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-indigo-200 group-hover:rotate-12 transition-transform">
             <Sparkles size={40} />
           </div>
-          
+
           <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">ĐỀ THI THỬ (AI)</h2>
           <p className="text-slate-500 mb-6 flex-1 leading-relaxed font-medium">
             Hệ thống AI tự động tổng hợp 28 câu hỏi (18 trắc nghiệm, 4 đúng/sai, 6 trả lời ngắn) bám sát ma trận đề thi 2025.
@@ -134,7 +135,7 @@ export default function ExamSetup() {
               ))}
             </select>
           </div>
-          
+
           <button
             onClick={handleStartAI}
             disabled={isCreating}
@@ -164,16 +165,16 @@ export default function ExamSetup() {
           <div className="w-20 h-20 bg-emerald-600 text-white rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-emerald-200 group-hover:rotate-12 transition-transform">
             <Upload size={40} />
           </div>
-          
+
           <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">ĐỀ THI THẬT (GIÁO VIÊN)</h2>
           <p className="text-slate-500 mb-10 flex-1 leading-relaxed font-medium">
             Làm các bộ đề thi được giáo viên biên soạn và tải lên dưới định dạng Word, PDF hoặc HTML.
           </p>
-          
+
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-              <input 
+              <input
                 type="text"
                 placeholder="Nhập mã đề hoặc tìm tên đề..."
                 value={searchTerm}
@@ -196,7 +197,7 @@ export default function ExamSetup() {
                     key={exam.id}
                     className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:bg-emerald-50 hover:border-emerald-200 transition-all group/item"
                   >
-                    <div 
+                    <div
                       className="flex-1 flex items-center gap-3 cursor-pointer"
                       onClick={() => {
                         if (exam.type === 'upload') {

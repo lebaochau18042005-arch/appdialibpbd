@@ -5,6 +5,7 @@ import {
   FileText, ChevronDown, ChevronUp, Plus, Save, AlertCircle
 } from 'lucide-react';
 import { rosterService, ClassRoster, StudentEntry } from '../../services/rosterService';
+import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
 
 interface Props {
@@ -19,6 +20,7 @@ function FileIcon({ ext }: { ext: string }) {
 }
 
 export default function RosterUploader({ onRosterChange }: Props) {
+  const { user } = useAuth();
   const [rosters, setRosters] = useState<ClassRoster[]>(() => rosterService.getRosters());
   const [dragging, setDragging] = useState(false);
   const [parsing, setParsing] = useState(false);
@@ -64,7 +66,7 @@ export default function RosterUploader({ onRosterChange }: Props) {
   const handleSave = () => {
     if (!className.trim()) { setError('Hãy nhập tên lớp!'); return; }
     if (!preview || preview.length === 0) { setError('Chưa có danh sách học sinh.'); return; }
-    rosterService.saveRoster(className.trim(), preview);
+    rosterService.saveRoster(className.trim(), preview, user?.uid);
     setPreview(null);
     setPreviewFile('');
     setClassName('');
@@ -75,7 +77,7 @@ export default function RosterUploader({ onRosterChange }: Props) {
     if (!className.trim()) { setError('Hãy nhập tên lớp!'); return; }
     const students = manualText.split('\n').map(l => l.trim()).filter(l => l.length > 1).map(name => ({ name }));
     if (students.length === 0) { setError('Chưa có tên học sinh nào.'); return; }
-    rosterService.saveRoster(className.trim(), students);
+    rosterService.saveRoster(className.trim(), students, user?.uid);
     setManualText('');
     setManualMode(false);
     refresh();
@@ -83,7 +85,7 @@ export default function RosterUploader({ onRosterChange }: Props) {
 
   const handleDelete = (id: string) => {
     if (!confirm('Xóa danh sách này?')) return;
-    rosterService.deleteRoster(id);
+    rosterService.deleteRoster(id, user?.uid);
     refresh();
   };
 
