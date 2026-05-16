@@ -1336,20 +1336,48 @@ export default function TeacherDashboard() {
                       </div>
                     )}
 
-                    {q.context ? (
-                      <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 ml-12">
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">📊 Bảng số liệu & Biểu đồ tham khảo</p>
-                        <DataTableChart content={q.context} />
-                      </div>
-                    ) : /biểu đồ|bảng số liệu|bảng dưới đây|số liệu|hình dưới/i.test(q.text) && (
-                      <div className="mb-4 ml-12 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2">
-                        <span className="text-amber-500 text-lg shrink-0">⚠️</span>
-                        <div>
-                          <p className="text-xs font-bold text-amber-800">Câu hỏi tham chiếu bảng/biểu đồ nhưng dữ liệu chưa được nhập.</p>
-                          <p className="text-[11px] text-amber-600 mt-0.5">Vào chỉnh sửa đề → điền trường "Bảng số liệu" cho câu này, hoặc tái tạo đề bằng AI để tự động thêm bảng.</p>
-                        </div>
-                      </div>
-                    )}
+                    {(() => {
+                      const ownCtx = q.context?.trim();
+                      if (ownCtx) {
+                        return (
+                          <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 ml-12">
+                            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">📊 Bảng số liệu & Biểu đồ tham khảo</p>
+                            <DataTableChart content={ownCtx} />
+                          </div>
+                        );
+                      }
+                      // Check if question references a BSL/chart
+                      const refsBSL = /biểu đồ|bảng số liệu|bảng dưới đây|số liệu|hình dưới|bảng trên|số liệu trên|bảng trên đây/i.test(q.text);
+                      if (refsBSL) {
+                        // Look backwards for nearest question with a context (inherited BSL)
+                        let inheritedCtx: string | undefined;
+                        for (let j = i - 1; j >= 0; j--) {
+                          if (viewingExam.questions[j].context?.trim()) {
+                            inheritedCtx = viewingExam.questions[j].context!.trim();
+                            break;
+                          }
+                        }
+                        if (inheritedCtx) {
+                          return (
+                            <div className="mb-6 p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 ml-12">
+                              <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">📊 Bảng số liệu & Biểu đồ tham khảo</p>
+                              <p className="text-[10px] text-indigo-400 italic mb-2">↑ Dùng chung bảng số liệu với câu trước</p>
+                              <DataTableChart content={inheritedCtx} />
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="mb-4 ml-12 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2">
+                            <span className="text-amber-500 text-lg shrink-0">⚠️</span>
+                            <div>
+                              <p className="text-xs font-bold text-amber-800">Câu hỏi tham chiếu bảng/biểu đồ nhưng dữ liệu chưa được nhập.</p>
+                              <p className="text-[11px] text-amber-600 mt-0.5">Vào chỉnh sửa đề → điền trường "Bảng số liệu" cho câu này, hoặc tái tạo đề bằng AI để tự động thêm bảng.</p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     {q.type === 'multiple_choice' && q.options && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-12">
