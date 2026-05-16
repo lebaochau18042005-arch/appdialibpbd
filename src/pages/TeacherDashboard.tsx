@@ -1538,6 +1538,42 @@ export default function TeacherDashboard() {
           <ExamAnalysisModal exam={analysisExam} onClose={() => setAnalysisExam(null)} />
         )}
       </AnimatePresence>
+
+      {/* ── Full-screen AI processing overlay ─────────────────────────────────
+          Shown when isUploading=true but no confirm/answer-prompt modal is open.
+          This prevents the blank/black screen during Word/PDF/Image AI extraction. */}
+      <AnimatePresence>
+        {isUploading && !showUploadConfirm && !showAIAnswerPrompt && !showConfirmModal && (
+          <motion.div
+            key="upload-processing-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6"
+            style={{ background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)' }}
+          >
+            {/* Spinning ring */}
+            <div className="relative flex items-center justify-center w-24 h-24">
+              <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20" />
+              <div className="absolute inset-0 rounded-full border-4 border-t-indigo-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+              <Sparkles size={32} className="text-indigo-400" />
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-white font-black text-xl tracking-tight">AI đang xử lý đề thi...</p>
+              <p className="text-slate-400 font-medium text-sm">Đang phân tích, trích xuất câu hỏi và tạo đáp án.<br />Vui lòng đợi, đừng tắt trang.</p>
+            </div>
+            <div className="flex gap-1.5">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
