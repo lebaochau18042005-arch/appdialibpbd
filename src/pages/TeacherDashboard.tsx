@@ -112,6 +112,41 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
     matches.forEach(m => { answerMap[parseInt(m[1])] = 'ABCD'.indexOf(m[2].toUpperCase()); });
   }
 
+  // Helper: split a line that may have "A. opt1  B. opt2  C. opt3  D. opt4" inline
+  function extractOptions(text: string): { body: string; options: string[] } {
+    // Find the first occurrence of A) or A.
+    const firstIdx = text.search(/(?:^|\s)[A-D][.)]\s/);
+    if (firstIdx < 0) return { body: text, options: [] };
+    const body = text.slice(0, firstIdx).trim();
+    const rest = text.slice(firstIdx).trim();
+    // Split rest on each capital letter prefix safely
+    const opts: string[] = [];
+    // Use a simple non-backtracking split approach
+    const pieces = rest.split(/(?=(?:^|\s)[A-D][.)]\s)/);
+    for (const piece of pieces) {
+      const m = piece.trim().match(/^[A-D][.)]\s+([\s\S]+)/);
+      if (m) opts.push(m[1].trim());
+      if (opts.length >= 4) break;
+    }
+    return { body, options: opts };
+  }
+
+  // Helper: split true/false statements (a) / b) / c) / d) format)
+  function extractStatements(text: string): { body: string; statements: { id: string; text: string; isTrue: boolean }[] } {
+    const firstIdx = text.search(/(?:^|\s)[abcd][.)]\s/);
+    if (firstIdx < 0) return { body: text, statements: [] };
+    const body = text.slice(0, firstIdx).trim();
+    const rest = text.slice(firstIdx).trim();
+    const stmts: { id: string; text: string; isTrue: boolean }[] = [];
+    const pieces = rest.split(/(?=(?:^|\s)[abcd][.)]\s)/);
+    for (const piece of pieces) {
+      const m = piece.trim().match(/^([abcd])[.)]\s+([\s\S]+)/);
+      if (m) stmts.push({ id: `stmt_${m[1]}`, text: m[2].trim(), isTrue: false });
+      if (stmts.length >= 4) break;
+    }
+    return { body, statements: stmts };
+  }
+
   // Split into question blocks on "Câu N"
   const qStartRe = /^câu\s+(\d+)[.:)\s]/i;
   let block: string[] = [];
@@ -123,8 +158,6 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
     const headerMatch = firstLine.match(/^câu\s+\d+[.:)\s]+(.*)?/i);
     let qText = (headerMatch?.[1] || '').trim();
 
-    const options: string[] = [];
-    const statements: { id: string; text: string; isTrue: boolean }[] = [];
     let imageUrl = '';
     let contextStr = '';
 
@@ -133,60 +166,31 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
 
       // Bắt hình ảnh
       const imgMatch = line.match(/!\[.*?\]\((data:image\/[a-zA-Z]+;base64,[^)]+)\)/);
-      if (imgMatch) {
-        imageUrl = imgMatch[1];
-        continue;
-      }
+      if (imgMatch) { imageUrl = imgMatch[1]; continue; }
 
       // Bắt bảng (markdown table format)
-      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-        contextStr += line + '\n';
-        continue;
-      }
+      if (line.startsWith('|') && line.endsWith('|')) { contextStr += line + '\n'; continue; }
 
       if (!/^(phần|câu|I\.|II\.|III\.)/i.test(line)) {
         qText += (qText ? '\n' : '') + line;
       }
     }
 
-    // Now extract options from the aggregated qText
-    // We look for multiple choice A. / B. / C. / D. pattern
-    const inlineOptRe = /([A-Da-d])[.)]\s+(.*?)(?=(?:[A-Da-d][.)]\s)|$)/gs;
-    const firstOptMatch = qText.match(/(?:^|\s)([A-Da-d])[.)]\s+/);
-
-    // We look for true/false a) / b) / c) / d) pattern
-    const tfOptRe = /(?:^|\s)([abcd])[.)]\s+(.*?)(?=(?:[abcd][.)]\s)|$)/gs;
-
-    if (firstOptMatch && firstOptMatch.index !== undefined) {
-      const body = qText.slice(0, firstOptMatch.index).trim();
-      const optsStr = qText.slice(firstOptMatch.index).trim();
-      const optMatches = [...optsStr.matchAll(inlineOptRe)];
-      optMatches.forEach(om => {
-        if (options.length < 4) options.push(om[2].trim());
-      });
-      qText = body;
-    } else {
-      // Check for true/false format (a, b, c, d)
-      const firstTfMatch = qText.match(/(?:^|\s)([abcd])[.)]\s+/);
-      if (firstTfMatch && firstTfMatch.index !== undefined) {
-        const body = qText.slice(0, firstTfMatch.index).trim();
-        const optsStr = qText.slice(firstTfMatch.index).trim();
-        const tfMatches = [...optsStr.matchAll(tfOptRe)];
-        tfMatches.forEach(tm => {
-          if (statements.length < 4) {
-            statements.push({ id: `stmt_${tm[1]}`, text: tm[2].trim(), isTrue: false });
-          }
-        });
-        qText = body;
-      }
-    }
-
     if (!qText.trim()) return;
     const correctIdx = answerMap[qNum] ?? 0;
 
-    let parsedQuestion: Partial<Question> = {
+    // Try multiple-choice first (A/B/C/D uppercase)
+    const { body: mcBody, options } = extractOptions(qText);
+    // Try true/false (a/b/c/d lowercase) only if no uppercase options found
+    const { body: tfBody, statements } = options.length < 2
+      ? extractStatements(qText)
+      : { body: qText, statements: [] };
+
+    const finalText = options.length >= 2 ? mcBody : (statements.length >= 2 ? tfBody : qText);
+
+    const parsedQuestion: Partial<Question> = {
       id: `q_up_${Date.now()}_${qNum}`,
-      text: qText,
+      text: finalText.trim() || qText.trim(),
       explanation: '',
       topic: '',
       lesson: '',
