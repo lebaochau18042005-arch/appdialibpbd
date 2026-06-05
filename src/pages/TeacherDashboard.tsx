@@ -120,14 +120,11 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
   const processBlock = () => {
     if (block.length === 0) return;
     const firstLine = block[0];
-    const headerMatch = firstLine.match(/^câu\s+\d+[.:)\s]+(.+)?/i);
+    const headerMatch = firstLine.match(/^câu\s+\d+[.:)\s]+(.*)?/i);
     let qText = (headerMatch?.[1] || '').trim();
 
-    const mcOptRe = /^([ABCD])[.)\s]\s*(.+)/;
-    const tfOptRe = /^([abcd])[.)\s]\s*(.+)/;
     const options: string[] = [];
     const statements: { id: string; text: string; isTrue: boolean }[] = [];
-    let buildingText = true;
     let imageUrl = '';
     let contextStr = '';
 
@@ -138,7 +135,7 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
       const imgMatch = line.match(/!\[.*?\]\((data:image\/[a-zA-Z]+;base64,[^)]+)\)/);
       if (imgMatch) {
         imageUrl = imgMatch[1];
-        continue; // Không nhét ảnh raw base64 đứt đoạn vào qText
+        continue;
       }
 
       // Bắt bảng (markdown table format)
@@ -147,16 +144,40 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
         continue;
       }
 
-      const mc = line.match(mcOptRe);
-      const tf = line.match(tfOptRe);
-      if (mc) {
-        buildingText = false;
-        options.push(mc[2].trim());
-      } else if (tf && options.length === 0 && statements.length < 4) {
-        buildingText = false;
-        statements.push({ id: `stmt_${tf[1]}`, text: tf[2].trim(), isTrue: false });
-      } else if (buildingText && !/^(phần|câu|I\.|II\.|III\.)/i.test(line)) {
+      if (!/^(phần|câu|I\.|II\.|III\.)/i.test(line)) {
         qText += (qText ? '\n' : '') + line;
+      }
+    }
+
+    // Now extract options from the aggregated qText
+    // We look for multiple choice A. / B. / C. / D. pattern
+    const inlineOptRe = /([A-Da-d])[.)]\s+(.*?)(?=(?:[A-Da-d][.)]\s)|$)/gs;
+    const firstOptMatch = qText.match(/(?:^|\s)([A-Da-d])[.)]\s+/);
+
+    // We look for true/false a) / b) / c) / d) pattern
+    const tfOptRe = /(?:^|\s)([abcd])[.)]\s+(.*?)(?=(?:[abcd][.)]\s)|$)/gs;
+
+    if (firstOptMatch && firstOptMatch.index !== undefined) {
+      const body = qText.slice(0, firstOptMatch.index).trim();
+      const optsStr = qText.slice(firstOptMatch.index).trim();
+      const optMatches = [...optsStr.matchAll(inlineOptRe)];
+      optMatches.forEach(om => {
+        if (options.length < 4) options.push(om[2].trim());
+      });
+      qText = body;
+    } else {
+      // Check for true/false format (a, b, c, d)
+      const firstTfMatch = qText.match(/(?:^|\s)([abcd])[.)]\s+/);
+      if (firstTfMatch && firstTfMatch.index !== undefined) {
+        const body = qText.slice(0, firstTfMatch.index).trim();
+        const optsStr = qText.slice(firstTfMatch.index).trim();
+        const tfMatches = [...optsStr.matchAll(tfOptRe)];
+        tfMatches.forEach(tm => {
+          if (statements.length < 4) {
+            statements.push({ id: `stmt_${tm[1]}`, text: tm[2].trim(), isTrue: false });
+          }
+        });
+        qText = body;
       }
     }
 
@@ -174,14 +195,11 @@ function parseExamQuestionsFromText(rawText: string): Question[] {
     };
 
     if (options.length >= 2) {
-      const opts = [...options];
-      while (opts.length < 4) opts.push('');
-      // If no answer key found in file, use -1 so AI answer generation is triggered
-      const hasAnswerKey = answerMap[qNum] !== undefined;
+      while (options.length < 4) options.push('');
       questions.push({
         ...parsedQuestion,
-        type: 'multiple_choice', options: opts,
-        correctAnswerIndex: hasAnswerKey ? correctIdx : -1,
+        type: 'multiple_choice', options,
+        correctAnswerIndex: answerMap[qNum] !== undefined ? correctIdx : -1,
         cognitiveLevel: 'Nhận biết'
       } as Question);
     } else if (statements.length >= 2) {
@@ -584,38 +602,53 @@ export default function TeacherDashboard() {
         return; // Exit early since we handle saving through the Editor
       }
 
-      // Auto-parse questions from Word file (no AI, regex-based)
+      // Auto-parse questions from Word file (fallback to regex if AI fails)
       let parsedQuestions: Question[] = [];
-      // ── Word: AI Extraction (Pre-processing Fix Format) ────────────────────
+
+      // ── Word: AI Extraction (Pre-processing Fix Format + Fallback) ───────────
       if (uploadingType === 'word') {
+        let textBackup = '';
         try {
           const mammoth = await import('mammoth');
           const arrayBuffer = await selectedFile.arrayBuffer();
           const result = await mammoth.convertToHtml({ arrayBuffer });
           const { text: markdownText, images } = htmlToMarkdownWord(result.value);
+          textBackup = markdownText;
           if (markdownText.trim().length > 50) {
-            const { generateExamFromContext } = await import('../services/ai');
-            parsedQuestions = await generateExamFromContext(markdownText.slice(0, 80000), images.slice(0, 50));
+            try {
+              const { generateExamFromContext } = await import('../services/ai');
+              parsedQuestions = await generateExamFromContext(markdownText.slice(0, 80000), images.slice(0, 50));
+            } catch (aiErr) {
+              console.warn('Word AI auto-parse failed, falling back to regex:', aiErr);
+              parsedQuestions = parseExamQuestionsFromText(markdownText);
+            }
           }
         } catch (e) {
-          console.warn('Word auto-parse failed:', e);
+          console.warn('Word extraction failed:', e);
+          if (textBackup) parsedQuestions = parseExamQuestionsFromText(textBackup);
         }
       }
 
-      // ── HTML: DOMParser text extraction → AI ────────────────────────────────
-      // Note: HTML/Word usually do not have complex embedded pdf-like charts, so text parse is OK.
+      // ── HTML: DOMParser text extraction → AI/Regex Fallback ──────────────────
       if (uploadingType === 'html') {
+        let rawText = '';
         try {
           const htmlText = await selectedFile.text();
           const parser = new DOMParser();
           const htmlDoc = parser.parseFromString(htmlText, 'text/html');
-          const rawText = htmlDoc.body?.innerText || htmlDoc.body?.textContent || '';
+          rawText = htmlDoc.body?.innerText || htmlDoc.body?.textContent || '';
           if (rawText.trim().length > 50) {
-            const { generateExamFromContext } = await import('../services/ai');
-            parsedQuestions = await generateExamFromContext(rawText.slice(0, 80000));
+            try {
+              const { generateExamFromContext } = await import('../services/ai');
+              parsedQuestions = await generateExamFromContext(rawText.slice(0, 80000));
+            } catch (aiErr) {
+              console.warn('HTML AI auto-parse failed, falling back to regex:', aiErr);
+              parsedQuestions = parseExamQuestionsFromText(rawText);
+            }
           }
         } catch (e) {
-          console.warn('HTML auto-parse failed:', e);
+          console.warn('HTML extraction failed:', e);
+          if (rawText) parsedQuestions = parseExamQuestionsFromText(rawText);
         }
       }
 
