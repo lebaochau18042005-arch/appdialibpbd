@@ -1,22 +1,22 @@
 import { GoogleGenAI } from '@google/genai';
 import { Question, UserProfile, QuizAttempt } from '../types';
 
+// Only models confirmed available on Google AI Studio free tier
 const FALLBACK_MODELS = [
   'gemini-2.5-flash',
-  'gemini-3-flash-preview',
   'gemini-2.5-flash-lite',
-  'gemini-2.5-pro',
+  'gemini-2.0-flash',
 ];
 
 const VALID_MODELS_SET = new Set([
   'gemini-2.5-flash',
-  'gemini-3-flash-preview',
   'gemini-2.5-flash-lite',
-  'gemini-2.5-pro',
-  'gemini-3-pro-preview'
+  'gemini-2.0-flash',
 ]);
 
 const DEFAULT_MODEL = 'gemini-2.5-flash';
+// Track 429 per model to distinguish rate-limit from true quota exhaustion
+const _quotaHitModels = new Set<string>();
 
 // ── Boot-time localStorage cleanup ────────────────────────────────────────────
 // Clear any stale/invalid model IDs (from previous versions) that would cause 404.
@@ -118,24 +118,50 @@ export async function generateContentWithFallback(prompt: any, config: any = {})
       return response;
     } catch (error: any) {
       const msg = error?.message || String(error);
-      const code = error?.code || error?.status || '';
+      const code = String(error?.code || error?.status || '');
+      const lowerMsg = msg.toLowerCase();
 
-      // Khối xử lý lỗi Quota
-      if (String(code) === '429' || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('exhausted')) {
-        throw new Error('API Key của bạn đã hết lượt (quota). Vui lòng lấy API key từ một tài khoản Gmail khác hoặc chờ đến ngày mai để tiếp tục sử dụng.');
+      // 404 = model doesn't exist on this account/tier → skip silently
+      if (code === '404' || lowerMsg.includes('not found') || lowerMsg.includes('not exist')) {
+        console.warn(`[AI] Model ${model} not available (404), trying next...`);
+        if (!firstError) firstError = `${model}: model not found`;
+        lastError = error;
+        continue;
       }
 
+      // 429 = rate limit on THIS model → mark and try a lighter model
+      if (code === '429' || lowerMsg.includes('quota') || lowerMsg.includes('exhausted') || lowerMsg.includes('rate limit')) {
+        _quotaHitModels.add(model);
+        console.warn(`[AI] Model ${model} hit 429/quota, trying next fallback...`);
+        if (!firstError) firstError = `${model}: quota/rate-limit`;
+        lastError = error;
+        // Small delay before trying next model
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+
+      // 503 = server overload → wait longer then try next
+      if (code === '503' || lowerMsg.includes('unavailable') || lowerMsg.includes('overloaded')) {
+        console.warn(`[AI] Model ${model} overloaded (503), retrying next...`);
+        if (!firstError) firstError = `${model}: overloaded`;
+        lastError = error;
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
+
+      // Other errors: log and try next
       console.warn(`[AI Fallback] Model ${model} failed (${code}):`, msg);
       if (!firstError) firstError = `${model}: ${msg}`;
       lastError = error;
-      // For 503 (server overload), wait 2s before trying next model
-      if (String(code) === '503' || msg.includes('UNAVAILABLE') || msg.includes('overloaded')) {
-        await new Promise(r => setTimeout(r, 2000));
-      }
     }
   }
 
-  throw new Error(`Tất cả model thất bại. Lỗi đầu tiên: ${firstError}`);
+  // If ALL models returned quota/429 → true quota exhaustion
+  if (_quotaHitModels.size >= modelsToTry.length) {
+    _quotaHitModels.clear();
+    throw new Error('API Key của bạn đã hết lượt dùng trong ngày (quota). Vui lòng tạo API key mới tại aistudio.google.com/api-keys hoặc chờ đến 8 giờ sáng ngày mai để quota được reset.');
+  }
+  throw new Error(`Tất cả model AI thất bại. Vui lòng kiểm tra API Key và thử lại. Chi tiết: ${firstError}`);
 }
 
 export async function getExplanation(question: Question, userAnswer: any, isCorrect: boolean, profile?: UserProfile) {
