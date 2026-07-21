@@ -1,20 +1,25 @@
 import { GoogleGenAI } from '@google/genai';
 import { Question, UserProfile, QuizAttempt } from '../types';
 
-// Only models confirmed available on Google AI Studio free tier
+// Current Gemini models (July 2026) — Gemini 3.x generation
 const FALLBACK_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash',
+  'gemini-3.5-flash',       // Current GA flagship — fastest, best free tier
+  'gemini-3-flash-preview', // Gemini 3 stable preview
+  'gemini-3.1-flash-lite',  // Lightest Gemini 3.1
+  'gemini-2.5-flash',       // Legacy fallback (retires Oct 2026)
 ];
 
 const VALID_MODELS_SET = new Set([
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite',
+  'gemini-3.1-pro',
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
   'gemini-2.0-flash',
 ]);
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-3.5-flash';
 // Track 429 per model to distinguish rate-limit from true quota exhaustion
 const _quotaHitModels = new Set<string>();
 

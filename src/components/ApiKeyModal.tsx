@@ -7,25 +7,26 @@ interface ApiKeyModalProps {
   onClose: () => void;
 }
 
-// Only models confirmed on AI Studio free tier
+// Current Gemini models available on AI Studio free tier (July 2026)
 const MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: '⚡ Nhanh, ổn định, tiết kiệm quota — Khuyến dùng' },
-  { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', desc: '🔋 Nhẹ nhất, phù hợp khi bị giới hạn quota' },
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: '🛡️ Phiên bản 2.0 ổn định, dự phòng' },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: '⚡ Mới nhất, nhanh nhất — Khuyến dùng' },
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', desc: '🛡️ Gemini 3 ổn định, dự phòng tốt' },
+  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', desc: '🔋 Nhẹ nhất, phù hợp khi bị giới hạn quota' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Legacy)', desc: '⚠️ Phát hưu tháng 10/2026 — Dùng tạm khi cần' },
 ];
 
 export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash');
 
   useEffect(() => {
     if (isOpen) {
       const savedKey = localStorage.getItem('GEMINI_API_KEY') || '';
-      const savedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-2.5-flash';
-      // Migrate old invalid model names
+      const savedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-3.5-flash';
+      // Migrate old invalid model names to current default
       const validIds = new Set(MODELS.map(m => m.id));
       setApiKey(savedKey);
-      setSelectedModel(validIds.has(savedModel) ? savedModel : 'gemini-2.5-flash');
+      setSelectedModel(validIds.has(savedModel) ? savedModel : 'gemini-3.5-flash');
     }
   }, [isOpen]);
 
