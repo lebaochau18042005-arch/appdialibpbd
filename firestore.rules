@@ -67,5 +67,11 @@ service cloud.firestore {
       allow write: if true; // Teacher sends alerts
       allow delete: if true;
     }
+
+    // Approved teachers - Admin permissions
+    match /approved_teachers/{teacherId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

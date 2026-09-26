@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { db, rtdb } from '../../firebase';
 import { collection, doc, setDoc, getDocs, deleteDoc, query, onSnapshot, getDoc } from 'firebase/firestore';
-import { ref, get, update } from 'firebase/database';
+import { ref, get, update, set, remove } from 'firebase/database';
 import { UserPlus, Trash2, Database, ShieldAlert, Loader2, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import GoogleSheetModal from './GoogleSheetModal';
 import { teacherWorkspaceService } from '../../services/teacherWorkspaceService';
@@ -47,9 +47,9 @@ export default function AdminSettings() {
                 approvedAt: new Date().toISOString()
             });
             setEmailToApprove('');
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert('Lỗi thêm giáo viên');
+            alert('Lỗi thêm giáo viên: ' + (e?.message || String(e)));
         }
     };
 
@@ -57,52 +57,57 @@ export default function AdminSettings() {
         if (!window.confirm('Hủy quyền giáo viên này?')) return;
         try {
             await deleteDoc(doc(db, 'approved_teachers', id));
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert('Lỗi xóa giáo viên');
+            alert('Lỗi xóa giáo viên: ' + (e?.message || String(e)));
         }
     };
 
     const handleMigrateData = async () => {
-        if (!user || !user.uid) return;
-        if (!window.confirm('Toàn bộ DỮ LIỆU CŨ gán vào quyền quản lý của bạn. Bạn chắc chắn chứ?')) return;
+        if (!user || !user.uid) {
+            alert('Vui lòng đăng nhập tài khoản trước khi thực hiện chuyển đổi.');
+            return;
+        }
+        if (!window.confirm(`Toàn bộ DỮ LIỆU CŨ sẽ được chuyển vào quyền sở hữu của bạn (${user.email || user.uid}). Bạn chắc chắn chứ?`)) return;
 
         setMigrating(true);
         try {
-            // 1. Migrate Exams
+            // 1. Migrate Exams in Firestore
             const examsSnap = await getDocs(collection(db, 'exams'));
             const batchExams = examsSnap.docs.map(examDoc => {
                 const data = examDoc.data();
                 if (!data.authorId) {
-                    return setDoc(doc(db, 'exams', examDoc.id), { authorId: user.uid }, { merge: true });
+                    return setDoc(doc(db, 'exams', examDoc.id), { 
+                        authorId: user.uid,
+                        authorEmail: user.email || 'lebaochau18042005@gmail.com'
+                    }, { merge: true });
                 }
                 return Promise.resolve();
             });
             await Promise.all(batchExams);
 
-            // 2. Migrate Rosters (RTDB) (from global to under this teacherUID)
+            // 2. Migrate Rosters (RTDB) safely without ancestor collision
             const rostersSnap = await get(ref(rtdb, 'rosters'));
             if (rostersSnap.exists()) {
                 const globalRosters = rostersSnap.val();
-                const updates: Record<string, any> = {};
                 for (const [classKey, classData] of Object.entries(globalRosters)) {
-                    // Move to specific teacher path
-                    updates[`rosters/${user.uid}/${classKey}`] = classData;
-                    // Delete from global path
-                    updates[`rosters/${classKey}`] = null;
+                    // Skip existing teacher UID subfolder
+                    if (classKey === user.uid) continue;
+                    // Only migrate legacy class nodes that contain className or students
+                    if (classData && typeof classData === 'object' && ('className' in (classData as object) || 'students' in (classData as object))) {
+                        await set(ref(rtdb, `rosters/${user.uid}/${classKey}`), classData);
+                        await remove(ref(rtdb, `rosters/${classKey}`));
+                    }
                 }
-                await update(ref(rtdb), updates);
             }
 
-            // 3. Migrate Library RTDB files & videos
+            // 3. Migrate Library RTDB files & videos safely
             const libFilesSnap = await get(ref(rtdb, 'library_files'));
-            const updatesLib: Record<string, any> = {};
-
             if (libFilesSnap.exists()) {
                 const items = libFilesSnap.val();
                 for (const [id, itemData] of Object.entries(items)) {
-                    if (!(itemData as any).authorId) {
-                        updatesLib[`library_files/${id}/authorId`] = user.uid;
+                    if (itemData && typeof itemData === 'object' && !(itemData as any).authorId) {
+                        await update(ref(rtdb, `library_files/${id}`), { authorId: user.uid });
                     }
                 }
             }
@@ -110,20 +115,17 @@ export default function AdminSettings() {
             if (libVidSnap.exists()) {
                 const items = libVidSnap.val();
                 for (const [id, itemData] of Object.entries(items)) {
-                    if (!(itemData as any).authorId) {
-                        updatesLib[`library_videos/${id}/authorId`] = user.uid;
+                    if (itemData && typeof itemData === 'object' && !(itemData as any).authorId) {
+                        await update(ref(rtdb, `library_videos/${id}`), { authorId: user.uid });
                     }
                 }
-            }
-            if (Object.keys(updatesLib).length > 0) {
-                await update(ref(rtdb), updatesLib);
             }
 
             setMigrationDone(true);
             alert('Đã chuyển đổi toàn bộ dữ liệu thành công!');
-        } catch (error) {
-            console.error(error);
-            alert('Lỗi cập nhật dữ liệu!');
+        } catch (error: any) {
+            console.error('Lỗi khi chuyển đổi dữ liệu:', error);
+            alert('Lỗi cập nhật dữ liệu: ' + (error?.message || String(error)));
         } finally {
             setMigrating(false);
         }
