@@ -10,9 +10,7 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),
       'process.env.APP_URL': JSON.stringify(env.APP_URL || ''),
-      'process.env.CLERK_PUBLISHABLE_KEY': JSON.stringify(env.CLERK_PUBLISHABLE_KEY || env.VITE_CLERK_PUBLISHABLE_KEY || ''),
       'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
-      'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify(env.VITE_CLERK_PUBLISHABLE_KEY || env.CLERK_PUBLISHABLE_KEY || ''),
     },
     resolve: {
       alias: {
@@ -45,9 +43,6 @@ export default defineConfig(({ mode }) => {
               }
               if (id.includes('node_modules/recharts/') || id.includes('node_modules/d3-')) {
                 return 'vendor-charts';
-              }
-              if (id.includes('node_modules/@clerk/')) {
-                return 'vendor-clerk';
               }
             }
           },
