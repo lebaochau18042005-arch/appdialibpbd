@@ -4811,6 +4811,324 @@ const rawQuestions: Question[] = [
       { id: 'bieu_do_10_c', text: 'c) Điện khí và dầu là nguồn điện duy nhất có sản lượng giảm trong giai đoạn 2015–2023.', isTrue: true },
       { id: 'bieu_do_10_d', text: 'd) Năm 2023, sản lượng điện từ năng lượng tái tạo đã vượt sản lượng thủy điện.', isTrue: false }
     ]
+  },
+
+  // =========================================================================
+  // BÀI 1: VỊ TRÍ ĐỊA LÍ VÀ PHẠM VI LÃNH THỔ (SGK KẾT NỐI TRI THỨC ĐỊA LÍ 12)
+  // =========================================================================
+  {
+    id: 'kntt_b1_mc1',
+    type: 'multiple_choice',
+    text: 'Theo Niên giám Thống kê mới nhất, tổng diện tích phần đất liền và các hải đảo (vùng đất) của nước ta là',
+    options: ['331 344 km²', '330 212 km²', '329 560 km²', '331 690 km²'],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Theo Niên giám Thống kê và SGK Địa lí 12 Kết nối tri thức, diện tích vùng đất (toàn bộ phần đất liền và các hải đảo) của nước ta là 331 344 km².',
+    tips: 'Ghi nhớ số liệu diện tích vùng đất Việt Nam: 331 344 km²'
+  },
+  {
+    id: 'kntt_b1_mc2',
+    type: 'multiple_choice',
+    text: 'Điểm cực Đông trên đất liền nước ta nằm tại xã Vạn Thạnh, huyện Vạn Ninh thuộc tỉnh nào sau đây?',
+    options: ['Khánh Hòa.', 'Phú Yên.', 'Ninh Thuận.', 'Bình Định.'],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Điểm cực Đông trên đất liền nước ta có kinh độ 109°28\'Đ tại mũi Đôi, xã Vạn Thạnh, huyện Vạn Ninh, tỉnh Khánh Hòa.',
+    tips: 'Cực Đông: Mũi Đôi, Vạn Ninh, Khánh Hòa (109°28\'Đ)'
+  },
+  {
+    id: 'kntt_b1_mc3',
+    type: 'multiple_choice',
+    text: 'Điểm cực Tây trên đất liền nước ta nằm tại xã Sín Thầu, huyện Mường Nhé thuộc tỉnh nào sau đây?',
+    options: ['Điện Biên.', 'Lai Châu.', 'Sơn La.', 'Lào Cai.'],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Điểm cực Tây trên đất liền nước ta có kinh độ 102°09\'Đ tại A Pa Chải, xã Sín Thầu, huyện Mường Nhé, tỉnh Điện Biên.',
+    tips: 'Cực Tây: A Pa Chải, Mường Nhé, Điện Biên (102°09\'Đ)'
+  },
+  {
+    id: 'kntt_b1_mc4',
+    type: 'multiple_choice',
+    text: 'Điểm cực Nam trên đất liền nước ta (vĩ độ 8°34\'B) thuộc địa phận của tỉnh nào sau đây?',
+    options: ['Cà Mau.', 'Kiên Giang.', 'Bạc Liêu.', 'Sóc Trăng.'],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Điểm cực Nam trên đất liền nước ta ở vĩ độ 8°34\'B tại xã Đất Mũi, huyện Ngọc Hiển, tỉnh Cà Mau.',
+    tips: 'Cực Nam: Đất Mũi, Ngọc Hiển, Cà Mau (8°34\'B)'
+  },
+  {
+    id: 'kntt_b1_mc5',
+    type: 'multiple_choice',
+    text: 'Đường biên giới trên đất liền nước ta dài hơn 4.600 km, trong đó đường biên giới dài nhất là với quốc gia nào?',
+    options: ['Lào (gần 2.100 km).', 'Trung Quốc (hơn 1.400 km).', 'Campuchia (hơn 1.100 km).', 'Thái Lan.'],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Đường biên giới trên đất liền dài hơn 4.600 km: với Lào dài nhất (khoảng 2.100 km), tiếp theo là Trung Quốc (hơn 1.400 km) và Campuchia (hơn 1.100 km).',
+    tips: 'Đường biên giới dài nhất: Việt - Lào (~2.100 km)'
+  },
+  {
+    id: 'kntt_b1_mc6',
+    type: 'multiple_choice',
+    text: 'Đường bờ biển nước ta dài 3.260 km kéo dài liên tục từ điểm đầu ở phía Bắc đến điểm cuối ở phía Tây Nam là',
+    options: [
+      'từ Móng Cái (Quảng Ninh) đến Hà Tiên (Kiên Giang).',
+      'từ Hải Phòng đến Mũi Cà Mau.',
+      'từ Móng Cái (Quảng Ninh) đến Đất Mũi (Cà Mau).',
+      'từ Hòn Gai (Quảng Ninh) đến Rạch Giá (Kiên Giang).'
+    ],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Bờ biển nước ta cong hình chữ S, dài 3.260 km chạy từ thành phố Móng Cái (tỉnh Quảng Ninh) đến thành phố Hà Tiên (tỉnh Kiên Giang).',
+    tips: 'Đường bờ biển: Móng Cái (Quảng Ninh) → Hà Tiên (Kiên Giang)'
+  },
+  {
+    id: 'kntt_b1_mc7',
+    type: 'multiple_choice',
+    text: 'Theo Luật Biển Việt Nam năm 2012, ranh giới ngoài của vùng biển nào sau đây là đường biên giới quốc gia trên biển?',
+    options: ['Lãnh hải.', 'Nội thủy.', 'Vùng tiếp giáp lãnh hải.', 'Vùng đặc quyền kinh tế.'],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Thông hiểu',
+    explanation: 'Lãnh hải là vùng biển có chiều rộng 12 hải lí tính từ đường cơ sở ra phía biển. Ranh giới ngoài của lãnh hải chính là đường biên giới quốc gia trên biển của Việt Nam.',
+    tips: 'Ranh giới ngoài Lãnh hải = Biên giới quốc gia trên biển'
+  },
+  {
+    id: 'kntt_b1_mc8',
+    type: 'multiple_choice',
+    text: 'Vùng biển nằm ở phía trong đường cơ sở và tiếp giáp trực tiếp với bờ biển nước ta được gọi là',
+    options: ['Nội thủy.', 'Lãnh hải.', 'Vùng tiếp giáp lãnh hải.', 'Vùng đặc quyền kinh tế.'],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Nội thủy là vùng nước tiếp giáp với bờ biển, ở phía trong đường cơ sở và là bộ phận lãnh thổ của nước ta có chủ quyền hoàn toàn như đất liền.',
+    tips: 'Phía trong đường cơ sở = Nội thủy'
+  },
+  {
+    id: 'kntt_b1_mc9',
+    type: 'multiple_choice',
+    text: 'Vùng đặc quyền kinh tế của Việt Nam có phạm vi chiều rộng tối đa là bao nhiêu tính từ đường cơ sở?',
+    options: ['200 hải lí.', '12 hải lí.', '24 hải lí.', '350 hải lí.'],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Vùng đặc quyền kinh tế là vùng biển tiếp liền và nằm ngoài lãnh hải Việt Nam, hợp với lãnh hải thành một vùng biển có chiều rộng 200 hải lí tính từ đường cơ sở.',
+    tips: 'Đặc quyền kinh tế: 200 hải lí tính từ đường cơ sở'
+  },
+  {
+    id: 'kntt_b1_mc10',
+    type: 'multiple_choice',
+    text: 'Vị trí nước ta nằm hoàn toàn trong vùng nội chí tuyến bán cầu Bắc đã quy định đặc điểm cơ bản nào của tự nhiên?',
+    options: [
+      'Nền nhiệt độ cao, cán cân bức xạ quanh năm dương.',
+      'Lượng mưa trung bình năm thấp, thường xuyên khô hạn.',
+      'Khí hậu mang tính chất ôn đới lục địa sâu sắc.',
+      'Chịu ảnh hưởng trực tiếp của gió Tây ôn đới quanh năm.'
+    ],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Thông hiểu',
+    explanation: 'Nằm hoàn toàn trong vùng nội chí tuyến bán cầu Bắc nên nước ta có góc nhập xạ lớn, mọi nơi trong năm đều có hai lần Mặt Trời lên thiên đỉnh, nền nhiệt cao và cán cân bức xạ quanh năm dương.',
+    tips: 'Nội chí tuyến → Nền nhiệt cao, góc nhập xạ lớn, 2 lần thiên đỉnh'
+  },
+  {
+    id: 'kntt_b1_mc11',
+    type: 'multiple_choice',
+    text: 'Tài nguyên khoáng sản nước ta phong phú và đa dạng chủ yếu do vị trí địa lí',
+    options: [
+      'nằm ở nơi giao thoa của hai vành đai sinh khoáng lớn Thái Bình Dương và Địa Trung Hải.',
+      'nằm liền kề vùng biển sâu và có thềm lục địa mở rộng.',
+      'nằm trong khu vực hoạt động mạnh mẽ của gió mùa châu Á.',
+      'có lịch sử hình thành lãnh thổ lâu dài qua giai đoạn Cổ kiến tạo.'
+    ],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Thông hiểu',
+    explanation: 'Việt Nam nằm ở nơi giao thoa của hai vành đai sinh khoáng lớn của thế giới là Thái Bình Dương và Địa Trung Hải, đồng thời nằm trên đường di lưu di cư của sinh vật nên có tài nguyên khoáng sản và sinh vật phong phú.',
+    tips: 'Khoáng sản phong phú ↔ Giao thoa 2 vành đai sinh khoáng (TBD & ĐTH)'
+  },
+  {
+    id: 'kntt_b1_mc12',
+    type: 'multiple_choice',
+    text: 'Nước ta cùng vĩ độ với các hoang mạc khô hạn ở Tây Á và Bắc Phi nhưng lại có thiên nhiên xanh tốt quanh năm nhờ',
+    options: [
+      'tiếp giáp Biển Đông rộng lớn và nằm trong khu vực gió mùa châu Á.',
+      'địa hình chủ yếu là đồi núi đón gió từ đại dương thổi vào.',
+      'lãnh thổ kéo dài hẹp ngang theo chiều kinh tuyến.',
+      'có mạng lưới sông ngòi dày đặc với lưu lượng nước rất lớn.'
+    ],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Thông hiểu',
+    explanation: 'Nhờ tiếp giáp Biển Đông và chịu tác động sâu sắc của các khối khí gió mùa, nước ta có lượng mưa dồi dào (1500 - 2000 mm/năm) và độ ẩm cao, không bị khô hạn như các nước cùng vĩ độ ở Tây Á, Bắc Phi.',
+    tips: 'Cùng vĩ độ Tây Á mà không khô hạn: Biển Đông + Gió mùa'
+  },
+  {
+    id: 'kntt_b1_mc13',
+    type: 'multiple_choice',
+    text: 'Về mặt kinh tế - xã hội, vị trí địa lí tạo điều kiện thuận lợi nhất để nước ta',
+    options: [
+      'là cửa ngõ mở lối ra biển thuận lợi cho Lào, đông bắc Thái Lan và tây nam Trung Quốc.',
+      'trở thành quốc gia có ngành công nghiệp nặng phát triển hàng đầu châu Á.',
+      'phát triển mạnh các vùng chuyên canh cây trồng ôn đới quy mô lớn.',
+      'khắc phục hoàn toàn các loại thiên tai như bão, áp thấp nhiệt đới và sạt lở.'
+    ],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Với vị trí ven biển, nước ta là cửa ngõ tự nhiên mở lối ra biển thuận lợi cho các nước và khu vực láng giềng nằm sâu trong lục địa như Lào, đông bắc Thái Lan, tây nam Trung Quốc.',
+    tips: 'Ý nghĩa kinh tế: Cửa ngõ mở lối ra biển cho các nước láng giềng'
+  },
+  {
+    id: 'kntt_b1_mc14',
+    type: 'multiple_choice',
+    text: 'Hai quần đảo xa bờ có ý nghĩa chiến lược sâu sắc về kinh tế biển và an ninh quốc phòng của nước ta trên Biển Đông là',
+    options: [
+      'Quần đảo Hoàng Sa và quần đảo Trường Sa.',
+      'Quần đảo Cô Tô và quần đảo Cát Bà.',
+      'Quần đảo Thổ Chu và quần đảo Nam Du.',
+      'Quần đảo Côn Sơn và quần đảo Phú Quốc.'
+    ],
+    correctAnswerIndex: 0,
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Quần đảo Hoàng Sa (thuộc thành phố Đà Nẵng) và quần đảo Trường Sa (thuộc tỉnh Khánh Hòa) là hai quần đảo xa bờ có ý nghĩa chiến lược cực kỳ quan trọng về chủ quyền biển đảo, kinh tế và an ninh quốc phòng.',
+    tips: 'Hai quần đảo xa bờ chiến lược: Hoàng Sa và Trường Sa'
+  },
+
+  // --- BÀI 1: TRẮC NGHIỆM ĐÚNG / SAI (Phần II) ---
+  {
+    id: 'kntt_b1_tf1',
+    type: 'true_false',
+    text: 'Cho đoạn thông tin về phạm vi vùng biển nước ta: "Vùng biển Việt Nam có diện tích khoảng 1 triệu km² trên Biển Đông, bao gồm 5 bộ phận: nội thủy, lãnh hải, vùng tiếp giáp lãnh hải, vùng đặc quyền kinh tế và thềm lục địa..."',
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Thông hiểu',
+    explanation: 'Vùng tiếp giáp lãnh hải rộng 12 hải lí tính từ ranh giới ngoài lãnh hải. Trong vùng ĐQKT, nước ta có quyền chủ quyền về kinh tế nhưng tàu thuyền nước ngoài vẫn có quyền tự do hàng hải, hàng không theo Luật Biển.',
+    tips: 'Ranh giới ngoài Lãnh hải = Biên giới quốc gia trên biển. Vùng ĐQKT = 200 hải lí tính từ đường cơ sở.',
+    statements: [
+      { id: 'kntt_b1_tf1_a', text: 'a) Ranh giới ngoài của lãnh hải chính là đường biên giới quốc gia trên biển của nước ta.', isTrue: true },
+      { id: 'kntt_b1_tf1_b', text: 'b) Vùng tiếp giáp lãnh hải có chiều rộng 24 hải lí tính từ ranh giới ngoài của lãnh hải.', isTrue: false },
+      { id: 'kntt_b1_tf1_c', text: 'c) Nội thủy là vùng nước tiếp giáp với bờ biển, ở phía trong đường cơ sở và có quy chế pháp lí như lãnh thổ đất liền.', isTrue: true },
+      { id: 'kntt_b1_tf1_d', text: 'd) Nước ta có chủ quyền tuyệt đối và hoàn toàn về mọi mặt trong vùng đặc quyền kinh tế như trên đất liền.', isTrue: false }
+    ]
+  },
+  {
+    id: 'kntt_b1_tf2',
+    type: 'true_false',
+    text: 'Cho thông tin sau về vị trí địa lí và hệ tọa độ của Việt Nam: "Nước ta nằm hoàn toàn trong vùng nội chí tuyến bán cầu Bắc, kéo dài từ vĩ độ 8°34\'B đến 23°23\'B và từ kinh độ 102°09\'Đ đến 109°28\'Đ trên phần đất liền..."',
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Lãnh thổ kéo dài gần 15 độ vĩ tuyến tạo nên sự phân hóa khí hậu Bắc - Nam. Nằm trong vùng nội chí tuyến nên mọi nơi đều có 2 lần Mặt Trời lên thiên đỉnh trong năm (không phải 1 lần).',
+    tips: 'Nội chí tuyến: 2 lần Mặt Trời lên thiên đỉnh mỗi năm',
+    statements: [
+      { id: 'kntt_b1_tf2_a', text: 'a) Lãnh thổ kéo dài gần 15 độ vĩ tuyến làm cho thiên nhiên khí hậu nước ta có sự phân hóa sâu sắc từ Bắc vào Nam.', isTrue: true },
+      { id: 'kntt_b1_tf2_b', text: 'b) Kinh tuyến 105°Đ chạy qua lãnh thổ giúp nước ta thuận lợi áp dụng thống nhất múi giờ số 7.', isTrue: true },
+      { id: 'kntt_b1_tf2_c', text: 'c) Điểm cực Tây của nước ta nằm trên ngã ba biên giới giữa Việt Nam, Lào và Trung Quốc.', isTrue: true },
+      { id: 'kntt_b1_tf2_d', text: 'd) Do nằm trong vùng nội chí tuyến, mọi địa điểm trên đất liền nước ta chỉ có duy nhất 1 lần Mặt Trời lên thiên đỉnh trong năm.', isTrue: false }
+    ]
+  },
+  {
+    id: 'kntt_b1_tf3',
+    type: 'true_false',
+    text: 'Cho thông tin về ý nghĩa của vị trí địa lí Việt Nam: "Vị trí địa lí vừa mang lại nhiều thế mạnh vượt trội cho phát triển kinh tế - xã hội, vừa đặt ra không ít khó khăn thách thức về tự nhiên và an ninh quốc phòng..."',
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Thông hiểu',
+    explanation: 'Tiếp giáp Biển Đông giúp phát triển 4 ngành kinh tế biển. Nước ta có khí hậu nhiệt đới gió mùa có mùa khô hoặc mùa đông lạnh, không phải rừng xích đạo ẩm quanh năm.',
+    tips: 'Tự nhiên phong phú do nằm trên luồng di cư sinh vật và vành đai sinh khoáng',
+    statements: [
+      { id: 'kntt_b1_tf3_a', text: 'a) Tiếp giáp Biển Đông tạo điều kiện phát triển tổng hợp các ngành kinh tế biển: du lịch, thủy sản, khoáng sản và giao thông.', isTrue: true },
+      { id: 'kntt_b1_tf3_b', text: 'b) Vị trí cầu nối giữa lục địa Á - Âu và đại dương, giữa Đông Nam Á lục địa và hải đảo giúp nước ta dễ dàng hội nhập quốc tế.', isTrue: true },
+      { id: 'kntt_b1_tf3_c', text: 'c) Tài nguyên sinh vật nước ta phong phú do nằm hoàn toàn trong vùng rừng xích đạo mưa nhiều quanh năm.', isTrue: false },
+      { id: 'kntt_b1_tf3_d', text: 'd) Nằm trong khu vực thường xuyên chịu tác động của bão, áp thấp nhiệt đới và ngập lụt là khó khăn tự nhiên lớn do vị trí địa lí quy định.', isTrue: true }
+    ]
+  },
+  {
+    id: 'kntt_b1_tf4',
+    type: 'true_false',
+    text: 'Cho thông tin về vùng đất và đường biên giới nước ta: "Việt Nam có đường biên giới trên đất liền tiếp giáp với ba quốc gia và đường bờ biển dài 3.260 km chạy dọc duyên hải đất nước..."',
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Thông hiểu',
+    explanation: 'Điện Biên là tỉnh duy nhất giáp cả Lào và Trung Quốc. Đường bờ biển dài 3.260 km đi qua 28 tỉnh/thành phố giáp biển (không phải toàn bộ các tỉnh thành).',
+    tips: '28 tỉnh/thành giáp biển. Tỉnh Điện Biên giáp cả Lào và TQ.',
+    statements: [
+      { id: 'kntt_b1_tf4_a', text: 'a) Tỉnh Điện Biên là tỉnh duy nhất trên đất liền nước ta có đường biên giới tiếp giáp với cả Lào và Trung Quốc.', isTrue: true },
+      { id: 'kntt_b1_tf4_b', text: 'b) Đường bờ biển nước ta kéo dài 3.260 km đi qua toàn bộ các tỉnh và thành phố của cả nước.', isTrue: false },
+      { id: 'kntt_b1_tf4_c', text: 'c) Vịnh Bắc Bộ là vùng biển tiếp giáp giữa Việt Nam và Trung Quốc đã được ký hiệp định phân định ranh giới rõ ràng.', isTrue: true },
+      { id: 'kntt_b1_tf4_d', text: 'd) Quần đảo Hoàng Sa thuộc quyền quản lý hành chính của thành phố Đà Nẵng, quần đảo Trường Sa thuộc tỉnh Khánh Hòa.', isTrue: true }
+    ]
+  },
+
+  // --- BÀI 1: TRẮC NGHIỆM TRẢ LỜI NGẮN (Phần III) ---
+  {
+    id: 'kntt_b1_sa1',
+    type: 'short_answer',
+    text: 'Tính chênh lệch vĩ độ (làm tròn đến hàng đơn vị độ) giữa điểm cực Bắc (23°23\'B) và điểm cực Nam (8°34\'B) trên đất liền nước ta.',
+    correctAnswer: '15',
+    unit: 'độ',
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Chênh lệch vĩ độ = 23°23\' - 8°34\' = 14°49\'. Làm tròn đến độ nguyên ta được 15 độ.',
+    tips: '23°23\' - 8°34\' = 14°49\' ≈ 15°'
+  },
+  {
+    id: 'kntt_b1_sa2',
+    type: 'short_answer',
+    text: 'Biết 1 hải lí tương đương 1,852 km. Hãy tính chiều rộng của lãnh hải nước ta (12 hải lí) ra đơn vị ki-lô-mét (làm tròn đến một chữ số thập phân).',
+    correctAnswer: '22,2',
+    unit: 'km',
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Chiều rộng lãnh hải = 12 × 1,852 = 22,224 km. Làm tròn 1 chữ số thập phân là 22,2 km.',
+    tips: '12 × 1,852 = 22,2 km'
+  },
+  {
+    id: 'kntt_b1_sa3',
+    type: 'short_answer',
+    text: 'Khoảng cách kinh độ giữa điểm cực Tây (102°09\'Đ) và điểm cực Đông (109°28\'Đ) trên đất liền nước ta là bao nhiêu độ (làm tròn đến hàng đơn vị độ)?',
+    correctAnswer: '7',
+    unit: 'độ',
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Vận dụng',
+    explanation: 'Chênh lệch kinh độ = 109°28\' - 102°09\' = 7°19\'. Làm tròn đến hàng đơn vị độ là 7 độ.',
+    tips: '109°28\' - 102°09\' = 7°19\' ≈ 7°'
+  },
+  {
+    id: 'kntt_b1_sa4',
+    type: 'short_answer',
+    text: 'Tính đến nay, nước ta có bao nhiêu tỉnh, thành phố trực thuộc Trung ương giáp biển (dọc theo bờ biển dài 3.260 km)?',
+    correctAnswer: '28',
+    unit: 'tỉnh/thành',
+    topic: 'Địa lí tự nhiên',
+    lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ',
+    cognitiveLevel: 'Nhận biết',
+    explanation: 'Nước ta có 28 tỉnh, thành phố trực thuộc Trung ương có đường bờ biển tiếp giáp Biển Đông (từ Quảng Ninh đến Kiên Giang).',
+    tips: 'Có đúng 28 tỉnh/thành phố giáp biển'
   }
 ];
 

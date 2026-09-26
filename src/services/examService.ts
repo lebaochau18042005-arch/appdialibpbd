@@ -444,6 +444,15 @@ YÊU CẦU CHÍNH XÁC:
 
       const HANH_CHINH_NOTE = KIEN_THUC_HANH_CHINH_2025_EXPORT;
 
+      let textDoc = '';
+      if (fileContext) {
+        if (typeof fileContext === 'string') {
+          textDoc = fileContext.slice(0, 30000);
+        } else if (typeof fileContext === 'object' && (fileContext as any)?.name) {
+          textDoc = `[Tài liệu đính kèm: ${(fileContext as any).name}]`;
+        }
+      }
+
       const systemInstruction = `Bạn là một chuyên gia biên soạn câu hỏi luyện tập môn Địa lí THPT chuẩn chương trình 2025 (TT 17/2025/TT-BGDĐT).
       Nhiệm vụ: tạo ${count} câu hỏi luyện tập về ${mode === 'topic' ? 'chủ đề' : mode === 'lesson' ? 'bài học' : 'dạng thức'}: "${topicOrLesson}".
       
@@ -462,7 +471,7 @@ YÊU CẦU CHÍNH XÁC:
       4. CHÍNH XÁC KIẾN THỨC: Bám sát chương trình mới nhất (TT 17/2025). Dùng đúng tên tỉnh thành sau sáp nhập.
       5. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.
       6. ĐỘ KHÓ: Phân bổ từ Nhận biết đến Vận dụng.
-      ${fileContext ? `7. RẤT QUAN TRỌNG: Bạn PHẢI sử dụng tài liệu gốc (TÀI LIỆU THAM KHẢO) được cung cấp dưới đây để biên soạn câu hỏi. Đảm bảo câu hỏi phản ánh chính xác thông tin từ tài liệu này.` : ''}`;
+      ${textDoc ? `7. RẤT QUAN TRỌNG: Bạn PHẢI sử dụng tài liệu gốc (TÀI LIỆU THAM KHẢO) được cung cấp dưới đây để biên soạn câu hỏi. Đảm bảo câu hỏi phản ánh chính xác thông tin từ tài liệu này.` : ''}`;
 
       const prompt = `Hãy tạo ${count} câu hỏi Địa lí về ${mode === 'topic' ? 'chủ đề' : mode === 'lesson' ? 'bài học' : 'dạng thức'} "${topicOrLesson}".
       Đảm bảo nội dung chính xác (dùng tên tỉnh thành sau sáp nhập 2025), cập nhật và có giải thích chi tiết.
@@ -473,7 +482,7 @@ YÊU CẦU CHÍNH XÁC:
       - Phân bố đúng/sai đa dạng (không phải lúc nào cũng 2 đúng 2 sai).
       - Nếu có bảng số liệu, đặt vào trường "context" dạng MARKDOWN TABLE.
       
-      ${fileContext ? `=== TÀI LIỆU THAM KHẢO GỐC ===\n${fileContext.slice(0, 50000)}` : ''}`;
+      ${textDoc ? `=== TÀI LIỆU THAM KHẢO GỐC ===\n${textDoc}` : ''}`;
 
       const response = await generateContentWithFallback(prompt, {
         systemInstruction,

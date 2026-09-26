@@ -116,6 +116,21 @@ export function remapQuestionToKNTT(q: Question): { lesson: string; topic: strin
     qText.includes('asean') ||
     qContext.includes('đông nam á')
   ) {
+    // Nếu câu hỏi về vị trí địa lí hoặc lãnh thổ nước ta thì thuộc Bài 1
+    if (
+      oldLesson.includes('Vị trí địa lí') ||
+      oldLesson.includes('lãnh thổ') ||
+      qText.includes('vị trí địa lí nước ta') ||
+      qText.includes('lãnh thổ nước ta') ||
+      qText.includes('vùng biển của nước ta') ||
+      qText.includes('phạm vi lãnh thổ')
+    ) {
+      return {
+        topic: 'Địa lí tự nhiên',
+        lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ'
+      };
+    }
+
     return {
       topic: 'Khu vực Đông Nam Á (Lớp 11)',
       lesson: 'Khu vực Đông Nam Á (Địa lí 11 - Kết nối tri thức)'
@@ -367,6 +382,40 @@ export function remapQuestionToKNTT(q: Question): { lesson: string; topic: strin
     };
   }
 
+  // 8. Tự nhiên: Bài 1 - Vị trí địa lí và phạm vi lãnh thổ (Ưu tiên kiểm tra trước Bài 2)
+  if (
+    oldLesson.includes('Vị trí địa lí') ||
+    oldLesson.includes('phạm vi lãnh thổ') ||
+    qText.includes('vị trí địa lí') ||
+    qText.includes('phạm vi lãnh thổ') ||
+    qText.includes('vùng đất của nước ta') ||
+    qText.includes('vùng biển của nước ta') ||
+    qText.includes('vùng trời của nước ta') ||
+    qText.includes('nội thuỷ') ||
+    qText.includes('nội thủy') ||
+    qText.includes('lãnh hải') ||
+    qText.includes('tiếp giáp lãnh hải') ||
+    qText.includes('đặc quyền kinh tế') ||
+    qText.includes('thềm lục địa') ||
+    qText.includes('đường biên giới') ||
+    qText.includes('đường cơ sở') ||
+    qText.includes('điểm cực') ||
+    qText.includes('cực bắc') ||
+    qText.includes('cực nam') ||
+    qText.includes('cực tây') ||
+    qText.includes('cực đông') ||
+    qText.includes('tọa độ địa lí') ||
+    qText.includes('nội chí tuyến bán cầu bắc') ||
+    qText.includes('múi giờ số 7') ||
+    (qText.includes('tiếp giáp') && (qText.includes('biển đông') || qText.includes('lào') || qText.includes('campuchia') || qText.includes('trung quốc')))
+  ) {
+    return {
+      topic: 'Địa lí tự nhiên',
+      lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ'
+    };
+  }
+
+  // 9. Tự nhiên: Bài 2 - Thiên nhiên nhiệt đới ẩm gió mùa
   if (
     oldLesson.includes('nhiệt đới ẩm') ||
     qText.includes('nhiệt đới ẩm') ||
@@ -382,23 +431,7 @@ export function remapQuestionToKNTT(q: Question): { lesson: string; topic: strin
     };
   }
 
-  if (
-    oldLesson.includes('Vị trí địa lí') ||
-    qText.includes('vị trí địa lí') ||
-    qText.includes('tọa độ') ||
-    qText.includes('tiếp giáp') ||
-    qText.includes('vùng trời') ||
-    qText.includes('vùng biển') ||
-    qText.includes('đường biên giới') ||
-    qText.includes('kinh độ') ||
-    qText.includes('vĩ độ')
-  ) {
-    return {
-      topic: 'Địa lí tự nhiên',
-      lesson: 'Bài 1: Vị trí địa lí và phạm vi lãnh thổ'
-    };
-  }
-
+  // 10. Tự nhiên: Bài 3 - Sự phân hoá đa dạng của thiên nhiên
   if (
     oldLesson.includes('phân hoá') ||
     qText.includes('địa hình') ||

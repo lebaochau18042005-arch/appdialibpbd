@@ -160,10 +160,10 @@ export default function Quiz() {
             }
           }
 
-          // Bước 2: Gọi AI với timeout 60 giây để tránh màn hình loading vô hạn
+          // Bước 2: Gọi AI với timeout 90 giây để hoàn thành đủ số câu hỏi yêu cầu
           const aiPromise = examService.generatePracticeQuestions(filter, mode, count, fileContext);
           const timeoutPromise = new Promise<Question[]>((_, reject) =>
-            setTimeout(() => reject(new Error('AI_TIMEOUT')), 60000)
+            setTimeout(() => reject(new Error('AI_TIMEOUT')), 90000)
           );
           const aiQuestions = await Promise.race([aiPromise, timeoutPromise]);
           setQuizQuestions(aiQuestions);
@@ -171,13 +171,13 @@ export default function Quiz() {
         } catch (err: any) {
           console.error('Lỗi khi tạo câu hỏi AI:', err);
           const msg = err?.message || String(err);
+          const count = countParam === 'all' ? 20 : parseInt(countParam || '10', 10);
           if (msg === 'AI_TIMEOUT') {
-            // Timeout — im lặng fallback mà không cần alert để trải nghiệm mượt hơn
-            console.warn('[Quiz] AI timeout sau 60s — fallback sang ngân hàng câu hỏi');
+            console.warn(`[Quiz] AI timeout sau 90s — tự động chuẩn bị đủ ${count} câu hỏi chất lượng cao từ ngân hàng`);
           } else if (msg.includes('API Key') || msg.includes('apiKey') || msg.includes('Chưa thiết lập') || msg.includes('API_KEY_INVALID')) {
-            alert('⚠️ Chưa thiết lập API Key cho AI.\nVào Trang chủ → Cấu hình AI → nhập Google Gemini API Key để dùng tính năng này.\n\nHệ thống sẽ dùng ngân hàng câu hỏi có sẵn.');
+            alert(`⚠️ Chưa thiết lập Google Gemini API Key trong Cấu hình AI.\nHệ thống đang chuẩn bị đầy đủ ${count} câu hỏi chất lượng cao từ ngân hàng đề cho bạn.`);
           } else {
-            alert(`Không thể tạo câu hỏi AI lúc này (${msg.slice(0, 80)}). Hệ thống sẽ dùng ngân hàng câu hỏi có sẵn.`);
+            console.warn(`[Quiz] Không thể tạo câu hỏi AI (${msg.slice(0, 80)}). Đang dùng ngân hàng câu hỏi có sẵn.`);
           }
           // Fallback to static questions
           loadStaticQuestions();
@@ -228,9 +228,18 @@ export default function Quiz() {
           ...getQuestions('short_answer', 6)
         ];
       } else if (countParam) {
-        const count = countParam === 'all' ? preferredPool.length : parseInt(countParam, 10);
+        const requestedCount = countParam === 'all' ? preferredPool.length : parseInt(countParam, 10);
         let shuffled = [...preferredPool].sort(() => 0.5 - Math.random());
-        finalQuestions = shuffled.slice(0, count);
+        if (shuffled.length >= requestedCount) {
+          finalQuestions = shuffled.slice(0, requestedCount);
+        } else {
+          // Nếu bài học có ít hơn số lượng yêu cầu: lấy hết câu của bài đó và bù thêm từ cùng chủ đề hoặc ngân hàng chung
+          const remainingNeeded = requestedCount - shuffled.length;
+          const sameTopicPool = questions.filter(q => !preferredPool.includes(q) && (preferredPool[0]?.topic ? q.topic === preferredPool[0]?.topic : true));
+          const fallbackPool = sameTopicPool.length >= remainingNeeded ? sameTopicPool : questions.filter(q => !preferredPool.includes(q));
+          const bonus = [...fallbackPool].sort(() => 0.5 - Math.random()).slice(0, remainingNeeded);
+          finalQuestions = [...shuffled, ...bonus];
+        }
       } else {
         finalQuestions = [
           ...getQuestions('multiple_choice', 12),
