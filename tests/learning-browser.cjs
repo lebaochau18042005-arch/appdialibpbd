@@ -1,0 +1,94 @@
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const base = 'http://127.0.0.1:4178/tests/learning-preview.html';
+const prefix = 'geo_learning_v1:user:preview-student:';
+async function run() {
+  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.route('**/*', route => route.request().url().startsWith('http://127.0.0.1:4178/') ? route.continue() : route.abort());
+  const nav = name => page.locator('nav').getByRole('link', { name, exact: true }).click();
+  const saved = suffix => page.evaluate(k => JSON.parse(localStorage.getItem(k) || 'null'), prefix + suffix);
+  try {
+    await page.goto(base);
+    await page.evaluate(() => localStorage.setItem('examGeoProfile', JSON.stringify({ name: 'Học sinh thử nghiệm', className: '12A' })));
+    await nav('Luyện tập mẫu');
+    await page.getByRole('button', { name: /Bắc Âu/ }).click();
+    await page.waitForFunction(k => JSON.parse(localStorage.getItem(k) || 'null')?.state.mcAnswer === 1, prefix + 'draft:quiz');
+    const first = await saved('draft:quiz');
+    await page.reload();
+    await page.getByText(/Đã khôi phục bài đang làm/).waitFor();
+    assert.equal((await saved('draft:quiz')).state.mcAnswer, 1);
+    assert.equal((await saved('draft:quiz')).state.startTime, first.state.startTime);
+    await page.getByRole('button', { name: 'Kiểm tra', exact: true }).click();
+    await page.getByRole('button', { name: 'Câu tiếp theo', exact: true }).click();
+    await page.getByRole('button', { name: 'Đúng', exact: true }).first().click();
+    await nav('Góc ôn tập');
+    await page.getByRole('link', { name: /Tiếp tục:/ }).click();
+    await page.getByText(/Đã khôi phục bài đang làm/).waitFor();
+    assert.equal((await saved('draft:quiz')).state.currentIndex, 1);
+    assert.equal((await saved('draft:quiz')).state.tfAnswer.a, true);
+    await page.evaluate(k => { const d = JSON.parse(localStorage.getItem(k)); d.state.startTime = Date.now() - 3100000; localStorage.setItem(k, JSON.stringify(d)); }, prefix + 'draft:quiz');
+    await page.reload();
+    await page.getByRole('heading', { name: 'Hoàn thành!', exact: true }).waitFor();
+    assert.equal(await saved('draft:quiz'), null);
+    assert.equal((await saved('mistakes')).length, 3);
+    const attempt = await page.evaluate(() => JSON.parse(localStorage.getItem('preview-last-attempt')));
+    assert.equal(Object.keys(attempt.answers).length, 3);
+    assert.equal(attempt.userName, 'Học sinh thử nghiệm');
+    console.log('PASS practice reload, navigation resume, deadline expiry, omitted answers');
+
+    await nav('Sổ câu sai');
+    await page.getByRole('combobox').selectOption('Tự nhiên');
+    await page.getByRole('link', { name: 'Luyện lại 1 câu' }).click();
+    await page.getByRole('button', { name: /Đông Nam Á/ }).click();
+    await page.getByRole('button', { name: 'Kiểm tra', exact: true }).click();
+    await page.getByRole('button', { name: 'Hoàn thành', exact: true }).click();
+    assert.equal((await saved('mistakes')).find(m => m.question.topic === 'Tự nhiên').resolved, true);
+    console.log('PASS notebook review resolves only the correctly answered question');
+
+    await nav('Thi mẫu');
+    await page.getByRole('button', { name: /Đông Nam Á/ }).click();
+    await page.getByRole('button', { name: 'Tiếp theo', exact: true }).click();
+    await page.getByRole('button', { name: 'Tiếp theo', exact: true }).click();
+    await page.getByPlaceholder('Nhập kết quả số...').fill('12');
+    await page.reload();
+    await page.getByText(/Đã khôi phục bài đang làm/).waitFor();
+    assert.equal(await page.getByPlaceholder('Nhập kết quả số...').inputValue(), '12');
+    assert.equal((await saved('draft:exam')).state.answers[0], 0);
+    await page.getByRole('button', { name: 'Nộp bài', exact: true }).click();
+    await page.getByRole('button', { name: 'Nộp bài ngay', exact: true }).click();
+    await page.getByRole('heading', { name: 'Hoàn thành bài thi!' }).waitFor();
+    assert.equal(await saved('draft:exam'), null);
+    console.log('PASS exam restore preserves answers and question index; submission clears draft');
+
+    await nav('Báo cáo chủ đề');
+    await page.getByLabel('Lớp', { exact: true }).selectOption('12A');
+    assert.match(await page.locator('table').innerText(), /100%/);
+    await page.getByLabel('Loại bài', { exact: true }).selectOption('practice');
+    await page.getByText('Chưa có dữ liệu phù hợp để phân tích chủ đề.').waitFor();
+    await page.getByLabel('Loại bài', { exact: true }).selectOption('all');
+    fs.mkdirSync('test-results', { recursive: true });
+    await page.waitForTimeout(400); await page.screenshot({ path: 'test-results/topic-report-desktop.png', fullPage: true });
+    console.log('PASS teacher topic report filters and empty state');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await nav('Thư viện');
+    await page.getByRole('button', { name: 'Tài liệu', exact: true }).last().click();
+    await page.getByText('Tài liệu ôn tập vùng kinh tế', { exact: true }).waitFor();
+    const color = await page.getByRole('heading', { name: 'Thư Viện', exact: true }).evaluate(el => getComputedStyle(el).color);
+    assert.notEqual(color, 'rgb(15, 23, 42)');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+    await page.waitForTimeout(400); await page.screenshot({ path: 'test-results/library-mobile.png', fullPage: true });
+    await page.getByRole('button', { name: 'Trò chơi', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Tìm tài liệu' }).fill('Nhóm');
+    await nav('Sổ câu sai');
+    await page.waitForTimeout(400); await page.screenshot({ path: 'test-results/notebook-mobile.png', fullPage: true });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+    assert.deepEqual(errors, []);
+    console.log('PASS mobile library/notebook layout and game search; no browser errors');
+  } finally { await browser.close(); }
+}
+run().catch(e => { console.error(e); process.exitCode = 1; });

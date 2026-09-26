@@ -2,13 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Send, CheckCircle2, RefreshCw, ClipboardList, ChevronDown,
-  ChevronUp, MessageSquare, Save, X, BookOpen, Users, Clock
+  ChevronUp, MessageSquare, Save, X, BookOpen, Users, Clock,
+  Shuffle, ShieldCheck, AlertTriangle
 } from 'lucide-react';
 import { Exam, ExamAssignment, QuizAttempt } from '../../types';
 import { assignmentService } from '../../services/assignmentService';
 import { examService } from '../../services/examService';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
+import { teacherWorkspaceService } from '../../services/teacherWorkspaceService';
 import StudentPicker, { AssignTarget } from './StudentPicker';
 
 interface Props {
@@ -47,11 +49,21 @@ function AssignmentRoster({ assignment, attempts, onComment }: {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-slate-800 text-sm line-clamp-1">{assignment.examTitle}</p>
-          <div className="flex flex-wrap items-center gap-3 mt-1 text-[11px] font-bold">
+          <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] font-bold">
             <span className="text-slate-500 flex items-center gap-1"><Users size={10} />
               {targetStudents.length > 0 ? `${targetStudents.length} HS cụ thể` : `Lớp ${assignment.targetClass}`}
             </span>
             <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 size={10} /> {related.length} đã làm</span>
+            {assignment.shuffleQuestions && (
+              <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200/60 rounded flex items-center gap-1 font-bold">
+                <Shuffle size={10} /> Xáo đề
+              </span>
+            )}
+            {assignment.antiCheat && (
+              <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200/60 rounded flex items-center gap-1 font-bold">
+                <ShieldCheck size={10} /> Giám sát (tối đa {assignment.maxTabSwitches ?? 3} lần)
+              </span>
+            )}
             {assignment.dueDate && (
               <span className="text-rose-500 flex items-center gap-1"><Clock size={10} /> Hạn: {new Date(assignment.dueDate).toLocaleDateString('vi-VN')}</span>
             )}
@@ -79,10 +91,15 @@ function AssignmentRoster({ assignment, attempts, onComment }: {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm text-slate-800 truncate">{attempt.userName || 'Học sinh'}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-medium">
                           <span>Điểm: <span className={cn('font-black', attempt.score >= 8 ? 'text-emerald-600' : attempt.score >= 5 ? 'text-amber-600' : 'text-rose-600')}>{attempt.score.toFixed(1)}</span></span>
                           <span>{new Date(attempt.date).toLocaleDateString('vi-VN')}</span>
                           {attempt.className && <span className="px-1.5 py-0.5 bg-slate-100 rounded-md">{attempt.className}</span>}
+                          {attempt.tabSwitches !== undefined && attempt.tabSwitches > 0 && (
+                            <span className="px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold rounded-md flex items-center gap-1 animate-pulse">
+                              <AlertTriangle size={10} /> Rời tab: {attempt.tabSwitches} lần
+                            </span>
+                          )}
                         </div>
                         {attempt.teacherComment && <p className="text-[11px] text-indigo-600 italic mt-0.5 line-clamp-1">"{attempt.teacherComment}"</p>}
                       </div>
@@ -171,6 +188,9 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
   const [selectedExamId, setSelectedExamId] = useState('');
   const [assignTarget, setAssignTarget] = useState<AssignTarget | null>(null);
   const [dueDate, setDueDate] = useState('');
+  const [shuffleQuestions, setShuffleQuestions] = useState(true);
+  const [antiCheat, setAntiCheat] = useState(true);
+  const [maxTabSwitches, setMaxTabSwitches] = useState(3);
   const [isSending, setIsSending] = useState(false);
   const [success, setSuccess] = useState('');
   const [commentingAttempt, setCommentingAttempt] = useState<QuizAttempt | null>(null);
@@ -179,8 +199,10 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
   const teacherName = (profile as any)?.name || (user as any)?.displayName || 'Giáo viên';
 
   useEffect(() => {
-    if (!user?.uid) return;
-    const unsub = assignmentService.subscribeToAssignments(user.uid, setAssignments);
+    const activeEmail = teacherWorkspaceService.getActiveTeacherEmail();
+    const subKey = user?.uid || activeEmail;
+    if (!subKey) return;
+    const unsub = assignmentService.subscribeToAssignments(subKey, setAssignments);
     return () => unsub();
   }, [user]);
   useEffect(() => { const unsub = examService.subscribeToAttempts(setAttemptsList); return () => unsub(); }, []);
@@ -195,12 +217,17 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
       : assignTarget.type === 'class' ? assignTarget.targetClass
         : assignTarget.targetClass;
     const targetStudents = assignTarget.type === 'individuals' ? assignTarget.students : [];
+    const activeEmail = teacherWorkspaceService.getActiveTeacherEmail();
 
     await assignmentService.assignExam(
       exam.id, exam.title, teacherName, targetClass,
       dueDate || undefined, targetStudents,
       exam.questions || [],
-      user?.uid
+      user?.uid,
+      shuffleQuestions,
+      antiCheat,
+      maxTabSwitches,
+      activeEmail
     );
     setSuccess(`Đã giao đề "${exam.title}" cho ${assignTarget.type === 'individuals' ? `${targetStudents.length} học sinh` : `lớp "${targetClass}"`}!`);
     setSelectedExamId('');
@@ -243,6 +270,67 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">Hạn nộp bài (tùy chọn)</label>
             <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)}
               className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none font-medium text-slate-700" />
+          </div>
+
+          {/* Tùy chọn kiểm tra & Chống gian lận */}
+          <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3">
+            <div className="flex items-center gap-2 text-xs font-black text-slate-700 uppercase tracking-wider">
+              <ShieldCheck size={16} className="text-indigo-600" />
+              <span>Tùy chọn Kiểm tra &amp; Giám sát Phòng thi</span>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={shuffleQuestions}
+                onChange={e => setShuffleQuestions(e.target.checked)}
+                className="mt-1 w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+              />
+              <div className="text-xs">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5 group-hover:text-indigo-600 transition-colors">
+                  <Shuffle size={13} className="text-blue-500" />
+                  Xáo trộn vị trí câu hỏi &amp; đáp án theo từng dạng
+                </span>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Xáo trộn ngẫu nhiên thứ tự câu hỏi và các phương án A, B, C, D trong cùng 1 dạng thức. Mỗi học sinh có một mã đề riêng biệt, bảo toàn 100% đáp án đúng.
+                </p>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={antiCheat}
+                onChange={e => setAntiCheat(e.target.checked)}
+                className="mt-1 w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500 cursor-pointer"
+              />
+              <div className="text-xs">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5 group-hover:text-rose-600 transition-colors">
+                  <ShieldCheck size={13} className="text-rose-500" />
+                  Bật chế độ Chống gian lận (Phát hiện chuyển tab, chặn copy/paste)
+                </span>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Ghi nhận và cảnh báo ngay khi học sinh rời tab/ứng dụng, chặn chuột phải, chặn phím tắt DevTools.
+                </p>
+              </div>
+            </label>
+
+            {antiCheat && (
+              <div className="pl-7 pt-1 flex items-center gap-3">
+                <label className="text-[11px] font-bold text-slate-600 shrink-0">Số lần rời tab tối đa:</label>
+                <select
+                  value={maxTabSwitches}
+                  onChange={e => setMaxTabSwitches(Number(e.target.value))}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-white focus:ring-2 focus:ring-rose-400 outline-none"
+                >
+                  <option value={1}>1 lần (Nộp bài ngay khi rời tab)</option>
+                  <option value={2}>2 lần</option>
+                  <option value={3}>3 lần (Khuyên dùng)</option>
+                  <option value={5}>5 lần</option>
+                  <option value={999}>Không giới hạn (Chỉ cảnh báo &amp; ghi nhật ký)</option>
+                </select>
+              </div>
+            )}
           </div>
 
           <AnimatePresence>

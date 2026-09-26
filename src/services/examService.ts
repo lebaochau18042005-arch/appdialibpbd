@@ -5,6 +5,8 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { Question, Exam, QuizAttempt, UserProfile } from '../types';
 import { Type } from "@google/genai";
 import { generateContentWithFallback, KIEN_THUC_HANH_CHINH_2025_EXPORT, fileToGenerativePart, uploadPDFViaFileAPI } from './ai';
+import { googleSheetService } from './googleSheetService';
+import { sanitizeEmailKey, teacherWorkspaceService } from './teacherWorkspaceService';
 
 // ===== LocalStorage Fallback Helpers =====
 const LS_EXAM_KEY = 'geo_pro_local_exams';
@@ -55,14 +57,23 @@ export const examService = {
     return unsub;
   },
 
-  subscribeToExams(creatorId: string, callback: (exams: Exam[]) => void): Unsubscribe {
+  subscribeToExams(creatorId: string, callback: (exams: Exam[]) => void, teacherEmail?: string): Unsubscribe {
     const q = query(collection(db, 'exams'), where('creatorId', '==', creatorId));
+    const finalEmail = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
     const unsub = onSnapshot(q, (snapshot) => {
       const fsExams = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
-      const lsExams = lsGetExams().filter(le => !fsExams.find(fe => fe.id === le.id));
+      const lsExams = lsGetExams().filter(le => {
+        if (fsExams.find(fe => fe.id === le.id)) return false;
+        if (!creatorId && !finalEmail) return true;
+        return le.creatorId === creatorId || (finalEmail && le.creatorEmail === finalEmail) || le.creatorId === 'anonymous-teacher';
+      });
       callback([...fsExams, ...lsExams]);
     }, (_error) => {
-      callback(lsGetExams());
+      const lsExams = lsGetExams().filter(le => {
+        if (!creatorId && !finalEmail) return true;
+        return le.creatorId === creatorId || (finalEmail && le.creatorEmail === finalEmail) || le.creatorId === 'anonymous-teacher';
+      });
+      callback(lsExams);
     });
     return unsub;
   },
@@ -581,21 +592,24 @@ CẤU TRÚC BẮT BUỘC:
   },
 
   async saveExam(exam: Omit<Exam, 'id'>): Promise<string> {
+    const finalCreatorEmail = exam.creatorEmail || teacherWorkspaceService.getActiveTeacherEmail() || undefined;
+    const examToSave = { ...exam, creatorEmail: finalCreatorEmail };
+
     // If creator is anonymous/guest, skip Firestore entirely - save instantly
     const isGuest = !exam.creatorId || exam.creatorId === 'anonymous' || exam.creatorId.includes('anonymous') || exam.creatorId.startsWith('guest_');
     if (isGuest) {
       const localId = `local_${Date.now()}`;
-      lsSaveExam({ id: localId, ...exam });
+      lsSaveExam({ id: localId, ...examToSave });
       return localId;
     }
     try {
-      const sanitized = sanitizeForFirestore({ ...exam, fileUrl: '' });
+      const sanitized = sanitizeForFirestore({ ...examToSave, fileUrl: '' });
       const docRef = await addDoc(collection(db, 'exams'), sanitized);
       return docRef.id;
     } catch (error) {
       if (isPermissionError(error)) {
         const localId = `local_${Date.now()}`;
-        lsSaveExam({ id: localId, ...exam });
+        lsSaveExam({ id: localId, ...examToSave });
         return localId;
       }
       handleFirestoreError(error, OperationType.CREATE, 'exams');
@@ -675,9 +689,10 @@ CẤU TRÚC BẮT BUỘC:
     }
   },
 
-  async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html', questions: Question[] = []): Promise<string> {
+  async saveUploadedExam(title: string, creatorId: string, file: File, fileType: 'word' | 'pdf' | 'html', questions: Question[] = [], creatorEmail?: string): Promise<string> {
     const createdAt = new Date().toISOString();
     const localId = `local_${Date.now()}`;
+    const finalCreatorEmail = creatorEmail || teacherWorkspaceService.getActiveTeacherEmail() || undefined;
 
     // Step 1: Read file as data URL (best-effort, silent on failure)
     let fileUrl = '';
@@ -695,6 +710,7 @@ CẤU TRÚC BẮT BUỘC:
     // Step 2: Save to localStorage (with data URL) - best-effort
     const localExamData: Exam = {
       id: localId, title, creatorId,
+      creatorEmail: finalCreatorEmail,
       type: 'upload', fileUrl, fileType,
       questions, createdAt,
     };
@@ -710,7 +726,7 @@ CẤU TRÚC BẮT BUỘC:
     if (!isGuest) {
       try {
         const docRef = await addDoc(collection(db, 'exams'), {
-          title, creatorId, type: 'upload' as const,
+          title, creatorId, creatorEmail: finalCreatorEmail, type: 'upload' as const,
           fileUrl: '', fileType, questions, createdAt,
         });
         try {
@@ -753,8 +769,19 @@ CẤU TRÚC BẮT BUỘC:
   },
 
   async saveAttempt(attempt: Omit<QuizAttempt, 'id'>): Promise<string> {
-    const attemptWithDate = { ...attempt, date: new Date().toISOString() };
-    const localId = `la_${Date.now()}`;
+    let finalTeacherEmail = attempt.teacherEmail;
+    if (!finalTeacherEmail && attempt.examId) {
+      const foundExam = lsGetExams().find(e => e.id === attempt.examId);
+      if (foundExam?.creatorEmail) finalTeacherEmail = foundExam.creatorEmail;
+    }
+    const attemptWithDate = {
+      ...attempt,
+      teacherEmail: finalTeacherEmail,
+      date: new Date().toISOString()
+    };
+    const localId = `la_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // Persist before network requests: RTDB writes can wait indefinitely while offline.
+    lsSaveAttempt({ id: localId, ...attemptWithDate } as QuizAttempt);
 
     // Always save to RTDB so teacher can see cross-device (strip undefined fields)
     const rtdbPayload: Record<string, any> = {};
@@ -762,10 +789,15 @@ CẤU TRÚC BẮT BUỘC:
     rtdbPayload.id = localId;
     try {
       await rtdbSet(rtdbRef(rtdb, `attempts/${localId}`), rtdbPayload);
+      if (finalTeacherEmail) {
+        const safeKey = sanitizeEmailKey(finalTeacherEmail);
+        await rtdbSet(rtdbRef(rtdb, `teacher_attempts/${safeKey}/${localId}`), rtdbPayload);
+      }
     } catch (e) { console.warn('RTDB attempt save failed', e); }
 
-    // Also save locally
-    lsSaveAttempt({ id: localId, ...attemptWithDate } as QuizAttempt);
+    // Auto-sync attempt to Google Sheet asynchronously (fire-and-forget, non-blocking)
+    googleSheetService.syncAttemptToGoogleSheet({ id: localId, ...attemptWithDate } as QuizAttempt)
+      .catch(e => console.warn('googleSheetService auto-sync skipped/failed:', e));
 
     // Try Firestore for authenticated users
     const isGuest = !attempt.userId || attempt.userId === 'anonymous' || attempt.userId.includes('anonymous') || attempt.userId.startsWith('guest_');
@@ -779,15 +811,22 @@ CẤU TRÚC BẮT BUỘC:
   },
 
   // Subscribe to ALL attempts from RTDB (for teacher dashboard)
-  subscribeToRTDBAttempts(callback: (attempts: QuizAttempt[]) => void): () => void {
+  subscribeToRTDBAttempts(callback: (attempts: QuizAttempt[]) => void, teacherEmail?: string): () => void {
+    const finalEmail = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
     const attRef = rtdbRef(rtdb, 'attempts');
     const handler = (snap: any) => {
       if (!snap.exists()) { callback([]); return; }
-      const list: QuizAttempt[] = [];
+      let list: QuizAttempt[] = [];
       snap.forEach((child: any) => {
         const d = child.val();
         list.push({ id: child.key, ...d });
       });
+      if (finalEmail) {
+        list = list.filter(a => {
+          if (!a.teacherEmail) return true;
+          return a.teacherEmail.toLowerCase() === finalEmail;
+        });
+      }
       list.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
       callback(list);
     };

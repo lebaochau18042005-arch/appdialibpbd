@@ -8,10 +8,18 @@
     "start": "node server.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "clean": "node -e \"const fs=require('fs'); fs.rmSync('dist', { recursive: true, force: true });\"",
+    "lint": "tsc --noEmit",
+    "test": "node --import tsx --test --test-force-exit tests/teacherWorkspace.test.ts tests/kntt.test.ts tests/sheet.test.ts tests/shuffle.test.ts tests/learning.test.ts",
+    "test:workspace": "node --import tsx --test --test-force-exit tests/teacherWorkspace.test.ts",
+    "test:kntt": "node --import tsx --test tests/kntt.test.ts",
+    "test:sheet": "node --import tsx --test tests/sheet.test.ts",
+    "test:shuffle": "node --import tsx --test tests/shuffle.test.ts",
+    "test:learning": "node --import tsx --test tests/learning.test.ts",
+    "preview:learning": "vite --config tests/preview.config.ts --open /tests/learning-preview.html"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.61.6",
     "@google/genai": "^1.29.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.14",

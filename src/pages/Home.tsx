@@ -117,7 +117,7 @@ export default function Home() {
             {pendingAssignments.map((a: any) => (
               <Link
                 key={a.id}
-                to={`/exam-room?examId=${a.examId || a.id}`}
+                to={`/exam-room?examId=${a.examId || a.id}&assignmentId=${a.id}`}
                 className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-rose-100 hover:border-rose-300 hover:shadow-md transition-all group"
               >
                 <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0">

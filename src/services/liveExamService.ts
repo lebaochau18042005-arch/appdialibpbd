@@ -19,6 +19,9 @@ export interface LiveStudentStatus {
   score: number;
   progress: number;
   isFinished: boolean;
+  tabSwitches?: number;
+  lastViolation?: string;
+  lastViolationTime?: number;
   answers: Record<number, LiveAnswer>;
 }
 
@@ -120,6 +123,31 @@ export const liveExamService = {
     }
   },
 
+  // ─── Student: report anti-cheat violation in real-time ─────────────────────
+
+  async reportViolation(
+    examId: string,
+    sessionKey: string,
+    violationType: string,
+    tabSwitches: number
+  ) {
+    if (!examId || !sessionKey) return;
+    try {
+      const infoRef = ref(rtdb, `live_sessions/${examId}/${sessionKey}/info`);
+      const snap = await get(infoRef);
+      const existing = snap.val() || {};
+      await set(infoRef, {
+        ...existing,
+        lastActivity: Date.now(),
+        tabSwitches,
+        lastViolation: violationType,
+        lastViolationTime: Date.now(),
+      });
+    } catch (e) {
+      console.warn('liveExamService.reportViolation failed:', e);
+    }
+  },
+
   // ─── Teacher: subscribe to all students in a live exam ───────────────────
 
   subscribeToLiveSessions(
@@ -142,6 +170,9 @@ export const liveExamService = {
           score: data.info.score || 0,
           progress: data.info.progress || 0,
           isFinished: data.info.isFinished || false,
+          tabSwitches: data.info.tabSwitches || 0,
+          lastViolation: data.info.lastViolation,
+          lastViolationTime: data.info.lastViolationTime,
           answers: data.answers || {},
         });
       });

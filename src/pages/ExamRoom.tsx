@@ -22,33 +22,55 @@ import {
   ChevronRight,
   ChevronLeft,
   Sparkles,
-  Search
+  Search,
+  Calculator,
+  Map,
+  ShieldAlert,
+  ShieldCheck,
+  Shuffle,
+  Maximize2,
+  AlertTriangle
 } from 'lucide-react';
 import { questions } from '../data';
 import { Question, QuestionType, QuizAttempt, UserProfile } from '../types';
 import { cn } from '../utils/cn';
+import { shuffleExamByFormat } from '../utils/shuffleUtils';
 import ExamActiveCard from '../components/exam/ExamActiveCard';
 import ExamQuestionMap from '../components/exam/ExamQuestionMap';
 import ExamReviewCard from '../components/exam/ExamReviewCard';
+import GeoFormulasModal from '../components/exam/GeoFormulasModal';
+import InteractiveMapModal from '../components/exam/InteractiveMapModal';
 
+import { useLearningDraft } from '../hooks/useLearningDraft';
+import { DraftStatus } from '../components/LearningTools';
+import { learningOwner, recordAnswers, remainingSeconds } from '../services/learningStorage';
+
+interface ExamDraft { questions: Question[]; title: string; currentIndex: number; startTime: number; answers: Record<number, any> }
 export default function ExamRoom() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const examId = searchParams.get('examId');
+  const assignmentId = searchParams.get('assignmentId');
   const mode = searchParams.get('mode');
   const libraryFileId = searchParams.get('libraryFileId');
 
-  const [examQuestions, setExamQuestions] = useState<Question[]>([]);
-  const [examTitle, setExamTitle] = useState('Đề thi ôn luyện');
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const owner = learningOwner(user?.uid);
+  const draft = useLearningDraft<ExamDraft>(owner, 'exam', '/exam-room?' + searchParams.toString());
+  const restored = draft.initial;
+  const loadingStarted = useRef(false);
+  const finishedRef = useRef(false);
+  const [storageError, setStorageError] = useState('');
+  const [examQuestions, setExamQuestions] = useState<Question[]>(restored?.questions || []);
+  const [examTitle, setExamTitle] = useState(restored?.title || 'Đề thi ôn luyện');
+  const [currentIndex, setCurrentIndex] = useState(restored?.currentIndex || 0);
 
   // Answers state: key is question index, value is the answer
-  const [answers, setAnswers] = useState<Record<number, any>>({});
+  const [answers, setAnswers] = useState<Record<number, any>>(restored?.answers || {});
 
   const [isFinished, setIsFinished] = useState(false);
-  const [startTime, setStartTime] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(3000); // 50 minutes
+  const [startTime, setStartTime] = useState(restored?.startTime || 0);
+  const [timeLeft, setTimeLeft] = useState(restored ? remainingSeconds(restored.startTime) : 3000); // 50 minutes
   const [timeRanOut, setTimeRanOut] = useState(false);
   const [showQuestionMap, setShowQuestionMap] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
@@ -58,6 +80,25 @@ export default function ExamRoom() {
   const [detailedExplanations, setDetailedExplanations] = useState<Record<number, { explanation: string, tips: string, mnemonics: string }>>({});
   const [loadingExplanation, setLoadingExplanation] = useState<number | null>(null);
   const [loadingStatus, setLoadingStatus] = useState('Đang chuẩn bị đề thi...');
+  const [isFormulasOpen, setIsFormulasOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+
+  // Anti-cheat & Shuffling states
+  const [isAntiCheatEnabled, setIsAntiCheatEnabled] = useState(false);
+  const [maxTabSwitches, setMaxTabSwitches] = useState(3);
+  const [tabSwitches, setTabSwitches] = useState(0);
+  const [isShuffleEnabled, setIsShuffleEnabled] = useState(false);
+  const [showViolationModal, setShowViolationModal] = useState(false);
+  const [violationMessage, setViolationMessage] = useState('');
+  const [antiCheatIntroAccepted, setAntiCheatIntroAccepted] = useState(!!restored);
+  const [toastMessage, setToastMessage] = useState('');
+  const tabSwitchesRef = useRef(0);
+  const teacherEmailRef = useRef<string | undefined>(undefined);
+
+  const showNotice = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
 
   /** Wraps any promise with a timeout; rejects after `ms` ms */
   const withTimeout = <T,>(promise: Promise<T>, ms: number, label = 'Timeout'): Promise<T> =>
@@ -83,14 +124,38 @@ export default function ExamRoom() {
   const loadQuestions = useCallback(async () => {
     if (examId) {
       let loaded = false;
+      let rawQuestions: Question[] = [];
+      let rawTitle = '';
+      let shouldShuffle = false;
+
+      // ── Step 0: Get assignment config (antiCheat, shuffleQuestions, maxTabSwitches, teacherEmail) ──
+      try {
+        const config = await assignmentService.getAssignmentConfig(examId, assignmentId || undefined);
+        if (config.teacherEmail) {
+          teacherEmailRef.current = config.teacherEmail;
+        }
+        if (config.antiCheat) {
+          setIsAntiCheatEnabled(true);
+          setMaxTabSwitches(config.maxTabSwitches ?? 3);
+        }
+        if (config.shuffleQuestions) {
+          setIsShuffleEnabled(true);
+          shouldShuffle = true;
+        }
+      } catch (e) {
+        console.warn('assignmentService.getAssignmentConfig failed:', e);
+      }
 
       // ── Try 1: Firestore + localStorage (most up-to-date, has ExamEditor edits) ──
       try {
         const allExams = await examService.getAllExams();
         const found = allExams.find(e => e.id === examId);
+        if (found?.creatorEmail) {
+          teacherEmailRef.current = found.creatorEmail;
+        }
         if (found && found.questions && found.questions.length > 0) {
-          setExamQuestions(found.questions);
-          setExamTitle(found.title);
+          rawQuestions = found.questions;
+          rawTitle = found.title;
           loaded = true;
         } else if (found && found.type === 'upload') {
           alert('Đây là đề thi tải lên (file). Bạn có thể tải xuống để xem nội dung.');
@@ -103,9 +168,18 @@ export default function ExamRoom() {
         // ── Try 2: RTDB assignment bundle (fallback for cross-device access) ──
         const rtdbExam = await assignmentService.getExamQuestionsFromRTDB(examId);
         if (rtdbExam && rtdbExam.questions.length > 0) {
-          setExamQuestions(rtdbExam.questions);
-          setExamTitle(rtdbExam.title);
+          rawQuestions = rtdbExam.questions;
+          rawTitle = rtdbExam.title;
+          if (rtdbExam.teacherEmail) {
+            teacherEmailRef.current = rtdbExam.teacherEmail;
+          }
           loaded = true;
+          if (rtdbExam.antiCheat !== undefined) setIsAntiCheatEnabled(rtdbExam.antiCheat);
+          if (rtdbExam.maxTabSwitches !== undefined) setMaxTabSwitches(rtdbExam.maxTabSwitches);
+          if (rtdbExam.shuffleQuestions !== undefined) {
+            setIsShuffleEnabled(rtdbExam.shuffleQuestions);
+            shouldShuffle = rtdbExam.shuffleQuestions;
+          }
         }
       }
 
@@ -114,6 +188,14 @@ export default function ExamRoom() {
         navigate('/exam');
         return;
       }
+
+      // Apply shuffling if enabled and not already restored from draft
+      const finalQuestions = (!restored && shouldShuffle)
+        ? shuffleExamByFormat(rawQuestions)
+        : rawQuestions;
+
+      setExamQuestions(finalQuestions);
+      setExamTitle(rawTitle);
 
     } else {
       if (mode === 'mock') {
@@ -206,7 +288,7 @@ export default function ExamRoom() {
         liveExamService.joinSession(examId, key, { name: p.name, className: p.className || '' });
       }
     }
-  }, [examId, mode, navigate]);
+  }, [examId, assignmentId, mode, navigate, restored]);
 
   const generateRandomExam = () => {
     const getQuestions = (type: QuestionType, count: number) => {
@@ -224,11 +306,18 @@ export default function ExamRoom() {
   };
 
   useEffect(() => {
+    if (restored || loadingStarted.current) return;
+    loadingStarted.current = true;
     loadQuestions();
   }, [loadQuestions]);
 
   useEffect(() => {
-    if (isFinished || examQuestions.length === 0) return;
+    if (!isFinished) draft.persist({ questions: examQuestions, title: examTitle, currentIndex, startTime, answers }, examTitle);
+  });
+
+  useEffect(() => {
+    if (isFinished || !startTime || examQuestions.length === 0) return;
+    if (isAntiCheatEnabled && !antiCheatIntroAccepted) return;
 
     if (timeLeft <= 0) {
       setTimeRanOut(true);
@@ -237,11 +326,101 @@ export default function ExamRoom() {
     }
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
+      setTimeLeft(remainingSeconds(startTime));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isFinished, examQuestions.length]);
+  }, [timeLeft, isFinished, examQuestions.length, startTime, isAntiCheatEnabled, antiCheatIntroAccepted]);
+
+  // ── Anti-Cheat: Visibility change / Tab switch detection ──
+  useEffect(() => {
+    if (!isAntiCheatEnabled || isFinished || !antiCheatIntroAccepted) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        tabSwitchesRef.current += 1;
+        const currentCount = tabSwitchesRef.current;
+        setTabSwitches(currentCount);
+
+        // Report to RTDB live session for teacher
+        if (examId && sessionKeyRef.current) {
+          liveExamService.reportViolation(examId, sessionKeyRef.current, 'tab_switch', currentCount);
+        }
+
+        if (currentCount >= maxTabSwitches) {
+          setViolationMessage(
+            `Bạn đã chuyển tab hoặc rời khỏi màn hình làm bài ${currentCount}/${maxTabSwitches} lần, vượt quá giới hạn quy định của giáo viên! Hệ thống tự động kết thúc và nộp bài thi.`
+          );
+          setShowViolationModal(true);
+          setTimeout(() => {
+            handleSubmitExam();
+          }, 2000);
+        } else {
+          setViolationMessage(
+            `CẢNH BÁO VI PHẠM: Bạn vừa rời khỏi màn hình làm bài! Hệ thống đã ghi nhận vi phạm (Lần ${currentCount}/${maxTabSwitches}) và báo cáo trực tiếp cho Giáo viên.`
+          );
+          setShowViolationModal(true);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAntiCheatEnabled, isFinished, antiCheatIntroAccepted, maxTabSwitches, examId]);
+
+  // ── Anti-Cheat: Block right click, copy/cut, and inspection shortcuts ──
+  useEffect(() => {
+    if (!isAntiCheatEnabled || isFinished || !antiCheatIntroAccepted) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F12') {
+        e.preventDefault();
+        showNotice('Phím F12 bị vô hiệu hóa trong phòng thi!');
+        return;
+      }
+      if (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+        e.preventDefault();
+        showNotice('Phím tắt công cụ kiểm tra bị vô hiệu hóa trong phòng thi!');
+        return;
+      }
+      if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) {
+        e.preventDefault();
+        showNotice('Phím tắt xem mã nguồn bị vô hiệu hóa trong phòng thi!');
+        return;
+      }
+      if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+        const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea') {
+          e.preventDefault();
+          showNotice('Thao tác sao chép nội dung bị khóa trong phòng thi!');
+        }
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      showNotice('Menu chuột phải bị khóa trong phòng thi!');
+    };
+
+    const handleCopy = (e: ClipboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag !== 'input' && tag !== 'textarea') {
+        e.preventDefault();
+        showNotice('Sao chép nội dung bài thi bị khóa!');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('copy', handleCopy);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('copy', handleCopy);
+    };
+  }, [isAntiCheatEnabled, isFinished, antiCheatIntroAccepted]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -296,10 +475,23 @@ export default function ExamRoom() {
   const calculateScore = () => calculateScoreFromAnswers(answers);
 
   const handleSubmitExam = async () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    if (!recordAnswers(owner, examQuestions.map((question, index) => ({ question, answer: answers[index] })))) {
+      setStorageError('Không lưu được sổ câu sai. Hãy kiểm tra dung lượng hoặc quyền lưu trữ của trình duyệt.');
+    }
+    draft.clear();
     const { totalPoints, maxPoints } = calculateScore();
     setFinalScore(totalPoints);
     setMaxPossibleScore(maxPoints);
     setIsFinished(true);
+
+    // Gracefully exit fullscreen if active
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    } catch (e) { }
 
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
@@ -318,7 +510,7 @@ export default function ExamRoom() {
       detailedAnswers[q.id || String(idx)] = {
         topic: q.topic || 'Chung',
         isCorrect: correct,
-        userAnswer: answer,
+        userAnswer: answer ?? null,
       };
     });
 
@@ -332,6 +524,7 @@ export default function ExamRoom() {
       userId: user?.uid || 'anonymous',
       userName: parsedProfile?.name || user?.displayName || 'Học sinh ẩn danh',
       className: parsedProfile?.className || profile?.className || 'Chưa xác định',
+      teacherEmail: teacherEmailRef.current,
       examId: examId || 'ai_generated',
       examTitle: examTitle,
       date: new Date().toISOString(),
@@ -339,10 +532,11 @@ export default function ExamRoom() {
       score: Number(totalPoints.toFixed(2)),
       totalQuestions: examQuestions.length,
       timeSpent,
-      answers: detailedAnswers
+      answers: detailedAnswers,
+      tabSwitches: tabSwitchesRef.current,
     };
 
-    await examService.saveAttempt(attempt);
+    try { await examService.saveAttempt(attempt); } catch { setStorageError('Chưa lưu được kết quả bài làm. Hãy giữ trang này để xem lại kết quả.'); }
 
     // Mark live session as finished
     if (examId && sessionKeyRef.current) {
@@ -445,7 +639,9 @@ export default function ExamRoom() {
           <CheckCircle2 className="w-12 h-12" />
         </div>
         <h2 className="text-3xl font-bold text-slate-800 mb-2">Hoàn thành bài thi!</h2>
-        <p className="text-slate-600 mb-8">Hệ thống đã ghi nhận kết quả của bạn.</p>
+        <p className="text-slate-600 mb-4">Bạn có thể xem lại đáp án và ôn những câu sai.</p>
+        <p role="status" className="text-amber-800 mb-4">{storageError || draft.error}</p>
+        <button onClick={() => navigate('/mistakes')} className="mb-6 px-4 py-2 bg-sky-700 text-white rounded-xl">Mở sổ câu sai</button>
 
         <div className="grid grid-cols-2 gap-4 mb-8 text-left">
           <div className="bg-slate-50 p-6 rounded-2xl">
@@ -486,6 +682,7 @@ export default function ExamRoom() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-24">
+      <DraftStatus restored={!!restored} error={storageError || draft.error} />
       {/* Header Sticky */}
       <div className="sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md py-4 mb-6 border-b border-slate-200 -mx-4 px-4">
         <div className="flex items-center justify-between max-w-6xl mx-auto">
@@ -505,6 +702,18 @@ export default function ExamRoom() {
               <span className="text-slate-300">/</span>
               <span className="text-sm text-slate-500">{examQuestions.length}</span>
             </div>
+            {isAntiCheatEnabled && (
+              <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-full">
+                <ShieldCheck size={13} className="text-rose-500 animate-pulse" />
+                <span>Giám sát: Rời tab {tabSwitches}/{maxTabSwitches}</span>
+              </span>
+            )}
+            {isShuffleEnabled && (
+              <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-full">
+                <Shuffle size={12} className="text-blue-500" />
+                <span>Đề xáo trộn</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -515,6 +724,22 @@ export default function ExamRoom() {
               <Clock className="w-4 h-4" />
               {formatTime(timeLeft)}
             </div>
+
+            <button
+              onClick={() => setIsMapOpen(true)}
+              className="p-2 bg-slate-800 rounded-full border border-cyan-500/40 text-cyan-400 hover:bg-slate-700 transition-colors"
+              title="Tra cứu 34 Tỉnh & 6 Vùng mới (TT17)"
+            >
+              <Map className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => setIsFormulasOpen(true)}
+              className="p-2 bg-slate-800 rounded-full border border-cyan-500/40 text-cyan-400 hover:bg-slate-700 transition-colors"
+              title="Sổ tay Công thức & Máy tính Địa lí"
+            >
+              <Calculator className="w-5 h-5" />
+            </button>
 
             <button
               onClick={() => setShowQuestionMap(!showQuestionMap)}
@@ -613,6 +838,136 @@ export default function ExamRoom() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Floating notice for blocked actions */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 bg-rose-600 text-white font-bold text-xs rounded-full shadow-2xl flex items-center gap-2 border border-white/20"
+          >
+            <ShieldAlert size={14} />
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Anti-cheat violation modal */}
+      <AnimatePresence>
+        {showViolationModal && (
+          <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-2 border-rose-300 text-center"
+            >
+              <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mb-4 mx-auto animate-bounce">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-black text-rose-600 mb-2">CẢNH BÁO VI PHẠM PHÒNG THI</h3>
+              <p className="text-slate-700 text-sm leading-relaxed mb-6 font-medium">
+                {violationMessage}
+              </p>
+              <div className="p-3 bg-rose-50 border border-rose-100 rounded-2xl mb-6 text-xs text-rose-800 font-bold">
+                Vi phạm hiện tại: {tabSwitches} / {maxTabSwitches} lần cho phép
+              </div>
+              {tabSwitches >= maxTabSwitches ? (
+                <div className="py-3 px-4 bg-slate-100 text-slate-500 rounded-xl font-bold text-sm">
+                  Đang tiến hành tự động nộp bài...
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowViolationModal(false)}
+                  className="w-full py-3.5 bg-rose-600 text-white rounded-xl font-black text-sm hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200"
+                >
+                  Tôi đã hiểu và Tiếp tục làm bài
+                </button>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Anti-cheat entrance rules modal */}
+      <AnimatePresence>
+        {isAntiCheatEnabled && !antiCheatIntroAccepted && !isFinished && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-100 text-left"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
+                  <ShieldCheck size={26} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 leading-snug">Chế Độ Thi Có Giám Sát Chống Gian Lận</h3>
+                  <p className="text-xs text-slate-400">Đề thi: {examTitle}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs text-slate-700 leading-relaxed">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-rose-500 font-bold shrink-0">1.</span>
+                  <span><strong>Không rời khỏi màn hình làm bài:</strong> Mọi hành động chuyển tab, thu nhỏ hoặc mở ứng dụng khác sẽ được hệ thống ghi nhận tức thì (Tối đa <strong>{maxTabSwitches} lần</strong>). Vượt quá số lần sẽ bị tự động nộp bài ngay.</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-rose-500 font-bold shrink-0">2.</span>
+                  <span><strong>Chặn thao tác sao chép:</strong> Chuột phải, phím tắt sao chép (Ctrl+C), cắt dán đề bài và phím F12 bị vô hiệu hóa.</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-rose-500 font-bold shrink-0">3.</span>
+                  <span><strong>Giám sát trực tiếp:</strong> Giáo viên có thể theo dõi tiến độ làm bài và số lần rời tab của bạn theo thời gian thực.</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setAntiCheatIntroAccepted(true);
+                    setStartTime(Date.now());
+                    setTimeLeft(3000);
+                  }}
+                  className="flex-1 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-200 transition-colors text-center"
+                >
+                  Vào thi bình thường
+                </button>
+                <button
+                  onClick={async () => {
+                    setAntiCheatIntroAccepted(true);
+                    setStartTime(Date.now());
+                    setTimeLeft(3000);
+                    try {
+                      if (document.documentElement.requestFullscreen) {
+                        await document.documentElement.requestFullscreen();
+                      }
+                    } catch (e) { }
+                  }}
+                  className="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 flex items-center justify-center gap-1.5"
+                >
+                  <Maximize2 size={14} /> Vào thi &amp; Toàn màn hình
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <GeoFormulasModal
+        isOpen={isFormulasOpen}
+        onClose={() => setIsFormulasOpen(false)}
+        onApplyResult={(val) => {
+          if (currentQuestion && currentQuestion.type === 'short_answer') {
+            handleAnswer(val);
+          }
+        }}
+      />
+      <InteractiveMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
     </div>
   );
 }

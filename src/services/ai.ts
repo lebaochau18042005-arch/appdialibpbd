@@ -80,18 +80,34 @@ Nghị quyết 202/2025/QH15 của Quốc hội (hiệu lực 1/7/2025) sắp x�
 - Vùng Nam Trung Bộ: (Bao gồm Duyên hải Nam Trung Bộ cũ + khu vực Tây Nguyên cũ): Đà Nẵng (đã gồm Quảng Nam), Quảng Ngãi (đã gồm Kon Tum), Gia Lai (đã gồm Bình Định), Khánh Hòa (đã gồm Ninh Thuận), Đắk Lắk, Lâm Đồng (đã gồm Đắk Nông + Bình Thuận).
 ⚠️ KHÁI NIỆM "VÙNG TÂY NGUYÊN" ĐÃ BỊ BỘ GIÁO DỤC XÓA BỎ HOÀN TOÀN TỪ 1/7/2025 (GỘP VÀO NAM TRUNG BỘ). CẤM SỬ DỤNG "TÂY NGUYÊN" LÀM ĐÁP ÁN ĐÚNG TRONG MỌI CÂU HỎI VỀ VÙNG.
 
+### BỘ SÁCH GIÁO KHOA ÁP DỤNG: KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (NXB GIÁO DỤC VIỆT NAM)
+- Toàn bộ nội dung bài học, thuật ngữ và phạm vi kiến thức tuân thủ chuẩn Chương trình GDPT 2018 môn Địa lí 12 theo bộ sách "Kết nối tri thức với cuộc sống" của Nhà xuất bản Giáo dục Việt Nam.
+- Cấu trúc chuẩn 35 bài học:
+  + Phần 1: Địa lí tự nhiên (Bài 1 - Bài 6)
+  + Phần 2: Địa lí dân cư (Bài 7 - Bài 10)
+  + Phần 3: Địa lí các ngành kinh tế (Bài 11 - Bài 23)
+  + Phần 4: Địa lí các vùng kinh tế - xã hội (Bài 24 - Bài 34)
+  + Phần 5: Địa lí địa phương (Bài 35) & Chuyên đề Khu vực Đông Nam Á (Lớp 11 KNTT).
+
 ### Thông tư 17/2025/TT-BGDĐT (Bộ GDĐT, hiệu lực 12/9/2025):
 - Sửa đổi Chương trình GDPT 2018, yêu cầu cập nhật nội dung Địa lý 12 theo 34 đơn vị hành chính mới.
 - Cập nhật: ranh giới vùng kinh tế, tên tỉnh/thành, số liệu diện tích, dân số, phân bố kinh tế.
-- Giáo viên tiếp tục dùng SGK hiện hành nhưng phải chủ động điều chỉnh ngữ liệu cho phù hợp.
+- Bám sát SGK Kết nối tri thức với cuộc sống kết hợp ngữ liệu và địa danh hành chính mới nhất.
 
 LƯU Ý: Khi giải thích bất kỳ câu hỏi nào về tỉnh thành, vùng kinh tế, dân cư, kinh tế địa phương — PHẢI dùng tên và dữ liệu THEO ĐƠN VỊ HÀNH CHÍNH MỚI SAU 1/7/2025. Không dùng tên tỉnh cũ đã sáp nhập như một đơn vị độc lập (ví dụ: không nói "tỉnh Hải Dương" mà nói "khu vực Hải Dương thuộc TP Hải Phòng").
 `;
 
-export async function generateContentWithFallback(prompt: any, config: any = {}) {
+export function getGeminiApiKey(): string {
   // @ts-ignore
-  let rawApiKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
-  const apiKey = rawApiKey.trim();
+  const key = localStorage.getItem('GEMINI_API_KEY')
+    || (typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
+    || (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
+    || '';
+  return key.trim();
+}
+
+export async function generateContentWithFallback(prompt: any, config: any = {}) {
+  const apiKey = getGeminiApiKey();
   if (!apiKey) {
     throw new Error('Chưa thiết lập API Key. Vui lòng cập nhật thông tin trong Cấu hình Google AI.');
   }
@@ -406,8 +422,7 @@ export function fileToGenerativePart(file: File): Promise<{ inlineData: { data: 
 
 // Upload PDF via Gemini File API (required for PDF — inline base64 is NOT supported)
 export async function uploadPDFViaFileAPI(file: File): Promise<{ fileData: { mimeType: string, fileUri: string } }> {
-  // @ts-ignore
-  const apiKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  const apiKey = getGeminiApiKey();
   if (!apiKey) throw new Error('Chưa thiết lập API Key.');
 
   const mimeType = 'application/pdf';

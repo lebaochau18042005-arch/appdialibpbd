@@ -46,6 +46,7 @@ export default function LiveExamMonitor({ examId, totalQuestions = 28 }: Props) 
 
   const onlineCount = students.filter(s => !s.isFinished).length;
   const finishedCount = students.filter(s => s.isFinished).length;
+  const violationCount = students.filter(s => (s.tabSwitches || 0) > 0).length;
 
   if (!examId) return (
     <div className="p-8 text-center text-slate-400 text-sm">Chưa chọn đề để theo dõi</div>
@@ -54,11 +55,12 @@ export default function LiveExamMonitor({ examId, totalQuestions = 28 }: Props) 
   return (
     <div className="space-y-4">
       {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Đang thi', value: onlineCount, color: 'text-indigo-600 bg-indigo-50' },
           { label: 'Đã nộp', value: finishedCount, color: 'text-emerald-600 bg-emerald-50' },
-          { label: 'Tổng', value: students.length, color: 'text-slate-700 bg-slate-50' },
+          { label: 'Vi phạm rời tab', value: violationCount, color: violationCount > 0 ? 'text-rose-600 bg-rose-50 font-black' : 'text-slate-500 bg-slate-50' },
+          { label: 'Tổng HS', value: students.length, color: 'text-slate-700 bg-slate-50' },
         ].map(s => (
           <div key={s.label} className={cn('rounded-2xl p-3 text-center', s.color)}>
             <div className="text-2xl font-black">{s.value}</div>
@@ -72,6 +74,7 @@ export default function LiveExamMonitor({ examId, totalQuestions = 28 }: Props) 
         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-emerald-500 inline-block"/>Đúng</span>
         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-red-500 inline-block"/>Sai</span>
         <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-slate-100 inline-block"/>Chưa trả lời</span>
+        {violationCount > 0 && <span className="flex items-center gap-1 text-rose-600"><span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block"/>Có {violationCount} HS rời màn hình</span>}
         {connected && <span className="ml-auto flex items-center gap-1 text-emerald-600"><Wifi size={11}/>LIVE</span>}
       </div>
 
@@ -116,7 +119,17 @@ export default function LiveExamMonitor({ examId, totalQuestions = 28 }: Props) 
                         student.isFinished ? 'bg-emerald-400' : 'bg-indigo-400 animate-pulse'
                       )} />
                       <div>
-                        <p className="font-bold text-slate-800 truncate max-w-[100px]">{student.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-slate-800 truncate max-w-[100px]">{student.name}</p>
+                          {(student.tabSwitches || 0) > 0 && (
+                            <span
+                              className="px-1.5 py-0.5 bg-rose-100 text-rose-700 text-[9px] font-black rounded flex items-center gap-0.5 animate-pulse shrink-0"
+                              title={`Học sinh đã rời tab ${student.tabSwitches} lần`}
+                            >
+                              ⚠️ {student.tabSwitches}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-slate-400">{student.className}</p>
                       </div>
                     </div>

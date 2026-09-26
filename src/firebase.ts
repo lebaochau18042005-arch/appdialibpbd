@@ -1,15 +1,17 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, onSnapshot, addDoc, updateDoc } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app); // use default Firestore database
+export const db = getFirestore(app); // Firestore for user profiles & approvals
 export const storage = getStorage(app); // kept for legacy compatibility
 export const rtdb = getDatabase(app);
+
+// Re-export Firestore helpers for convenience
+export { doc, getDoc, setDoc, collection, query, where, getDocs, onSnapshot, addDoc, updateDoc };
+
 
 // Error handling helper
 export enum OperationType {
@@ -36,9 +38,9 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
+      userId: undefined,
+      email: undefined,
+      emailVerified: undefined,
     },
     operationType,
     path

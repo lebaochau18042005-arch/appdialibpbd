@@ -22,6 +22,9 @@ interface AssigmentItem {
   id: string; examId: string; examTitle: string;
   assignedBy: string; targetClass: string;
   dueDate?: string; createdAt: string; done: boolean;
+  shuffleQuestions?: boolean;
+  antiCheat?: boolean;
+  maxTabSwitches?: number;
 }
 
 export default function AssignedExamsPage() {
@@ -52,6 +55,9 @@ export default function AssignedExamsPage() {
           dueDate: e.dueDate,
           createdAt: e.createdAt,
           done: doneIds.has(e.examId || e.id),
+          shuffleQuestions: e.shuffleQuestions,
+          antiCheat: e.antiCheat,
+          maxTabSwitches: e.maxTabSwitches,
         }));
         // Sort: undone first, then by dueDate
         parsed.sort((a, b) => {
@@ -161,14 +167,23 @@ export default function AssignedExamsPage() {
               </div>
               <div className="space-y-3">
                 {undone.map(item => (
-                  <Link key={item.id} to={`/exam-room?examId=${item.examId}`}
+                  <Link key={item.id} to={`/exam-room?examId=${item.examId}&assignmentId=${item.id}`}
                     className="flex items-center gap-4 p-4 bg-white border-2 border-rose-100 rounded-2xl hover:border-rose-300 hover:shadow-md transition-all group">
                     <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-indigo-200">
                       <BookOpen size={22} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-slate-900 text-base leading-snug line-clamp-2">{item.examTitle}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 font-medium">Giáo viên: <span className="font-bold">{item.assignedBy}</span> • {new Date(item.createdAt).toLocaleDateString('vi-VN')}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500 font-medium">
+                        <span>GV: <span className="font-bold">{item.assignedBy}</span></span>
+                        <span>• {new Date(item.createdAt).toLocaleDateString('vi-VN')}</span>
+                        {item.shuffleQuestions && (
+                          <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-bold">🔀 Đề xáo trộn</span>
+                        )}
+                        {item.antiCheat && (
+                          <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded text-[10px] font-bold">🛡️ Chống gian lận</span>
+                        )}
+                      </div>
                       {item.dueDate && (
                         <p className="flex items-center gap-1 text-[11px] text-rose-600 font-bold mt-1">
                           <Clock size={9} /> Hạn nộp: {new Date(item.dueDate).toLocaleString('vi-VN')}

@@ -419,3 +419,7 @@ body {
   background: rgba(0,191,255,0.25);
   color: white;
 }
+
+/* Light question cards need dark formulas even within the dark application shell. */
+.bg-white .katex { color: #1e293b !important; }
+:focus-visible { outline: 3px solid #38bdf8; outline-offset: 3px; }

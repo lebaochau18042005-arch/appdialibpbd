@@ -1,3 +1,4 @@
+import LearningTools from '../components/LearningTools';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -152,6 +153,7 @@ export default function StudentHome() {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 pb-28 md:pb-8">
 
+      <LearningTools />
       {/* ── HERO GREETING ── */}
       <section
         className="relative rounded-3xl p-6 md:p-8 overflow-hidden"
@@ -441,7 +443,7 @@ export default function StudentHome() {
             {pendingAssignments.slice(0, 2).map((a: any) => (
               <Link
                 key={a.id}
-                to={`/exam-room?examId=${a.examId || a.id}`}
+                to={`/exam-room?examId=${a.examId || a.id}&assignmentId=${a.id}`}
                 className="flex items-center gap-3 p-3 rounded-2xl transition-all group"
                 style={{
                   background: 'rgba(255,255,255,0.03)',

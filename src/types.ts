@@ -51,6 +51,7 @@ export interface Exam {
   id: string;
   title: string;
   creatorId: string;
+  creatorEmail?: string;
   type: 'ai' | 'upload' | 'assignment';
   fileUrl?: string;
   fileType?: 'word' | 'pdf' | 'html' | 'image';
@@ -65,9 +66,14 @@ export interface ExamAssignment {
   examId: string;
   examTitle: string;
   assignedBy: string; // teacher name or uid
+  teacherEmail?: string;
   targetClass: string; // className, or 'all'
   dueDate?: string;
   createdAt: string;
+  targetStudents?: string[];
+  shuffleQuestions?: boolean;
+  antiCheat?: boolean;
+  maxTabSwitches?: number;
 }
 
 export interface Notification {
@@ -87,6 +93,7 @@ export interface QuizAttempt {
   userId: string;
   userName?: string;
   className?: string;
+  teacherEmail?: string;
   examId: string;
   examTitle: string;
   date: string;
@@ -97,6 +104,17 @@ export interface QuizAttempt {
   answers: Record<string, any>;
   teacherComment?: string;
   studentProgress?: string;
+  tabSwitches?: number;
+  violations?: string[];
+}
+
+export interface TeacherWorkspace {
+  email: string;
+  name: string;
+  school?: string;
+  subject?: string;
+  lastActiveAt?: string;
+  createdAt?: string;
 }
 
 export interface UserProfile {

@@ -1,13 +1,17 @@
+import LearningTools from '../components/LearningTools';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BookOpen, Target, Play, FileCheck2, FileText, Search,
-  CheckSquare, Zap, Library, Sparkles, AlertCircle, ChevronDown, X
+  CheckSquare, Zap, Library, Sparkles, AlertCircle, ChevronDown, X,
+  Calculator, Map
 } from 'lucide-react';
-import { lessons, topics } from '../data';
+import { lessons, topics, questions, KNTT_PARTS } from '../data';
 import { cn } from '../utils/cn';
 import AITutorChatbot from '../components/ai/AITutorChatbot';
+import GeoFormulasModal from '../components/exam/GeoFormulasModal';
+import InteractiveMapModal from '../components/exam/InteractiveMapModal';
 import { libraryService, LibraryFile } from '../services/libraryService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -41,6 +45,8 @@ export default function PracticeSetup() {
   const [libraryFiles, setLibraryFiles] = useState<LibraryFile[]>([]);
   const [selectedLibraryFileId, setSelectedLibraryFileId] = useState<string>('');
   const [autoMatchDismissed, setAutoMatchDismissed] = useState(false);
+  const [isFormulasOpen, setIsFormulasOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const navigate = useNavigate();
 
   const { user, isTeacherMode, profile } = useAuth();
@@ -114,6 +120,28 @@ export default function PracticeSetup() {
       <h1 className="text-2xl font-black mb-4" style={{ color: '#e2e8f0', letterSpacing: '-0.02em' }}>
         Thiết lập bài luyện tập
       </h1>
+
+      <LearningTools />
+
+      {/* Trợ thủ tra cứu nhanh */}
+      <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
+        <button
+          type="button"
+          onClick={() => setIsMapOpen(true)}
+          className="flex-1 py-2.5 px-3 rounded-xl bg-slate-900/90 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all flex items-center justify-center gap-2 text-xs font-bold shadow-sm"
+        >
+          <Map size={15} className="text-cyan-400" />
+          🗺️ Tra cứu 34 Tỉnh & 6 Vùng mới (TT17)
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsFormulasOpen(true)}
+          className="flex-1 py-2.5 px-3 rounded-xl bg-slate-900/90 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all flex items-center justify-center gap-2 text-xs font-bold shadow-sm"
+        >
+          <Calculator size={15} className="text-cyan-400" />
+          📐 Sổ tay Công thức & Máy tính Địa lí
+        </button>
+      </div>
 
       {/* Quick-start Đúng/Sai banner */}
       <motion.div
@@ -196,9 +224,8 @@ export default function PracticeSetup() {
         {/* Selection list */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <label className="text-xs font-black uppercase tracking-widest"
-              style={{ color: 'rgba(0,191,255,0.5)' }}>
-              ◈ {mode === 'lesson' ? 'Chọn bài học' : mode === 'topic' ? 'Chọn chủ đề' : 'Chọn dạng câu hỏi'}
+            <label className="text-xs font-black uppercase tracking-widest text-cyan-400">
+              ◈ {mode === 'lesson' ? 'CHỌN BÀI HỌC' : mode === 'topic' ? 'CHỌN CHỦ ĐỀ' : 'CHỌN DẠNG THỨC CÂU HỎI'}
             </label>
             {mode !== 'format' && (
               <div className="relative">
@@ -219,12 +246,37 @@ export default function PracticeSetup() {
               </div>
             )}
           </div>
+
+          {mode === 'lesson' && (
+            <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-slate-900 border border-emerald-500/30 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">📚</span>
+                <div>
+                  <span className="text-emerald-300 font-bold block leading-tight">
+                    SGK Kết nối tri thức với cuộc sống (NXB Giáo Dục Việt Nam)
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Chương trình GDPT 2018 môn Địa lí 12 chuẩn Bộ GD&ĐT
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] text-emerald-300 font-black px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 shrink-0">
+                35 BÀI CHUẨN
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
             {(mode === 'lesson' ? lessons : mode === 'topic' ? topics : formats)
               .filter(item => mode === 'format' || item.toLowerCase().includes(searchTerm.toLowerCase()))
               .map(item => {
                 const isSelected = selection === item;
                 const hasLibraryMatch = mode !== 'format' && wordFiles.some(f => scoreMatch(f, item) >= 3);
+                const qCount = mode === 'lesson'
+                  ? questions.filter(q => q.lesson === item).length
+                  : mode === 'topic'
+                  ? questions.filter(q => q.topic === item).length
+                  : questions.filter(q => q.type === item).length;
                 return (
                   <button
                     key={item}
@@ -241,7 +293,12 @@ export default function PracticeSetup() {
                       <CheckSquare size={14} style={{ color: '#14b8a6', flexShrink: 0 }} />
                     )}
                     <span className="flex-1">{mode === 'format' ? getFormatDisplay(item) : item}</span>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {qCount > 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-800/90 text-cyan-300 border border-cyan-500/20">
+                          {qCount} câu
+                        </span>
+                      )}
                       {item === 'true_false' && mode === 'format' && (
                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
                           style={{ background: 'rgba(20,184,166,0.2)', color: '#14b8a6' }}>Phần II</span>
@@ -437,6 +494,8 @@ export default function PracticeSetup() {
       </div>
 
       <AITutorChatbot />
+      <GeoFormulasModal isOpen={isFormulasOpen} onClose={() => setIsFormulasOpen(false)} />
+      <InteractiveMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
     </motion.div>
   );
 }

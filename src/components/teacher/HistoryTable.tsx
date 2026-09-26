@@ -1,7 +1,8 @@
-import React from 'react';
-import { History, Search, RefreshCw, ShieldCheck, MessageSquare } from 'lucide-react';
+import React, { useState } from 'react';
+import { History, Search, RefreshCw, ShieldCheck, MessageSquare, FileSpreadsheet } from 'lucide-react';
 import { QuizAttempt } from '../../types';
 import { cn } from '../../utils/cn';
+import GoogleSheetModal from './GoogleSheetModal';
 
 interface HistoryTableProps {
   attempts: QuizAttempt[];
@@ -15,6 +16,7 @@ interface HistoryTableProps {
   setCommentingId: (id: string | null) => void;
   setComment: (comment: string) => void;
   setProgress: (progress: string) => void;
+  teacherEmail?: string;
 }
 
 export default function HistoryTable({
@@ -29,7 +31,10 @@ export default function HistoryTable({
   setCommentingId,
   setComment,
   setProgress,
+  teacherEmail,
 }: HistoryTableProps) {
+  const [showGoogleSheetModal, setShowGoogleSheetModal] = useState(false);
+
   // Guard: filter out any malformed attempt records from RTDB/Firestore merges
   const safeAttempts = (attempts || []).filter((a) => a && a.id);
 
@@ -92,6 +97,14 @@ export default function HistoryTable({
               className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm"
             />
           </div>
+          <button
+            onClick={() => setShowGoogleSheetModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-100 transition-colors shrink-0"
+            title="Đồng bộ kết quả vào Google Sheet"
+          >
+            <FileSpreadsheet size={16} />
+            <span className="hidden sm:inline">Google Sheets</span>
+          </button>
           <button
             onClick={loadData}
             className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
@@ -211,6 +224,13 @@ export default function HistoryTable({
           </table>
         </div>
       )}
+
+      <GoogleSheetModal
+        isOpen={showGoogleSheetModal}
+        onClose={() => setShowGoogleSheetModal(false)}
+        attempts={filteredAttempts}
+        teacherEmail={teacherEmail}
+      />
     </div>
   );
 }

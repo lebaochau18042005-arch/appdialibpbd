@@ -5,6 +5,7 @@
 import { rtdb } from '../firebase';
 import { ref, set, push, onValue, off, remove, get } from 'firebase/database';
 import { ExamAssignment } from '../types';
+import { sanitizeEmailKey, teacherWorkspaceService } from './teacherWorkspaceService';
 
 const LS_KEY = 'geo_pro_assignments';
 
@@ -31,9 +32,14 @@ export const assignmentService = {
     dueDate?: string,
     targetStudents?: string[],
     examQuestions?: any[],
-    creatorId?: string
+    creatorId?: string,
+    shuffleQuestions: boolean = true,
+    antiCheat: boolean = true,
+    maxTabSwitches: number = 3,
+    teacherEmail?: string
   ): Promise<string> {
     const createdAt = new Date().toISOString();
+    const finalTeacherEmail = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
     const assignDoc: Record<string, any> = {
       examId,
       examTitle,
@@ -41,47 +47,77 @@ export const assignmentService = {
       targetClass,
       createdAt,
       creatorId,
+      teacherEmail: finalTeacherEmail || undefined,
+      shuffleQuestions,
+      antiCheat,
+      maxTabSwitches,
       ...(dueDate ? { dueDate } : {}),
       ...(targetStudents?.length ? { targetStudents } : {}),
       ...(examQuestions?.length ? { questions: examQuestions } : {}),
     };
 
-    // Write to RTDB
+    // Write to RTDB: ưu tiên node theo creatorId hoặc teacherEmail để tách biệt không gian giáo viên
     let id = `local_${Date.now()}`;
-    if (creatorId) {
-      try {
-        const newRef = await push(ref(rtdb, `assignments/${creatorId}`), assignDoc);
-        id = newRef.key || id;
-      } catch (e) {
-        console.warn('assignmentService: RTDB write failed, using localStorage', e);
-      }
-    } else {
-      try {
-        const newRef = await push(ref(rtdb, 'assignments/global'), assignDoc);
-        id = newRef.key || id;
-      } catch (e) {
-        console.warn('assignmentService: RTDB write failed, using localStorage', e);
-      }
+    const storageKey = creatorId || (finalTeacherEmail ? sanitizeEmailKey(finalTeacherEmail) : 'global');
+    try {
+      const newRef = await push(ref(rtdb, `assignments/${storageKey}`), assignDoc);
+      id = newRef.key || id;
+    } catch (e) {
+      console.warn('assignmentService: RTDB write failed, using localStorage', e);
     }
 
-    const assignment: ExamAssignment = { id, examId, examTitle, assignedBy, targetClass, createdAt, ...(dueDate ? { dueDate } : {}) };
+    const assignment: ExamAssignment = {
+      id,
+      examId,
+      examTitle,
+      assignedBy,
+      teacherEmail: finalTeacherEmail || undefined,
+      targetClass,
+      createdAt,
+      shuffleQuestions,
+      antiCheat,
+      maxTabSwitches,
+      ...(dueDate ? { dueDate } : {}),
+      ...(targetStudents?.length ? { targetStudents } : {}),
+    };
     lsAdd(assignment);
     return id;
   },
 
   // Student: get exam questions from RTDB (by examId) as fallback when Firestore fails
-  async getExamQuestionsFromRTDB(examId: string): Promise<{ title: string; questions: any[] } | null> {
+  async getExamQuestionsFromRTDB(examId: string): Promise<{
+    title: string;
+    questions: any[];
+    shuffleQuestions?: boolean;
+    antiCheat?: boolean;
+    maxTabSwitches?: number;
+    teacherEmail?: string;
+  } | null> {
     try {
       const snap = await get(ref(rtdb, 'assignments'));
       if (!snap.exists()) return null;
-      let result: { title: string; questions: any[] } | null = null;
+      let result: {
+        title: string;
+        questions: any[];
+        shuffleQuestions?: boolean;
+        antiCheat?: boolean;
+        maxTabSwitches?: number;
+        teacherEmail?: string;
+      } | null = null;
       snap.forEach((creatorSnap: any) => {
         if (result) return;
         creatorSnap.forEach((child: any) => {
           if (result) return;
           const d = child.val();
           if (d.examId === examId && d.questions?.length) {
-            result = { title: d.examTitle || 'Đề thi', questions: d.questions };
+            result = {
+              title: d.examTitle || 'Đề thi',
+              questions: d.questions,
+              shuffleQuestions: d.shuffleQuestions ?? true,
+              antiCheat: d.antiCheat ?? false,
+              maxTabSwitches: d.maxTabSwitches ?? 3,
+              teacherEmail: d.teacherEmail || undefined,
+            };
           }
         });
       });
@@ -89,10 +125,71 @@ export const assignmentService = {
     } catch { return null; }
   },
 
+  // Get full assignment configuration (shuffle, antiCheat, maxTabSwitches)
+  async getAssignmentConfig(examId: string, assignmentId?: string): Promise<{
+    shuffleQuestions: boolean;
+    antiCheat: boolean;
+    maxTabSwitches: number;
+    teacherEmail?: string;
+    assignment?: ExamAssignment;
+  }> {
+    // 1. Check localStorage first
+    const local = lsGet();
+    const foundLocal = local.find(a => (assignmentId && a.id === assignmentId) || a.examId === examId);
+    if (foundLocal && (foundLocal.shuffleQuestions !== undefined || foundLocal.antiCheat !== undefined)) {
+      return {
+        shuffleQuestions: foundLocal.shuffleQuestions ?? true,
+        antiCheat: foundLocal.antiCheat ?? false,
+        maxTabSwitches: foundLocal.maxTabSwitches ?? 3,
+        teacherEmail: foundLocal.teacherEmail,
+        assignment: foundLocal,
+      };
+    }
+
+    // 2. Query RTDB assignments
+    try {
+      const snap = await get(ref(rtdb, 'assignments'));
+      if (snap.exists()) {
+        let match: any = null;
+        snap.forEach((creatorSnap: any) => {
+          if (match) return;
+          creatorSnap.forEach((child: any) => {
+            if (match) return;
+            const d = child.val();
+            if ((assignmentId && child.key === assignmentId) || d.examId === examId) {
+              match = { ...d, id: child.key };
+            }
+          });
+        });
+
+        if (match) {
+          return {
+            shuffleQuestions: match.shuffleQuestions ?? true,
+            antiCheat: match.antiCheat ?? false,
+            maxTabSwitches: match.maxTabSwitches ?? 3,
+            teacherEmail: match.teacherEmail || foundLocal?.teacherEmail,
+            assignment: match,
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('getAssignmentConfig error:', e);
+    }
+
+    return {
+      shuffleQuestions: foundLocal?.shuffleQuestions ?? true,
+      antiCheat: foundLocal?.antiCheat ?? false,
+      maxTabSwitches: foundLocal?.maxTabSwitches ?? 3,
+      teacherEmail: foundLocal?.teacherEmail,
+      assignment: foundLocal,
+    };
+  },
+
   // Teacher: subscribe to ALL assignments (realtime)
-  subscribeToAssignments(creatorId: string, callback: (assignments: ExamAssignment[]) => void): () => void {
-    if (!creatorId) { callback(lsGet()); return () => { }; }
-    const assignRef = ref(rtdb, `assignments/${creatorId}`);
+  subscribeToAssignments(creatorIdOrEmail: string, callback: (assignments: ExamAssignment[]) => void): () => void {
+    if (!creatorIdOrEmail) { callback(lsGet()); return () => { }; }
+    const safeKey = creatorIdOrEmail.includes('@') ? sanitizeEmailKey(creatorIdOrEmail) : creatorIdOrEmail;
+    const assignRef = ref(rtdb, `assignments/${safeKey}`);
     const handler = (snap: any) => {
       if (!snap.exists()) {
         callback(lsGet());
@@ -106,9 +203,14 @@ export const assignmentService = {
           examId: d.examId || child.key,
           examTitle: d.examTitle || '',
           assignedBy: d.assignedBy || 'Giáo viên',
+          teacherEmail: d.teacherEmail,
           targetClass: d.targetClass || '',
           dueDate: d.dueDate,
           createdAt: d.createdAt || '',
+          targetStudents: d.targetStudents || [],
+          shuffleQuestions: d.shuffleQuestions ?? true,
+          antiCheat: d.antiCheat ?? false,
+          maxTabSwitches: d.maxTabSwitches ?? 3,
         });
       });
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -155,6 +257,10 @@ export const assignmentService = {
             targetClass: d.targetClass || '',
             dueDate: d.dueDate,
             createdAt: d.createdAt || '',
+            targetStudents: d.targetStudents || [],
+            shuffleQuestions: d.shuffleQuestions ?? true,
+            antiCheat: d.antiCheat ?? false,
+            maxTabSwitches: d.maxTabSwitches ?? 3,
           });
         });
       });

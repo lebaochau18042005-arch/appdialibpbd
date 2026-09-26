@@ -275,7 +275,7 @@ function UploadFileModal({ onClose, authorId }: { onClose: () => void, authorId?
                   <div>
                     <p className="text-2xl mb-1">{fileIcon(file.name.split('.').pop()?.toLowerCase() || '')}</p>
                     <p className="font-bold text-slate-800 text-sm">{file.name}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{formatSize(file.size)}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">{formatSize(file.size)}</p>
                   </div>
                 ) : (
                   <div>
@@ -374,7 +374,7 @@ export default function LibraryPage() {
 
   const filtered = (tab === 'video' ? videos : tab === 'file' ? files : GAMES).filter((i: any) => {
     const q = search.toLowerCase();
-    return (i.title || '').toLowerCase().includes(q) || (i.desc || i.description || '').toLowerCase().includes(q) || (i.tags || '').toLowerCase().includes(q);
+    return (i.title || '').toLowerCase().includes(q) || (i.desc || i.description || '').toLowerCase().includes(q) || (Array.isArray(i.tags) ? i.tags.join(' ') : i.tags || '').toLowerCase().includes(q);
   });
 
   const handleDeleteVideo = async (id: string) => {
@@ -417,13 +417,13 @@ export default function LibraryPage() {
       {previewFile && <DocPreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
             <Library size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900">Thư Viện</h1>
+            <h1 className="text-2xl font-black text-slate-100">Thư Viện</h1>
             <p className="text-xs text-slate-400 font-medium">Video · Tài liệu · Trò chơi</p>
           </div>
         </div>
@@ -445,8 +445,8 @@ export default function LibraryPage() {
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-        <input type="text" placeholder="Tìm tài liệu..." value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:border-indigo-400 transition-all" />
+        <input type="text" aria-label="Tìm tài liệu" placeholder="Tìm tài liệu..." value={search} onChange={e => setSearch(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 bg-white text-slate-800 placeholder:text-slate-500 border border-slate-200 rounded-2xl text-sm outline-none focus:border-indigo-400 transition-all" />
       </div>
 
       {/* Tabs */}
@@ -521,16 +521,16 @@ export default function LibraryPage() {
               const bgMap: Record<string, string> = { rose: 'bg-rose-500', sky: 'bg-sky-500', amber: 'bg-amber-500', slate: 'bg-slate-400' };
               return (
                 <motion.div key={item.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  className={cn('flex items-start gap-4 p-4 bg-white border-2 rounded-2xl hover:shadow-md transition-all', borderMap[col])}>
+                  className={cn('flex flex-wrap items-start gap-4 p-4 bg-white border-2 rounded-2xl hover:shadow-md transition-all', borderMap[col])}>
                   <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-xl shadow-sm', bgMap[col])}>
                     <span>{fileIcon(item.fileType)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-black text-slate-800 text-sm leading-snug">{item.title}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{item.fileName} · {formatSize(item.fileSize)}</p>
-                    <p className="text-[10px] text-slate-300 mt-0.5">{new Date(item.createdAt).toLocaleDateString('vi-VN')}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">{item.fileName} · {formatSize(item.fileSize)}</p>
+                    <p className="text-[10px] text-slate-600 mt-0.5">{new Date(item.createdAt).toLocaleDateString('vi-VN')}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end w-full sm:w-auto">
                     {isTeacherMode && (
                       <button onClick={() => handleDeleteFile(item)} disabled={deleting === item.id}
                         className="w-7 h-7 bg-red-50 text-red-400 rounded-xl flex items-center justify-center hover:bg-red-100 transition-colors">

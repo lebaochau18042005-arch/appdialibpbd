@@ -19,7 +19,11 @@ export const DEFAULT_BGD_SCORING: ScoringConfig = {
  * - Về chữ thường
  */
 export function normalizeShortAnswer(val: string | number): string {
-  return String(val).trim().replace(/\./g, ',').toLowerCase();
+  return String(val)
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/\./g, ',')
+    .toLowerCase();
 }
 
 /**
@@ -35,12 +39,13 @@ export function isBGDFormat(val: string): boolean {
 
 /**
  * Chuyển chuỗi số (VN hoặc quốc tế) sang số thực.
- * Chấp nhận cả "," và "." làm dấu thập phân.
+ * Chấp nhận cả "," và "." làm dấu thập phân, hỗ trợ dấu "+" hoặc "-".
  */
 function parseNumericAnswer(val: string): number | null {
   // Chuẩn hoá thập phân VN: "," → "."
   const normalized = val.replace(',', '.');
-  const n = parseFloat(normalized);
+  if (!/^[+-]?\d+(?:\.\d+)?$/.test(normalized)) return null;
+  const n = Number(normalized);
   return isNaN(n) ? null : n;
 }
 

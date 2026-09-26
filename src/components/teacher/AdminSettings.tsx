@@ -3,7 +3,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db, rtdb } from '../../firebase';
 import { collection, doc, setDoc, getDocs, deleteDoc, query, onSnapshot, getDoc } from 'firebase/firestore';
 import { ref, get, update } from 'firebase/database';
-import { UserPlus, Trash2, Database, ShieldAlert, Loader2, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Trash2, Database, ShieldAlert, Loader2, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import GoogleSheetModal from './GoogleSheetModal';
+import { teacherWorkspaceService } from '../../services/teacherWorkspaceService';
 
 interface ApprovedTeacher {
     id: string;
@@ -20,6 +22,7 @@ export default function AdminSettings() {
     // Migration states
     const [migrating, setMigrating] = useState(false);
     const [migrationDone, setMigrationDone] = useState(false);
+    const [showSheetModal, setShowSheetModal] = useState(false);
 
     useEffect(() => {
         if (!isAdmin) return;
@@ -223,8 +226,33 @@ export default function AdminSettings() {
                         <p className="text-[10px] text-amber-600/70 text-center font-bold">Chỉ ấn duy nhất chạy 1 lần.</p>
                     </div>
 
+                    {/* Google Sheets Sync Section */}
+                    <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-3xl space-y-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2">
+                            <FileSpreadsheet size={24} />
+                        </div>
+                        <h3 className="text-xl font-black text-emerald-900 leading-tight">Đồng Bộ Google Sheets</h3>
+                        <p className="text-sm text-emerald-700 leading-relaxed font-medium">
+                            Tự động lưu trữ và đồng bộ hóa kết quả làm bài của học sinh về Google Sheet theo thời gian thực ngay khi nộp bài. Bạn có thể kiểm tra kết nối, cấu hình Webhook và xuất file dữ liệu.
+                        </p>
+
+                        <button
+                            onClick={() => setShowSheetModal(true)}
+                            className="w-full py-4 mt-6 rounded-2xl flex items-center justify-center gap-2 font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-200 transition-all cursor-pointer"
+                        >
+                            <FileSpreadsheet size={20} /> CẤU HÌNH & QUẢN LÝ GOOGLE SHEETS
+                        </button>
+                    </div>
+
                 </div>
             </div>
+
+            {/* Google Sheets Management Modal */}
+            <GoogleSheetModal
+                isOpen={showSheetModal}
+                onClose={() => setShowSheetModal(false)}
+                teacherEmail={teacherWorkspaceService.getActiveTeacherEmail()}
+            />
         </div>
     );
 }

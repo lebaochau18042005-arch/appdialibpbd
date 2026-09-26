@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ref, get } from 'firebase/database';
@@ -6,7 +6,7 @@ import { rtdb } from '../firebase';
 import { extractTextFromUrl } from '../utils/fileExtractor';
 import { examService } from '../services/examService';
 import { useAuth } from '../contexts/AuthContext';
-import { CheckCircle2, XCircle, AlertCircle, ArrowRight, Loader2, RefreshCcw, Home, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertCircle, ArrowRight, Loader2, RefreshCcw, Home, Clock, Calculator, Map } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { liveTrackingService } from '../services/liveTrackingService';
@@ -19,7 +19,19 @@ import QuizActiveCard from '../components/exam/QuizActiveCard';
 import QuizResultCard from '../components/exam/QuizResultCard';
 import ExamReviewCard from '../components/exam/ExamReviewCard';
 import AITutorChatbot from '../components/ai/AITutorChatbot';
+import GeoFormulasModal from '../components/exam/GeoFormulasModal';
+import InteractiveMapModal from '../components/exam/InteractiveMapModal';
 
+import { useLearningDraft } from '../hooks/useLearningDraft';
+import { DraftStatus } from '../components/LearningTools';
+import { getMistakes, learningOwner, recordAnswers, remainingSeconds } from '../services/learningStorage';
+
+interface QuizDraft {
+  questions: Question[]; currentIndex: number; startTime: number;
+  mcAnswer: number | null; tfAnswer: Record<string, boolean>; saAnswer: string;
+  detailedAnswers: Record<string, { topic: string; isCorrect: boolean; userAnswer: any }>;
+  isSubmitted: boolean; isAnswerCorrect: boolean | null; score: number; scoringConfig: ScoringConfig;
+}
 export default function Quiz() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -31,32 +43,43 @@ export default function Quiz() {
   const useAI = searchParams.get('useAI') === 'true';
   const libraryFileId = searchParams.get('libraryFileId');
 
-  const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const owner = learningOwner(user?.uid);
+  const reviewMistakes = searchParams.get('review') === 'mistakes';
+  const draft = useLearningDraft<QuizDraft>(owner, 'quiz', '/quiz?' + searchParams.toString());
+  const restored = draft.initial;
+  const finishedRef = useRef(false);
+  const loadingStarted = useRef(false);
+  const [storageError, setStorageError] = useState('');
+  const [quizQuestions, setQuizQuestions] = useState<Question[]>(restored?.questions || []);
+  const [currentIndex, setCurrentIndex] = useState(restored?.currentIndex || 0);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Answer states
-  const [mcAnswer, setMcAnswer] = useState<number | null>(null);
-  const [tfAnswer, setTfAnswer] = useState<Record<string, boolean>>({});
-  const [saAnswer, setSaAnswer] = useState<string>('');
-  const [detailedAnswers, setDetailedAnswers] = useState<Record<string, { topic: string; isCorrect: boolean; userAnswer: any }>>({}); // per-question rich results
+  const [mcAnswer, setMcAnswer] = useState<number | null>(restored?.mcAnswer ?? null);
+  const [tfAnswer, setTfAnswer] = useState<Record<string, boolean>>(restored?.tfAnswer || {});
+  const [saAnswer, setSaAnswer] = useState<string>(restored?.saAnswer || '');
+  const [detailedAnswers, setDetailedAnswers] = useState<Record<string, { topic: string; isCorrect: boolean; userAnswer: any }>>(restored?.detailedAnswers || {}); // per-question rich results
 
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
-  const [score, setScore] = useState(0); // Raw score for simplicity
+  const [isSubmitted, setIsSubmitted] = useState(restored?.isSubmitted || false);
+  const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(restored?.isAnswerCorrect ?? null);
+  const [score, setScore] = useState(restored?.score || 0); // Raw score for simplicity
   const [isFinished, setIsFinished] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
-  const [startTime, setStartTime] = useState(0);
-  const [scoringConfig, setScoringConfig] = useState<ScoringConfig>(DEFAULT_BGD_SCORING);
+  const [startTime, setStartTime] = useState(restored?.startTime || 0);
+  const [scoringConfig, setScoringConfig] = useState<ScoringConfig>(restored?.scoringConfig || DEFAULT_BGD_SCORING);
 
   // Timer states (50 minutes = 3000 seconds)
-  const [timeLeft, setTimeLeft] = useState(3000);
+  const [timeLeft, setTimeLeft] = useState(restored ? remainingSeconds(restored.startTime) : 3000);
   const [timeRanOut, setTimeRanOut] = useState(false);
 
-  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(restored?.isSubmitted ? restored.questions[restored.currentIndex]?.explanation || 'Đáp án đã được khôi phục.' : null);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isFormulasOpen, setIsFormulasOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    try { return JSON.parse(localStorage.getItem('examGeoProfile') || 'null'); } catch { return null; }
+  });
   const [studentSessionId] = useState<string>(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [studentName, setStudentName] = useState<string>('');
   const [hasJoined, setHasJoined] = useState(false);
@@ -88,7 +111,17 @@ export default function Quiz() {
   }, []);
 
   useEffect(() => {
+    if (restored || loadingStarted.current) return;
+    loadingStarted.current = true;
     const loadQuestions = async () => {
+      if (reviewMistakes) {
+        const list = getMistakes(owner).filter(m => !m.resolved && (!filter || (m.question.topic || 'Chung') === filter))
+          .map((m, i) => ({ ...m.question, id: 'review_' + i }));
+        setQuizQuestions(list);
+        applyPracticeScoring(list);
+        setStartTime(Date.now());
+        return;
+      }
       if (mode === 'exam' && examId) {
         try {
           const res = await fetch(`/api/exam/${examId}`);
@@ -162,7 +195,11 @@ export default function Quiz() {
     const loadStaticQuestions = () => {
       let preferredPool = questions;
       if (mode === 'lesson' && filter) {
-        preferredPool = questions.filter(q => q.lesson === filter);
+        preferredPool = questions.filter(q =>
+          q.lesson === filter ||
+          q.lesson?.toLowerCase().includes(filter.toLowerCase()) ||
+          filter.toLowerCase().includes(q.lesson?.toLowerCase() || '')
+        );
       } else if (mode === 'topic' && filter) {
         preferredPool = questions.filter(q => q.topic === filter);
       } else if (mode === 'format' && filter) {
@@ -209,6 +246,11 @@ export default function Quiz() {
   }, [mode, filter, examId, navigate, useAI, countParam, libraryFileId]);
 
   useEffect(() => {
+    if (!isFinished) draft.persist({ questions: quizQuestions, currentIndex, startTime, mcAnswer, tfAnswer, saAnswer,
+      detailedAnswers, isSubmitted, isAnswerCorrect, score, scoringConfig }, reviewMistakes ? 'Ôn lại câu sai' : filter || 'Bài luyện tập');
+  });
+
+  useEffect(() => {
     if (mode === 'exam' && studentName && !hasJoined) {
       const targetExamId = examId || 'exam_local';
       liveTrackingService.joinLiveExam(targetExamId, studentSessionId, {
@@ -220,7 +262,7 @@ export default function Quiz() {
   }, [mode, studentName, hasJoined, examId, profile, studentSessionId]);
 
   useEffect(() => {
-    if (isFinished || quizQuestions.length === 0) return;
+    if (isFinished || !startTime || quizQuestions.length === 0) return;
 
     if (timeLeft <= 0) {
       setTimeRanOut(true);
@@ -229,11 +271,11 @@ export default function Quiz() {
     }
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
+      setTimeLeft(remainingSeconds(startTime));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isFinished, quizQuestions.length]);
+  }, [timeLeft, isFinished, quizQuestions.length, startTime]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -296,19 +338,36 @@ export default function Quiz() {
       liveTrackingService.updateLiveProgress(examId || 'exam_local', studentSessionId, currentIndex + 1, newScore);
     }
 
+    if (!recordAnswers(owner, [{ question: currentQuestion, answer: userAnswerForAi }])) {
+      setStorageError('Không lưu được sổ câu sai. Hãy kiểm tra dung lượng hoặc quyền lưu trữ của trình duyệt.');
+    }
+    if (reviewMistakes) {
+      setAiExplanation(currentQuestion.explanation || 'Hãy đối chiếu đáp án; hỏi giáo viên nếu cần giải thích thêm.');
+      return;
+    }
+    const answeredIndex = currentIndex;
     setIsAiLoading(true);
+    try {
     const explanation = await getExplanation(
       currentQuestion,
       userAnswerForAi,
       isCorrect,
       profile || undefined
     );
-    setAiExplanation(explanation);
-    setIsAiLoading(false);
+    if (activeIndex.current === answeredIndex && !finishedRef.current) setAiExplanation(explanation);
+    } catch {
+      if (activeIndex.current === answeredIndex) setAiExplanation(currentQuestion.explanation || 'Chưa tải được giải thích AI. Đáp án đã được ghi nhận.');
+    } finally {
+      if (activeIndex.current === answeredIndex) setIsAiLoading(false);
+    }
   };
 
+  const activeIndex = useRef(currentIndex);
+  activeIndex.current = currentIndex;
   const handleNext = () => {
     if (currentIndex < quizQuestions.length - 1) {
+      activeIndex.current = currentIndex + 1;
+      setIsAiLoading(false);
       setCurrentIndex(i => i + 1);
       setMcAnswer(null);
       setTfAnswer({});
@@ -322,7 +381,14 @@ export default function Quiz() {
   };
 
   const finishQuiz = async () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
     setIsFinished(true);
+    const completeAnswers = { ...detailedAnswers };
+    const omitted = quizQuestions.filter(q => !completeAnswers[q.id]);
+    omitted.forEach(q => { completeAnswers[q.id] = { topic: q.topic || 'Chung', isCorrect: false, userAnswer: null }; });
+    if (!recordAnswers(owner, omitted.map(question => ({ question, answer: null })))) setStorageError('Không lưu được một số câu vào sổ câu sai.');
+    draft.clear();
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
     if (mode === 'exam') {
@@ -334,16 +400,16 @@ export default function Quiz() {
       userName: profile?.name || user?.displayName || 'Học sinh ẩn danh',
       className: profile?.className || 'Chưa xác định',
       examId: examId || 'local',
-      examTitle: mode === 'exam' ? 'Đề thi tham khảo 2026' : (filter || 'Luyện tập'),
+      examTitle: reviewMistakes ? 'Ôn lại câu sai' : mode === 'exam' ? 'Đề thi tham khảo 2026' : (filter || 'Luyện tập'),
       date: new Date().toISOString(),
       mode,
       score: Number(score.toFixed(2)),
       totalQuestions: quizQuestions.length,
       timeSpent,
-      answers: detailedAnswers
+      answers: completeAnswers
     };
 
-    await examService.saveAttempt(attempt);
+    try { await examService.saveAttempt(attempt); } catch { setStorageError('Chưa lưu được kết quả bài làm. Hãy giữ trang này để xem lại kết quả.'); }
   };
 
   const mcQs = quizQuestions.filter(q => q.type === 'multiple_choice').length;
@@ -407,7 +473,7 @@ export default function Quiz() {
       );
     }
     return (
-      <QuizResultCard
+      <div><p role="status" className="text-amber-200 mb-3">{storageError || draft.error}</p><button onClick={() => navigate('/mistakes')} className="mb-4 px-4 py-2 bg-sky-700 text-white rounded-xl">Mở sổ câu sai</button><QuizResultCard
         timeRanOut={timeRanOut}
         mode={mode}
         filter={filter}
@@ -416,27 +482,49 @@ export default function Quiz() {
         startTime={startTime}
         navigate={navigate}
         onReview={() => setIsReviewMode(true)}
-      />
+      /></div>
     );
   }
 
   return (
     <div className="max-w-3xl mx-auto pb-24 md:pb-0">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-2">
-          <div className="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">
+      <DraftStatus restored={!!restored} error={storageError || draft.error} />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="text-sm font-medium text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
             Câu {currentIndex + 1} / {quizQuestions.length}
           </div>
           <div className={cn(
-            "text-sm font-medium px-3 py-1 rounded-full shadow-sm border flex items-center gap-1.5 transition-colors",
-            timeLeft < 300 ? "bg-rose-50 text-rose-600 border-rose-100 animate-pulse" : "bg-white text-slate-600 border-slate-100"
+            "text-sm font-medium px-3 py-1 rounded-full border flex items-center gap-1.5 transition-colors",
+            timeLeft < 300 ? "bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse" : "bg-slate-900 text-slate-300 border-slate-800"
           )}>
-            <Clock className="w-4 h-4" />
+            <Clock className="w-4 h-4 text-cyan-400" />
             {formatTime(timeLeft)}
           </div>
         </div>
-        <div className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-          Điểm: {score.toFixed(2)}
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsMapOpen(true)}
+            className="p-1.5 px-3 rounded-full bg-slate-900 border border-cyan-500/30 text-cyan-300 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            title="Tra cứu 34 Tỉnh & 6 Vùng (TT17)"
+          >
+            <Map size={14} className="text-cyan-400" />
+            Tra cứu
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsFormulasOpen(true)}
+            className="p-1.5 px-3 rounded-full bg-slate-900 border border-cyan-500/30 text-cyan-300 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            title="Sổ tay Công thức & Máy tính"
+          >
+            <Calculator size={14} className="text-cyan-400" />
+            Máy tính
+          </button>
+          <div className="text-sm font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+            Điểm: {score.toFixed(2)}
+          </div>
         </div>
       </div>
 
@@ -455,7 +543,7 @@ export default function Quiz() {
         isAnswerCorrect={isAnswerCorrect}
       />
 
-      <div className="flex justify-end">
+      <div className="flex justify-end mt-4">
         {!isSubmitted ? (
           <button
             onClick={handleSubmit}
@@ -476,6 +564,16 @@ export default function Quiz() {
       </div>
 
       <AITutorChatbot />
+      <GeoFormulasModal
+        isOpen={isFormulasOpen}
+        onClose={() => setIsFormulasOpen(false)}
+        onApplyResult={(val) => {
+          if (currentQuestion && currentQuestion.type === 'short_answer') {
+            setSaAnswer(val);
+          }
+        }}
+      />
+      <InteractiveMapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
     </div>
   );
 }

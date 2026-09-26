@@ -273,6 +273,11 @@ export default function LiveStudentTracker() {
                           ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg"><CheckCircle2 size={10} />Đã nộp</span>
                           : <span className="flex items-center gap-1 text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg"><Loader2 size={10} className="animate-spin" />Đang thi</span>
                         }
+                        {(student as any).tabSwitches > 0 && (
+                          <span className="flex items-center gap-1 text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg animate-pulse">
+                            ⚠️ Rời tab: {(student as any).tabSwitches}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">

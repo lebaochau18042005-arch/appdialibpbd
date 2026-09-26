@@ -20,6 +20,9 @@ import FlashcardModal from '../components/teacher/FlashcardModal';
 import QuizPlayModal from '../components/teacher/QuizPlayModal';
 import ExamAnalysisModal from '../components/teacher/ExamAnalysisModal';
 import DataTableChart from '../components/exam/DataTableChart';
+import TeacherWorkspaceModal from '../components/teacher/TeacherWorkspaceModal';
+import { teacherWorkspaceService } from '../services/teacherWorkspaceService';
+import { TeacherWorkspace } from '../types';
 
 // ─── Inline chart/figure placeholder renderer for teacher previews ────────────
 function renderQText(text: string) {
@@ -273,6 +276,29 @@ export default function TeacherDashboard() {
   const [isUploadDropdownOpen, setIsUploadDropdownOpen] = useState(false);
   const [shouldTriggerClick, setShouldTriggerClick] = useState(false);
 
+  // Teacher Workspace Multi-tenant States
+  const [activeTeacherEmail, setActiveTeacherEmail] = useState<string>(() => {
+    return teacherWorkspaceService.getActiveTeacherEmail() || (user?.email || '');
+  });
+  const [teacherWorkspaceProfile, setTeacherWorkspaceProfile] = useState<TeacherWorkspace | null>(null);
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (user?.email && !teacherWorkspaceService.getActiveTeacherEmail()) {
+      setActiveTeacherEmail(user.email);
+      teacherWorkspaceService.setActiveWorkspace({
+        email: user.email,
+        name: user.displayName || 'Giáo viên',
+      });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTeacherEmail) {
+      teacherWorkspaceService.getTeacherProfile(activeTeacherEmail).then(setTeacherWorkspaceProfile);
+    }
+  }, [activeTeacherEmail]);
+
   // AI Generation states
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<Question[] | null>(null);
@@ -421,22 +447,27 @@ export default function TeacherDashboard() {
       setLoading(false);
     };
 
-    // Subscribe RTDB attempts (cross-device student submissions)
+    // Subscribe RTDB attempts (cross-device student submissions filtered by teacher workspace)
     unsubscribeRTDBAttempts = (examService as any).subscribeToRTDBAttempts?.((data: QuizAttempt[]) => {
       rtdbAttempts.splice(0, rtdbAttempts.length, ...data);
       mergeAndSetAttempts();
-    });
+    }, activeTeacherEmail);
 
     // Subscribe Firestore/localStorage attempts
     unsubscribeAttempts = examService.subscribeToAttempts((data) => {
-      fsAttempts.splice(0, fsAttempts.length, ...data);
+      let filtered = data;
+      if (activeTeacherEmail) {
+        filtered = data.filter(a => !a.teacherEmail || a.teacherEmail.toLowerCase() === activeTeacherEmail.toLowerCase());
+      }
+      fsAttempts.splice(0, fsAttempts.length, ...filtered);
       mergeAndSetAttempts();
     });
 
-    if (user) {
-      unsubscribeExams = examService.subscribeToExams(user.uid, (data) => {
+    const creatorKey = user?.uid || activeTeacherEmail || '';
+    if (creatorKey) {
+      unsubscribeExams = examService.subscribeToExams(creatorKey, (data) => {
         setExams(data);
-      });
+      }, activeTeacherEmail);
     } else {
       examService.getAllExams().then(data => setExams(data));
       setLoading(false);
@@ -447,14 +478,17 @@ export default function TeacherDashboard() {
       if (unsubscribeRTDBAttempts) unsubscribeRTDBAttempts();
       if (unsubscribeExams) unsubscribeExams();
     };
-  }, [user, profile]);
+  }, [user, profile, activeTeacherEmail]);
 
   const loadData = async () => {
     // This is now handled by real-time listeners, 
     // but we keep it for manual refresh if needed
     setLoading(true);
     try {
-      const attemptsData = await examService.getAllAttempts();
+      let attemptsData = await examService.getAllAttempts();
+      if (activeTeacherEmail) {
+        attemptsData = attemptsData.filter(a => !a.teacherEmail || a.teacherEmail.toLowerCase() === activeTeacherEmail.toLowerCase());
+      }
       const examsData = user ? await examService.getExamsByCreator(user.uid) : await examService.getAllExams();
       setAttempts(attemptsData);
       setExams(examsData);
@@ -513,6 +547,7 @@ export default function TeacherDashboard() {
       const examData: Omit<Exam, 'id'> = {
         title: generatedExamTitle,
         creatorId: user?.uid || 'anonymous-teacher',
+        creatorEmail: activeTeacherEmail || undefined,
         type: 'ai',
         questions: generatedQuestions,
         createdAt: new Date().toISOString()
@@ -674,7 +709,14 @@ export default function TeacherDashboard() {
         return;
       }
 
-      const id = await examService.saveUploadedExam(uploadTitle, user?.uid || 'anonymous-teacher', selectedFile, uploadingType, parsedQuestions);
+      const id = await examService.saveUploadedExam(
+        uploadTitle,
+        user?.uid || 'anonymous-teacher',
+        selectedFile,
+        uploadingType,
+        parsedQuestions,
+        activeTeacherEmail || undefined
+      );
       if (id) {
         // Close modal instantly without waiting for Firestore refetch
         setShowUploadConfirm(false);
@@ -687,6 +729,7 @@ export default function TeacherDashboard() {
           id,
           title: uploadTitle,
           creatorId: user?.uid || 'anonymous-teacher',
+          creatorEmail: activeTeacherEmail || undefined,
           type: 'upload',
           fileUrl: '',
           fileType: uploadingType,
@@ -841,6 +884,41 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
+      {/* Teacher Workspace Multi-tenant Header Bar */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 rounded-3xl border border-indigo-900/40 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 flex items-center justify-center text-amber-300 shrink-0 shadow-inner">
+            <User size={22} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300">Không Gian Làm Việc Giáo Viên</span>
+              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-black rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Độc lập theo Gmail
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+              <p className="font-black text-sm text-white font-mono">
+                {activeTeacherEmail ? activeTeacherEmail : 'Chưa thiết lập Gmail'}
+              </p>
+              {teacherWorkspaceProfile?.name && (
+                <span className="text-xs text-indigo-200 font-medium">({teacherWorkspaceProfile.name}{teacherWorkspaceProfile.school ? ` - ${teacherWorkspaceProfile.school}` : ''})</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setShowWorkspaceModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-950 transition-all cursor-pointer"
+          >
+            <Sparkles size={14} className="text-amber-300" />
+            <span>{activeTeacherEmail ? 'Đổi Gmail / Không gian' : 'Thiết lập Gmail giáo viên'}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Tab Navigation */}
       <div className="flex gap-1 p-1.5 bg-slate-100 rounded-2xl w-full md:w-auto overflow-x-auto">
         {TABS.map(tab => (
@@ -921,6 +999,7 @@ export default function TeacherDashboard() {
           setCommentingId={setCommentingId}
           setComment={setComment}
           setProgress={setProgress}
+          teacherEmail={activeTeacherEmail}
         />
       )}
 
@@ -1639,6 +1718,19 @@ export default function TeacherDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Teacher Workspace Modal */}
+      <TeacherWorkspaceModal
+        isOpen={showWorkspaceModal}
+        onClose={() => setShowWorkspaceModal(false)}
+        onWorkspaceChanged={(ws) => {
+          setActiveTeacherEmail(ws.email);
+          setTeacherWorkspaceProfile(ws);
+          loadData();
+        }}
+        initialEmail={activeTeacherEmail}
+        initialName={teacherWorkspaceProfile?.name || profile?.name}
+      />
     </div>
   );
 }

@@ -96,7 +96,7 @@ export default function NotificationBell() {
 
   const handleClick = (a: AssignedExam) => {
     setOpen(false);
-    navigate(`/exam-room?examId=${a.examId}`);
+    navigate(`/exam-room?examId=${a.examId}&assignmentId=${a.id}`);
   };
 
   const profile = getProfile();

@@ -1,4 +1,5 @@
 import React from 'react';
+import TopicReport from './TopicReport';
 import { Users, BookOpen, ClipboardCheck, MessageSquare, TrendingUp, GraduationCap } from 'lucide-react';
 import { QuizAttempt } from '../../types';
 import ScoreDistributionChart from '../charts/ScoreDistributionChart';
@@ -25,6 +26,7 @@ function uniqueStudentCount(attempts: QuizAttempt[]): number {
 }
 
 export default function TeacherStats({ attempts }: TeacherStatsProps) {
+  const scoredAttempts = attempts.filter(a => Number.isFinite(a.score));
   const totalStudents = uniqueStudentCount(attempts);
   const commentedCount = attempts.filter(a => a.teacherComment).length;
 
@@ -85,11 +87,8 @@ export default function TeacherStats({ attempts }: TeacherStatsProps) {
     },
     {
       label: 'TB điểm toàn trường',
-      value: attempts.length > 0
-        ? (attempts.filter(a => typeof a.score === 'number' && !isNaN(a.score))
-            .reduce((s, a) => s + a.score, 0) /
-           attempts.filter(a => typeof a.score === 'number' && !isNaN(a.score)).length
-          ).toFixed(2)
+      value: scoredAttempts.length > 0
+        ? (scoredAttempts.reduce((s, a) => s + a.score, 0) / scoredAttempts.length).toFixed(2)
         : '—',
       sub: 'trên thang 10',
       icon: TrendingUp,
@@ -117,21 +116,22 @@ export default function TeacherStats({ attempts }: TeacherStatsProps) {
   return (
     <div className="space-y-6">
       {/* 6-stat grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map(({ label, value, sub, icon: Icon, color }) => (
           <div key={label} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${colorMap[color]}`}>
               <Icon size={22} />
             </div>
             <div className="min-w-0">
-              <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider truncate">{label}</div>
+              <div className="text-[11px] text-slate-600 font-bold uppercase tracking-wider">{label}</div>
               <div className={`text-2xl font-black ${textMap[color]}`}>{value}</div>
-              <div className="text-[10px] text-slate-400 font-medium truncate">{sub}</div>
+              <div className="text-[10px] text-slate-600 font-medium">{sub}</div>
             </div>
           </div>
         ))}
       </div>
 
+      <TopicReport attempts={attempts} />
       {/* Top practice topics */}
       {topTopics.length > 0 && (
         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">

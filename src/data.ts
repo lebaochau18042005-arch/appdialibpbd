@@ -1,6 +1,8 @@
 import { Question } from './types';
+import { KNTT_LESSONS, KNTT_TOPICS, KNTT_PARTS, remapQuestionToKNTT } from './utils/knttCurriculum';
+export { KNTT_LESSONS, KNTT_TOPICS, KNTT_PARTS };
 
-export const questions: Question[] = [
+const rawQuestions: Question[] = [
   // --- PHẦN 1: TRẮC NGHIỆM KHÁCH QUAN ---
   {
     id: 'mc1',
@@ -4812,7 +4814,12 @@ export const questions: Question[] = [
   }
 ];
 
-export const topics = Array.from(new Set(questions.map(q => q.topic)));
-export const lessons = Array.from(new Set(questions.map(q => q.lesson).filter(Boolean))) as string[];
+export const questions: Question[] = rawQuestions.map(q => {
+  const { lesson, topic } = remapQuestionToKNTT(q);
+  return { ...q, lesson, topic };
+});
+
+export const topics = KNTT_TOPICS;
+export const lessons = KNTT_LESSONS;
 
 
