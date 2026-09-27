@@ -106,15 +106,8 @@ export async function extractTextFromUrl(url: string, fileType: string, fileName
       // ── Word extraction via mammoth (HTML mode to preserve tables) ───────────
       const result = await mammoth.convertToHtml({ arrayBuffer });
       const html = result.value || '';
-
-      // Convert HTML tables → Markdown tables
-      const markdownTables = htmlTablesToMarkdown(html);
-      // Plain text for non-table content
-      const plainText = htmlToPlainText(html);
-
-      // Interleave: replace table placeholders back into text
       const merged = mergeHtmlToMarkdown(html);
-      return merged || plainText;
+      return merged || '';
     } else {
       // ── PDF: Pass raw File directly to AI (Vision API) ───────────
       const finalName = fileName || (url.split('/').pop()?.split('?')[0]) || 'document.pdf';

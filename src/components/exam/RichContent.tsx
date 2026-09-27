@@ -25,8 +25,14 @@ export default function RichContent({ content, className = '' }: RichContentProp
         components={{
           // Styled table with header
           table: ({ node, ...props }) => (
-            <div className="my-4 overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
-              <table className="text-sm text-slate-700 w-full border-collapse" {...props} />
+            <div className="my-4 overflow-x-auto rounded-2xl border border-indigo-200 shadow-sm bg-white">
+              <div className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 border-b border-indigo-100 flex items-center justify-between sm:hidden">
+                <span>📊 Bảng số liệu</span>
+                <span className="text-indigo-500 font-medium">👉 Vuốt ngang để xem đủ bảng</span>
+              </div>
+              <div className="overflow-x-auto w-full">
+                <table className="text-xs sm:text-sm text-slate-700 w-full border-collapse" style={{ minWidth: 'max-content' }} {...props} />
+              </div>
             </div>
           ),
           thead: ({ node, ...props }) => (

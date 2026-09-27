@@ -681,72 +681,72 @@ export default function ExamRoom() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-24">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4 pb-36 md:pb-20">
       <DraftStatus restored={!!restored} error={storageError || draft.error} />
-      {/* Header Sticky */}
-      <div className="sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md py-4 mb-6 border-b border-slate-200 -mx-4 px-4">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <div className="flex items-center gap-4">
+      {/* Header Sticky: top-[56px] to dock cleanly below Layout header */}
+      <div className="sticky top-[56px] z-20 bg-slate-900/95 backdrop-blur-md py-2.5 sm:py-3.5 mb-4 sm:mb-6 border-b border-cyan-500/20 -mx-2 sm:-mx-4 px-3 sm:px-4 shadow-xl">
+        <div className="flex items-center justify-between max-w-6xl mx-auto gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <div className="hidden md:block">
               <div className={cn(
                 "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest mb-1",
-                examId ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                examId ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
               )}>
                 {examId ? 'ĐỀ THI THẬT' : 'ĐỀ THI THỬ'}
               </div>
-              <h1 className="text-sm font-black text-slate-800 truncate max-w-[200px]">{examTitle}</h1>
+              <h1 className="text-sm font-black text-white truncate max-w-[200px]">{examTitle}</h1>
             </div>
-            <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
-              <span className="text-sm font-bold text-emerald-600">Câu {currentIndex + 1}</span>
-              <span className="text-slate-300">/</span>
-              <span className="text-sm text-slate-500">{examQuestions.length}</span>
+            <div className="h-8 w-px bg-slate-700 hidden md:block"></div>
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-800/90 px-3 py-1.5 rounded-full shadow-sm border border-slate-700 shrink-0">
+              <span className="text-xs sm:text-sm font-black text-emerald-400">Câu {currentIndex + 1}</span>
+              <span className="text-slate-500 text-xs">/</span>
+              <span className="text-xs sm:text-sm font-bold text-slate-300">{examQuestions.length}</span>
             </div>
             {isAntiCheatEnabled && (
-              <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-full">
-                <ShieldCheck size={13} className="text-rose-500 animate-pulse" />
-                <span>Giám sát: Rời tab {tabSwitches}/{maxTabSwitches}</span>
+              <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold rounded-full">
+                <ShieldCheck size={13} className="text-rose-400 animate-pulse" />
+                <span>Giám sát: {tabSwitches}/{maxTabSwitches}</span>
               </span>
             )}
             {isShuffleEnabled && (
-              <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-full">
-                <Shuffle size={12} className="text-blue-500" />
-                <span>Đề xáo trộn</span>
+              <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold rounded-full">
+                <Shuffle size={12} className="text-blue-400" />
+                <span>Xáo trộn</span>
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <div className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded-full shadow-sm border font-mono font-bold transition-all",
-              timeLeft < 300 ? "bg-rose-50 text-rose-600 border-rose-200 animate-pulse" : "bg-white text-slate-700 border-slate-200"
+              "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full shadow-sm border font-mono font-bold text-xs sm:text-sm transition-all",
+              timeLeft < 300 ? "bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse" : "bg-slate-800 text-white border-slate-700"
             )}>
-              <Clock className="w-4 h-4" />
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
               {formatTime(timeLeft)}
             </div>
 
             <button
               onClick={() => setIsMapOpen(true)}
-              className="p-2 bg-slate-800 rounded-full border border-cyan-500/40 text-cyan-400 hover:bg-slate-700 transition-colors"
+              className="p-1.5 sm:p-2 bg-slate-800 rounded-full border border-cyan-500/40 text-cyan-400 hover:bg-slate-700 transition-colors shrink-0"
               title="Tra cứu 34 Tỉnh & 6 Vùng mới (TT17)"
             >
-              <Map className="w-5 h-5" />
+              <Map className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <button
               onClick={() => setIsFormulasOpen(true)}
-              className="p-2 bg-slate-800 rounded-full border border-cyan-500/40 text-cyan-400 hover:bg-slate-700 transition-colors"
+              className="p-1.5 sm:p-2 bg-slate-800 rounded-full border border-cyan-500/40 text-cyan-400 hover:bg-slate-700 transition-colors shrink-0"
               title="Sổ tay Công thức & Máy tính Địa lí"
             >
-              <Calculator className="w-5 h-5" />
+              <Calculator className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <button
               onClick={() => setShowQuestionMap(!showQuestionMap)}
-              className="p-2 bg-white rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+              className="p-1.5 sm:p-2 bg-slate-800 rounded-full border border-slate-700 text-slate-300 hover:bg-slate-700 transition-colors shrink-0"
               title="Sơ đồ câu hỏi"
             >
-              <LayoutGrid className="w-5 h-5" />
+              <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <button

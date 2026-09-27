@@ -407,7 +407,7 @@ export default function TeacherDashboard() {
         const newExams = allExams.map(e => e.id === examToSave.id ? examToSave : e);
         localStorage.setItem(lsKey, JSON.stringify(newExams));
       } catch { /* quota — skip local cache update, in-memory state is enough */ }
-      setExams(prev => prev.map(e => e.id === updatedExam.id ? updatedExam : e));
+      setExams(prev => prev.map(e => e.id === examToSave.id ? examToSave : e));
       // Also update Firestore if not a local-only exam
       if (!extractingExam.id.startsWith('local_')) {
         try {

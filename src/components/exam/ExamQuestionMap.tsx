@@ -25,23 +25,24 @@ export default function ExamQuestionMap({
   return (
     <div className={cn(
       "lg:block",
-      showQuestionMap ? "fixed inset-0 z-30 bg-white lg:relative lg:bg-transparent p-6 lg:p-0" : "hidden"
+      showQuestionMap ? "fixed inset-0 z-[80] bg-slate-900/95 backdrop-blur-md lg:relative lg:bg-transparent p-4 sm:p-6 lg:p-0 overflow-y-auto" : "hidden"
     )}>
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 sticky top-28">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+      <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-5 sm:p-6 lg:sticky lg:top-28 max-w-lg mx-auto lg:max-w-none">
+        <div className="flex items-center justify-between mb-5 sm:mb-6">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2 text-base">
             <LayoutGrid className="w-5 h-5 text-emerald-600" />
             Sơ đồ câu hỏi
           </h3>
           <button 
             onClick={() => setShowQuestionMap(false)}
-            className="lg:hidden p-2 text-slate-400"
+            className="lg:hidden p-2 text-slate-500 hover:text-slate-800 bg-slate-100 rounded-xl font-bold text-xs flex items-center gap-1"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-4 h-4" />
+            Đóng
           </button>
         </div>
 
-        <div className="grid grid-cols-5 gap-2 mb-8">
+        <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-5 gap-2 mb-6">
           {examQuestions.map((_, idx) => (
             <button
               key={idx}
@@ -50,10 +51,10 @@ export default function ExamQuestionMap({
                 setShowQuestionMap(false);
               }}
               className={cn(
-                "aspect-square rounded-lg text-xs font-bold transition-all flex items-center justify-center border-2",
-                idx === currentIndex ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100" :
-                isQuestionAnswered(idx) ? "border-emerald-100 bg-emerald-50 text-emerald-600" :
-                "border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200"
+                "aspect-square min-h-[42px] rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center border-2 active:scale-95",
+                idx === currentIndex ? "border-emerald-500 bg-emerald-500 text-white shadow-md ring-2 ring-emerald-200" :
+                isQuestionAnswered(idx) ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
+                "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-300"
               )}
             >
               {idx + 1}

@@ -226,27 +226,33 @@ export default function DataTableChart({ content }: { content: string }) {
 
       {/* Table */}
       {view === 'table' && (
-        <div className="overflow-x-auto rounded-xl border border-indigo-200 shadow-sm">
-          <table className="text-sm border-collapse w-full" style={{ minWidth: 'max-content' }}>
-            <thead>
-              <tr className="bg-indigo-600 text-white">
-                {table.headers.map((h, i) => (
-                  <th key={i} className="px-4 py-2.5 border border-indigo-500 text-center whitespace-nowrap font-bold text-sm">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {table.rows.map((row, ri) => (
-                <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'}>
-                  {table.headers.map((_, ci) => (
-                    <td key={ci} className={`px-4 py-2 border border-indigo-100 text-center whitespace-nowrap text-sm ${ci === 0 ? 'font-semibold text-slate-700 text-left' : 'text-slate-600 tabular-nums font-medium'}`}>
-                      {row[ci] ?? '—'}
-                    </td>
+        <div className="overflow-x-auto rounded-2xl border border-indigo-200 shadow-sm bg-white">
+          <div className="text-[11px] font-bold text-indigo-600 bg-indigo-50/90 px-3 py-1.5 border-b border-indigo-100 flex items-center justify-between sm:hidden">
+            <span>📊 Bảng số liệu chi tiết</span>
+            <span className="text-indigo-500 font-medium">👉 Vuốt ngang để xem đủ bảng</span>
+          </div>
+          <div className="overflow-x-auto w-full">
+            <table className="text-xs sm:text-sm border-collapse w-full" style={{ minWidth: 'max-content' }}>
+              <thead>
+                <tr className="bg-indigo-600 text-white">
+                  {table.headers.map((h, i) => (
+                    <th key={i} className="px-3 sm:px-4 py-2.5 border border-indigo-500 text-center whitespace-nowrap font-bold text-xs sm:text-sm">{h}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {table.rows.map((row, ri) => (
+                  <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50/40'}>
+                    {table.headers.map((_, ci) => (
+                      <td key={ci} className={`px-3 sm:px-4 py-2 border border-indigo-100 text-center whitespace-nowrap text-xs sm:text-sm ${ci === 0 ? 'font-semibold text-slate-800 text-left' : 'text-slate-700 tabular-nums font-medium'}`}>
+                        {row[ci] ?? '—'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -63,6 +63,8 @@ export default function Quiz() {
   const [isSubmitted, setIsSubmitted] = useState(restored?.isSubmitted || false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(restored?.isAnswerCorrect ?? null);
   const [score, setScore] = useState(restored?.score || 0); // Raw score for simplicity
+  const scoreRef = useRef(restored?.score || 0);
+  scoreRef.current = score;
   const [isFinished, setIsFinished] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [startTime, setStartTime] = useState(restored?.startTime || 0);
@@ -143,7 +145,15 @@ export default function Quiz() {
       } else if (useAI && filter && (mode === 'lesson' || mode === 'topic' || mode === 'format')) {
         setIsGenerating(true);
         try {
-          const count = countParam === 'all' ? 20 : parseInt(countParam || '10', 10);
+          // Khi 'all': AI tạo theo số câu thực trong ngân hàng (tối đa 40 câu để tránh AI timeout)
+          const count = countParam === 'all'
+            ? Math.min(40, questions.filter(q =>
+                mode === 'lesson' ? (q.lesson === filter || q.lesson?.toLowerCase().includes((filter || '').toLowerCase()))
+                : mode === 'topic' ? q.topic === filter
+                : mode === 'format' ? q.type === filter
+                : true
+              ).length || 20)
+            : parseInt(countParam || '10', 10);
 
           // Bước 1: Đọc file thư viện — lỗi bị bỏ qua, AI vẫn chạy không có context
           let fileContext: string | File | undefined = undefined;
@@ -206,6 +216,10 @@ export default function Quiz() {
         preferredPool = questions.filter(q => q.type === filter);
       }
 
+      // Khi theo bài học (lesson) hoặc chủ đề (topic), CHỈ lấy câu trong phạm vi đó
+      // Khi theo dạng thức (format), câu hỏi có thể đến từ toàn bộ ngân hàng
+      const isStrictScope = (mode === 'lesson' || mode === 'topic') && !!filter;
+
       const getQuestions = (type: QuestionType, count: number) => {
         let selected = preferredPool.filter(q => q.type === type);
         selected = selected.sort(() => 0.5 - Math.random());
@@ -214,6 +228,12 @@ export default function Quiz() {
           return selected.slice(0, count);
         }
 
+        // Nếu là bài học / chủ đề → KHÔNG bổ sung từ bài khác (giữ đúng phạm vi)
+        if (isStrictScope) {
+          return selected; // Trả về những gì có, dù ít hơn yêu cầu
+        }
+
+        // Chỉ bổ sung khi là dạng thức hoặc không có filter
         const remaining = count - selected.length;
         let others = questions.filter(q => q.type === type && !selected.includes(q));
         others = others.sort(() => 0.5 - Math.random());
@@ -232,11 +252,13 @@ export default function Quiz() {
         let shuffled = [...preferredPool].sort(() => 0.5 - Math.random());
         if (shuffled.length >= requestedCount) {
           finalQuestions = shuffled.slice(0, requestedCount);
+        } else if (isStrictScope) {
+          // Bài học / chủ đề không đủ câu → lấy hết những gì có trong phạm vi, KHÔNG pha trộn bài khác
+          finalQuestions = shuffled;
         } else {
-          // Nếu bài học có ít hơn số lượng yêu cầu: lấy hết câu của bài đó và bù thêm từ cùng chủ đề hoặc ngân hàng chung
+          // format hoặc không filter → bổ sung từ ngân hàng chung (hành vi cũ)
           const remainingNeeded = requestedCount - shuffled.length;
-          const sameTopicPool = questions.filter(q => !preferredPool.includes(q) && (preferredPool[0]?.topic ? q.topic === preferredPool[0]?.topic : true));
-          const fallbackPool = sameTopicPool.length >= remainingNeeded ? sameTopicPool : questions.filter(q => !preferredPool.includes(q));
+          const fallbackPool = questions.filter(q => !preferredPool.includes(q));
           const bonus = [...fallbackPool].sort(() => 0.5 - Math.random()).slice(0, remainingNeeded);
           finalQuestions = [...shuffled, ...bonus];
         }
@@ -329,7 +351,9 @@ export default function Quiz() {
       pointsEarned = getPoints('short_answer', isCorrect, 0, scoringConfig);
     }
 
-    setScore(s => s + pointsEarned);
+    const newTotal = scoreRef.current + pointsEarned;
+    scoreRef.current = newTotal;
+    setScore(newTotal);
     setIsAnswerCorrect(isCorrect);
 
     // Record rich answer data for topic analysis
@@ -343,8 +367,7 @@ export default function Quiz() {
     }));
 
     if (mode === 'exam') {
-      const newScore = score + pointsEarned;
-      liveTrackingService.updateLiveProgress(examId || 'exam_local', studentSessionId, currentIndex + 1, newScore);
+      liveTrackingService.updateLiveProgress(examId || 'exam_local', studentSessionId, currentIndex + 1, newTotal);
     }
 
     if (!recordAnswers(owner, [{ question: currentQuestion, answer: userAnswerForAi }])) {
@@ -412,7 +435,7 @@ export default function Quiz() {
       examTitle: reviewMistakes ? 'Ôn lại câu sai' : mode === 'exam' ? 'Đề thi tham khảo 2026' : (filter || 'Luyện tập'),
       date: new Date().toISOString(),
       mode,
-      score: Number(score.toFixed(2)),
+      score: Number(scoreRef.current.toFixed(2)),
       totalQuestions: quizQuestions.length,
       timeSpent,
       answers: completeAnswers
@@ -496,18 +519,18 @@ export default function Quiz() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto pb-24 md:pb-0">
+    <div className="max-w-3xl mx-auto pb-36 md:pb-12 px-2 sm:px-4">
       <DraftStatus restored={!!restored} error={storageError || draft.error} />
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-6">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="text-sm font-medium text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+          <div className="text-xs sm:text-sm font-bold text-slate-300 bg-slate-900/90 px-3 py-1.5 rounded-full border border-slate-700">
             Câu {currentIndex + 1} / {quizQuestions.length}
           </div>
           <div className={cn(
-            "text-sm font-medium px-3 py-1 rounded-full border flex items-center gap-1.5 transition-colors",
-            timeLeft < 300 ? "bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse" : "bg-slate-900 text-slate-300 border-slate-800"
+            "text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full border flex items-center gap-1.5 transition-colors",
+            timeLeft < 300 ? "bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse" : "bg-slate-900/90 text-slate-300 border-slate-700"
           )}>
-            <Clock className="w-4 h-4 text-cyan-400" />
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
             {formatTime(timeLeft)}
           </div>
         </div>
@@ -516,22 +539,22 @@ export default function Quiz() {
           <button
             type="button"
             onClick={() => setIsMapOpen(true)}
-            className="p-1.5 px-3 rounded-full bg-slate-900 border border-cyan-500/30 text-cyan-300 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            className="p-1.5 sm:p-2 px-3 rounded-full bg-slate-900 border border-cyan-500/30 text-cyan-300 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 shadow-sm"
             title="Tra cứu 34 Tỉnh & 6 Vùng (TT17)"
           >
             <Map size={14} className="text-cyan-400" />
-            Tra cứu
+            <span className="hidden sm:inline">Tra cứu</span>
           </button>
           <button
             type="button"
             onClick={() => setIsFormulasOpen(true)}
-            className="p-1.5 px-3 rounded-full bg-slate-900 border border-cyan-500/30 text-cyan-300 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            className="p-1.5 sm:p-2 px-3 rounded-full bg-slate-900 border border-cyan-500/30 text-cyan-300 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 shadow-sm"
             title="Sổ tay Công thức & Máy tính"
           >
             <Calculator size={14} className="text-cyan-400" />
-            Máy tính
+            <span className="hidden sm:inline">Máy tính</span>
           </button>
-          <div className="text-sm font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+          <div className="text-xs sm:text-sm font-black text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/30">
             Điểm: {score.toFixed(2)}
           </div>
         </div>
@@ -557,16 +580,16 @@ export default function Quiz() {
           <button
             onClick={handleSubmit}
             disabled={!isAnswerComplete()}
-            className="px-8 py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md w-full md:w-auto"
+            className="px-8 py-3.5 min-h-[50px] bg-emerald-600 text-white rounded-2xl font-black text-base hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg w-full sm:w-auto"
           >
             Kiểm tra
           </button>
         ) : (
           <button
             onClick={handleNext}
-            className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center gap-2 w-full md:w-auto"
+            className="px-8 py-3.5 min-h-[50px] bg-blue-600 text-white rounded-2xl font-black text-base hover:bg-blue-700 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto"
           >
-            {currentIndex < quizQuestions.length - 1 ? 'Câu tiếp theo' : 'Hoàn thành'}
+            <span>{currentIndex < quizQuestions.length - 1 ? 'Câu tiếp theo' : 'Hoàn thành bài thi'}</span>
             <ArrowRight className="w-5 h-5" />
           </button>
         )}

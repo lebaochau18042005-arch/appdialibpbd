@@ -178,10 +178,10 @@ export default function Layout({ children }: { children: ReactNode }) {
           {/* RIGHT ACTIONS */}
           <div className="flex items-center gap-3 shrink-0">
             {/* API Key container */}
-            <div className="flex flex-col items-center justify-center">
+            <div className="flex items-center">
               <button
                 onClick={() => setIsApiKeyModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold transition-all"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-[11.5px] font-bold transition-all"
                 style={{
                   background: 'rgba(245,158,11,0.15)',
                   border: '1px solid rgba(245,158,11,0.5)',
@@ -190,16 +190,10 @@ export default function Layout({ children }: { children: ReactNode }) {
                 }}
                 title="Cài đặt API Key AI"
               >
-                <Settings size={14} />
+                <Settings size={14} className="shrink-0" />
                 <span className="hidden sm:inline">Settings</span>
                 <span className="sm:hidden">API</span>
               </button>
-              <span 
-                className="text-[9px] sm:text-[10px] font-black mt-1 animate-pulse" 
-                style={{ color: '#ef4444', textShadow: '0 0 4px rgba(239, 68, 68, 0.4)' }}
-              >
-                Lấy API key để sử dụng app
-              </span>
             </div>
 
             {(user || isTeacherMode) ? (

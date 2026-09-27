@@ -56,14 +56,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!firebaseUser.isAnonymous) {
           // ── Signed in with Google ──────────────────────────────────────────
           try {
-            const isSuperAdmin = firebaseUser.email === SUPER_ADMIN_EMAIL;
+            const userEmailLower = (firebaseUser.email || '').trim().toLowerCase();
+            const isSuperAdmin = userEmailLower === SUPER_ADMIN_EMAIL.toLowerCase();
             setIsAdmin(isSuperAdmin);
 
             let hasTeacherAccess = isSuperAdmin;
 
             // Check if user is in approved_teachers
-            if (!isSuperAdmin && firebaseUser.email) {
-              const q = query(collection(db, 'approved_teachers'), where('email', '==', firebaseUser.email));
+            if (!isSuperAdmin && userEmailLower) {
+              const q = query(collection(db, 'approved_teachers'), where('email', '==', userEmailLower));
               const approvedSnap = await getDocs(q);
               if (!approvedSnap.empty) {
                 hasTeacherAccess = true;

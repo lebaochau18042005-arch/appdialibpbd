@@ -459,7 +459,7 @@ YÊU CẦU CHÍNH XÁC:
       ${HANH_CHINH_NOTE}
       
       QUY TẮC BẮT BUỘC:
-      1. CẤU TRÚC: ${mode === 'format' ? `CHỈ TẠO CÁC CÂU HỎI THUỘC ĐÚNG MỘT DẠNG: ${topicOrLesson}. (multiple_choice, true_false, hoặc short_answer).` : `Kết hợp các loại câu hỏi (Trắc nghiệm, Đúng/Sai, Trả lời ngắn) theo tỉ lệ phù hợp.`}
+      1. CẤU TRÚC: ${mode === 'format' ? `CHỈ TẠO CÁC CÂU HỎI THUỘC ĐÚNG MỘT DẠNG: ${topicOrLesson}. (multiple_choice, true_false, hoặc short_answer).` : `Kết hợp đa dạng CẢ 3 loại câu hỏi: Trắc nghiệm nhiều lựa chọn (multiple_choice), Đúng/Sai (true_false), Trả lời ngắn (short_answer) với phân phối xấp xỉ 60% - 20% - 20%.`}
       2. ĐỐI VỚI DẠNG TRẢ LỜI NGẮN (short_answer): BẮT BUỘC phải là các bài tập tính toán dựa trên công thức địa lí (ví dụ: mật độ dân số, năng suất, bình quân đầu người, biên độ nhiệt, v.v.). Đáp án correctAnswer PHẢI LÀ MỘT CON SỐ. Không ra câu hỏi lý thuyết cho dạng trả lời ngắn.
          ⚠️ QUY TẮC PHIẾU BGD 4 Ô — BẮT BUỘC: Phiếu trả lời BGD chỉ có 4 ô (chữ số + dấu "," + dấu "-"). Do đó correctAnswer PHẢI là chuỗi tối đa 4 ký tự. Nếu câu yêu cầu làm tròn đến hàng đơn vị → correctAnswer là số nguyên (vd: "803"). Nếu yêu cầu 1 thập phân → vd: "80,3". Nếu yêu cầu 2 thập phân → vd: "8,03". Ra đề phải thiết kế số liệu sao cho kết quả sau làm tròn vừa đúng ≤ 4 ký tự.
       3. SỐ LIỆU ĐẦY ĐỦ 100% — NGHIÊM CẤM THIẾU DỮ LIỆU:
@@ -471,9 +471,36 @@ YÊU CẦU CHÍNH XÁC:
       4. CHÍNH XÁC KIẾN THỨC: Bám sát chương trình mới nhất (TT 17/2025). Dùng đúng tên tỉnh thành sau sáp nhập.
       5. GIẢI THÍCH CHI TIẾT: Mỗi câu hỏi PHẢI có explanation, tips, và mnemonics.
       6. ĐỘ KHÓ: Phân bổ từ Nhận biết đến Vận dụng.
+      ${mode === 'lesson' ? `
+      ═══ RÀNG BUỘC TUYỆT ĐỐI — CHẾ ĐỘ THEO BÀI HỌC ═══
+      ⛔ NGHIÊM CẤM TUYỆT ĐỐI: Toàn bộ ${count} câu hỏi BẮT BUỘC phải chỉ hỏi kiến thức TRONG BÀI HỌC "${topicOrLesson}".
+      ⛔ TUYỆT ĐỐI KHÔNG được hỏi về bất kỳ bài học nào khác ngoài "${topicOrLesson}".
+      ⛔ Mỗi câu hỏi phải có trường lesson = "${topicOrLesson}" trong output JSON.
+      ✅ Phạm vi kiến thức HỢP LỆ: chỉ là kiến thức nội tại của bài "${topicOrLesson}" (tự nhiên, dân cư, kinh tế, thế mạnh, khó khăn, các tỉnh, số liệu, đặc điểm... trong phạm vi bài đó).
+      ✅ Khi bài học là một vùng địa lí (ví dụ: Đông Nam Bộ), chỉ được hỏi về vùng đó (vị trí, đặc điểm tự nhiên, dân cư, kinh tế, thế mạnh của RIÊNG vùng đó).
+      ` : mode === 'topic' ? `
+      ═══ RÀNG BUỘC TUYỆT ĐỐI — CHẾ ĐỘ THEO CHỦ ĐỀ ═══
+      ⛔ NGHIÊM CẤM TUYỆT ĐỐI: Toàn bộ ${count} câu hỏi BẮT BUỘC phải chỉ hỏi kiến thức THUỘC CHỦ ĐỀ "${topicOrLesson}".
+      ⛔ TUYỆT ĐỐI KHÔNG được hỏi về bất kỳ chủ đề nào khác ngoài "${topicOrLesson}".
+      ⛔ Mỗi câu hỏi phải có trường topic = "${topicOrLesson}" trong output JSON.
+      ✅ Phạm vi kiến thức HỢP LỆ: chỉ là kiến thức nội tại thuộc chủ đề "${topicOrLesson}".
+      ` : ''}
       ${textDoc ? `7. RẤT QUAN TRỌNG: Bạn PHẢI sử dụng tài liệu gốc (TÀI LIỆU THAM KHẢO) được cung cấp dưới đây để biên soạn câu hỏi. Đảm bảo câu hỏi phản ánh chính xác thông tin từ tài liệu này.` : ''}`;
 
-      const prompt = `Hãy tạo ${count} câu hỏi Địa lí về ${mode === 'topic' ? 'chủ đề' : mode === 'lesson' ? 'bài học' : 'dạng thức'} "${topicOrLesson}".
+      const prompt = `Hãy tạo ĐÚNG ${count} câu hỏi Địa lí về ${mode === 'topic' ? 'chủ đề' : mode === 'lesson' ? 'bài học' : 'dạng thức'} "${topicOrLesson}".
+      ${mode === 'lesson' || mode === 'topic' ? `
+⛔⛔⛔ CẢNH BÁO QUAN TRỌNG NHẤT — ĐỌC TRƯỚC KHI BẮT ĐẦU ⛔⛔⛔
+TẤT CẢ ${count} CÂU HỎI BẮT BUỘC CHỈ HỎI VỀ "${topicOrLesson}".
+TUYỆT ĐỐI KHÔNG ĐƯỢC HỎI VỀ BẤT KỲ BÀI HỌC / CHỦ ĐỀ NÀO KHÁC.
+Nếu vi phạm (dù chỉ 1 câu hỏi ngoài phạm vi), toàn bộ kết quả bị coi là SAI và phải làm lại.
+⛔⛔⛔ ─────────────────────────────────────────────────────── ⛔⛔⛔
+
+CẤU TRÚC BẮT BUỘC — gồm CẢ 3 DẠNG THỨC:
+- Trắc nghiệm nhiều lựa chọn (multiple_choice): khoảng ${Math.round(count * 0.6)} câu
+- Đúng/Sai (true_false): khoảng ${Math.round(count * 0.2)} câu
+- Trả lời ngắn tính toán (short_answer): khoảng ${Math.round(count * 0.2)} câu
+(Điều chỉnh ±1 câu để tổng = đúng ${count} câu)
+` : ''}
       Đảm bảo nội dung chính xác (dùng tên tỉnh thành sau sáp nhập 2025), cập nhật và có giải thích chi tiết.
 
       ĐỐI VỚI CÂU ĐÚNG/SAI (true_false) - BẮT BUỘC:

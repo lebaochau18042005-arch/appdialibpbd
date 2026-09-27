@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, School, BookOpen, ArrowRight, MapPin, GraduationCap, ShieldCheck, Eye, EyeOff, Lock, Chrome, RefreshCw, Search } from 'lucide-react';
+import { User, School, BookOpen, ArrowRight, MapPin, GraduationCap, ShieldCheck, Eye, EyeOff, Lock, Chrome, RefreshCw, Search, ShieldAlert, CheckCircle2, Send, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { rosterService } from '../services/rosterService';
 
@@ -16,7 +16,7 @@ type Step = 'role' | 'student-info' | 'teacher-code';
 
 
 export default function StudentProfileGate({ children }: { children: React.ReactNode }) {
-  const { isTeacherMode, loginWithTeacherCode, user, login, isSynced } = useAuth();
+  const { isTeacherMode, loginWithTeacherCode, user, login, logout, isSynced } = useAuth();
   const [step, setStep] = useState<Step | null>(null);
   const [name, setName] = useState('');
   const [className, setClassName] = useState('');
@@ -30,6 +30,8 @@ export default function StudentProfileGate({ children }: { children: React.React
   const [lookingUp, setLookingUp] = useState(false);
   const [autoClass, setAutoClass] = useState('');
   const [creatorId, setCreatorId] = useState('');
+  const [requestSent, setRequestSent] = useState(false);
+  const [sendingRequest, setSendingRequest] = useState(false);
   const lookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-detect class from roster when student types their name (debounced)
@@ -99,6 +101,27 @@ export default function StudentProfileGate({ children }: { children: React.React
       setError('Đăng nhập Google thất bại. Hãy thử lại.');
     }
     setGoogleLoading(false);
+  };
+
+  const handleRequestApproval = async () => {
+    if (!user || !user.email) return;
+    setSendingRequest(true);
+    try {
+      const { doc, setDoc } = await import('firebase/firestore');
+      const { db } = await import('../firebase');
+      await setDoc(doc(db, 'teacher_requests', user.uid), {
+        uid: user.uid,
+        email: user.email.toLowerCase().trim(),
+        name: user.displayName || 'Giáo viên',
+        requestedAt: new Date().toISOString()
+      });
+      setRequestSent(true);
+    } catch (e: any) {
+      console.error('Lỗi gửi yêu cầu duyệt:', e);
+      setError('Không thể gửi yêu cầu. Vui lòng thử lại sau.');
+    } finally {
+      setSendingRequest(false);
+    }
   };
 
   const handleStudentSubmit = async () => {
@@ -296,7 +319,7 @@ export default function StudentProfileGate({ children }: { children: React.React
                     <ShieldCheck size={28} className="text-white" />
                   </div>
                   <p className="text-white font-black text-lg">Đăng nhập Giáo viên</p>
-                  <p className="text-white/50 text-sm mt-0.5">Tài khoản Gmail phải được Admin duyệt trước</p>
+                  <p className="text-white/50 text-sm mt-0.5">Tài khoản Gmail cần được Admin duyệt hoặc kích hoạt bằng Mã</p>
                 </div>
 
                 {error && <p className="text-rose-400 text-sm font-medium flex items-center gap-2">⚠️ {error}</p>}
@@ -319,10 +342,47 @@ export default function StudentProfileGate({ children }: { children: React.React
                     {googleLoading ? 'Đang đăng nhập...' : 'Đăng nhập bằng Gmail'}
                   </motion.button>
                 ) : (
-                  <div className="p-4 bg-emerald-500/20 border border-emerald-400/30 rounded-2xl text-center space-y-3">
-                    <p className="text-emerald-200 text-sm font-bold">✅ Đã đăng nhập: {user?.email}</p>
-                    <p className="text-emerald-200/70 text-xs">Hệ thống đang kiểm tra quyền giáo viên...</p>
-                    <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="p-5 bg-amber-500/10 border border-amber-400/30 rounded-2xl text-left space-y-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0">
+                        <ShieldAlert size={20} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white font-bold text-sm truncate">{user?.email}</p>
+                        <p className="text-amber-300 text-xs font-semibold">Chưa có quyền Giáo viên</p>
+                      </div>
+                    </div>
+
+                    <p className="text-white/70 text-xs leading-relaxed">
+                      Tài khoản Gmail này chưa được Admin phê duyệt. Bạn có thể bấm gửi yêu cầu phê duyệt hoặc nhập Mã Giáo Viên bên dưới để kích hoạt ngay.
+                    </p>
+
+                    {requestSent ? (
+                      <div className="p-3 bg-emerald-500/20 border border-emerald-400/40 rounded-xl text-center text-emerald-300 text-xs font-bold flex items-center justify-center gap-2">
+                        <CheckCircle2 size={16} /> Đã gửi yêu cầu phê duyệt tới Admin!
+                      </div>
+                    ) : (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={handleRequestApproval}
+                        disabled={sendingRequest}
+                        type="button"
+                        className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-sm rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60"
+                      >
+                        {sendingRequest ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                        Gửi yêu cầu Admin phê duyệt
+                      </motion.button>
+                    )}
+
+                    <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => logout()}
+                        className="text-white/50 hover:text-white text-xs underline flex items-center gap-1 transition-colors"
+                      >
+                        <LogOut size={12} /> Đổi tài khoản Gmail khác
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -332,10 +392,11 @@ export default function StudentProfileGate({ children }: { children: React.React
                 <div className="border-t border-white/10 pt-4">
                   <button
                     onClick={() => setShowCodeFallback(v => !v)}
-                    className="w-full text-white/40 text-xs font-medium hover:text-white/60 transition-colors flex items-center justify-center gap-1.5"
+                    type="button"
+                    className="w-full text-white/60 text-xs font-medium hover:text-white/80 transition-colors flex items-center justify-center gap-1.5"
                   >
                     <Lock size={12} />
-                    {showCodeFallback ? 'Ẩn' : 'Dùng mã giáo viên thay thế'}
+                    {showCodeFallback ? 'Ẩn ô nhập mã' : 'Dùng mã giáo viên để kích hoạt ngay'}
                   </button>
                   {showCodeFallback && (
                     <div className="mt-3 space-y-3">
@@ -350,14 +411,15 @@ export default function StudentProfileGate({ children }: { children: React.React
                           autoFocus
                           className="w-full pl-11 pr-12 py-3.5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/40 font-mono text-base tracking-widest outline-none focus:border-indigo-400 focus:bg-white/15 transition-all"
                         />
-                        <button onClick={() => setShowCode(v => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60">
+                        <button type="button" onClick={() => setShowCode(v => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60">
                           {showCode ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                       </div>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={handleTeacherSubmit}
+                        type="button"
                         className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-black rounded-2xl hover:from-indigo-400 hover:to-indigo-600 transition-all flex items-center justify-center gap-2">
-                        <ShieldCheck size={18} /> XÁC NHẬN MÃ
+                        <ShieldCheck size={18} /> XÁC NHẬN MÃ KÍCH HOẠT
                       </motion.button>
                     </div>
                   )}

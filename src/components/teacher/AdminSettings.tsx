@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db, rtdb } from '../../firebase';
 import { collection, doc, setDoc, getDocs, deleteDoc, query, onSnapshot, getDoc } from 'firebase/firestore';
 import { ref, get, update, set, remove } from 'firebase/database';
-import { UserPlus, Trash2, Database, ShieldAlert, Loader2, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { UserPlus, Trash2, Database, ShieldAlert, Loader2, CheckCircle2, FileSpreadsheet, Check, X, Clock, UserCheck } from 'lucide-react';
 import GoogleSheetModal from './GoogleSheetModal';
 import { teacherWorkspaceService } from '../../services/teacherWorkspaceService';
 
@@ -13,11 +13,20 @@ interface ApprovedTeacher {
     approvedAt: string;
 }
 
+interface PendingTeacherRequest {
+    id: string;
+    email: string;
+    name?: string;
+    requestedAt: string;
+}
+
 export default function AdminSettings() {
     const { user, isAdmin } = useAuth();
     const [emailToApprove, setEmailToApprove] = useState('');
     const [approvedList, setApprovedList] = useState<ApprovedTeacher[]>([]);
+    const [pendingRequests, setPendingRequests] = useState<PendingTeacherRequest[]>([]);
     const [loadingList, setLoadingList] = useState(true);
+    const [loadingRequests, setLoadingRequests] = useState(true);
 
     // Migration states
     const [migrating, setMigrating] = useState(false);
@@ -35,7 +44,21 @@ export default function AdminSettings() {
             setApprovedList(list);
             setLoadingList(false);
         });
-        return () => unsub();
+
+        const qReq = query(collection(db, 'teacher_requests'));
+        const unsubReq = onSnapshot(qReq, (snap) => {
+            const list: PendingTeacherRequest[] = [];
+            snap.forEach(d => {
+                list.push({ id: d.id, ...d.data() } as PendingTeacherRequest);
+            });
+            setPendingRequests(list);
+            setLoadingRequests(false);
+        });
+
+        return () => {
+            unsub();
+            unsubReq();
+        };
     }, [isAdmin]);
 
     const handleApprove = async () => {
@@ -50,6 +73,30 @@ export default function AdminSettings() {
         } catch (e: any) {
             console.error(e);
             alert('Lỗi thêm giáo viên: ' + (e?.message || String(e)));
+        }
+    };
+
+    const handleApproveRequest = async (req: PendingTeacherRequest) => {
+        try {
+            const id = req.id || Date.now().toString();
+            await setDoc(doc(db, 'approved_teachers', id), {
+                email: req.email.trim().toLowerCase(),
+                approvedAt: new Date().toISOString()
+            });
+            await deleteDoc(doc(db, 'teacher_requests', req.id));
+        } catch (e: any) {
+            console.error(e);
+            alert('Lỗi phê duyệt: ' + (e?.message || String(e)));
+        }
+    };
+
+    const handleRejectRequest = async (reqId: string) => {
+        if (!window.confirm('Từ chối yêu cầu duyệt này?')) return;
+        try {
+            await deleteDoc(doc(db, 'teacher_requests', reqId));
+        } catch (e: any) {
+            console.error(e);
+            alert('Lỗi xóa yêu cầu: ' + (e?.message || String(e)));
         }
     };
 
@@ -150,6 +197,45 @@ export default function AdminSettings() {
 
                     {/* Approval Section */}
                     <div className="space-y-6">
+                        {/* Pending Requests Box */}
+                        {pendingRequests.length > 0 && (
+                            <div className="p-5 bg-amber-50 border-2 border-amber-300 rounded-2xl shadow-sm space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-black text-amber-900 text-sm flex items-center gap-2">
+                                        <Clock className="text-amber-600" size={18} /> Yêu cầu chờ phê duyệt ({pendingRequests.length})
+                                    </h3>
+                                    <span className="px-2 py-0.5 bg-amber-200 text-amber-900 font-bold text-[10px] rounded-full animate-pulse">Cần duyệt</span>
+                                </div>
+                                <p className="text-xs text-amber-700">Giáo viên đã đăng nhập và gửi yêu cầu cấp quyền truy cập:</p>
+                                <ul className="divide-y divide-amber-200/60 bg-white rounded-xl border border-amber-200 overflow-hidden">
+                                    {pendingRequests.map(req => (
+                                        <li key={req.id} className="p-3 flex items-center justify-between gap-2 hover:bg-amber-50/50 transition-colors">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-bold text-xs text-slate-800 truncate">{req.email}</p>
+                                                <p className="text-[10px] text-slate-400">{req.name || 'Giáo viên'} • {new Date(req.requestedAt).toLocaleString('vi-VN')}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <button
+                                                    onClick={() => handleApproveRequest(req)}
+                                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-colors"
+                                                    title="Phê duyệt quyền giáo viên"
+                                                >
+                                                    <Check size={14} /> Duyệt
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRejectRequest(req.id)}
+                                                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                                    title="Từ chối yêu cầu"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
                         <div className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
                             <h3 className="font-bold text-indigo-700 mb-2">Thêm Giáo Viên bằng Gmail</h3>
                             <p className="text-xs text-indigo-500 mb-4">

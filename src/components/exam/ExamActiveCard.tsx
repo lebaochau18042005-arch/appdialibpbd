@@ -197,20 +197,22 @@ export default function ExamActiveCard({
           )}
 
           {currentQuestion.type === 'short_answer' && (
-            <div className="p-8 bg-slate-50 rounded-2xl border border-slate-200">
-              <label className="block text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">
+            <div className="p-5 sm:p-8 bg-slate-50 rounded-2xl border border-slate-200">
+              <label className="block text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 sm:mb-4">
                 Đáp án của bạn
               </label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <input
                   type="text"
+                  inputMode="decimal"
+                  pattern="[0-9.,-]*"
                   value={answer || ''}
                   onChange={(e) => handleAnswer(e.target.value)}
                   placeholder="Nhập kết quả số..."
-                  className="flex-1 p-5 rounded-2xl border-2 border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition-all text-2xl font-bold text-slate-800"
+                  className="flex-1 p-4 sm:p-5 rounded-2xl border-2 border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition-all text-xl sm:text-2xl font-bold text-slate-800 bg-white"
                 />
                 {currentQuestion.unit && (
-                  <span className="text-xl font-bold text-slate-400">{currentQuestion.unit}</span>
+                  <span className="text-base sm:text-xl font-bold text-slate-400 bg-slate-100 px-3 py-2 rounded-xl shrink-0">{currentQuestion.unit}</span>
                 )}
               </div>
             </div>
@@ -218,14 +220,14 @@ export default function ExamActiveCard({
         </div>
       </div>
 
-      <div className="bg-slate-50 p-6 flex items-center justify-between border-t border-slate-100">
+      <div className="bg-slate-50 p-4 sm:p-6 flex items-center justify-between gap-2 sm:gap-4 border-t border-slate-100">
         <button
           onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
           disabled={currentIndex === 0}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-white disabled:opacity-30 transition-all"
+          className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 min-h-[48px] rounded-xl font-bold text-sm sm:text-base text-slate-600 hover:bg-white active:scale-95 disabled:opacity-30 transition-all border border-transparent hover:border-slate-200"
         >
-          <ChevronLeft className="w-5 h-5" />
-          Câu trước
+          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span>Câu trước</span>
         </button>
 
         <div className="hidden md:flex gap-1">
@@ -233,9 +235,9 @@ export default function ExamActiveCard({
             <div
               key={idx}
               className={cn(
-                "w-1.5 h-1.5 rounded-full transition-all",
+                "h-1.5 rounded-full transition-all",
                 idx === currentIndex ? "w-6 bg-emerald-500" :
-                  isQuestionAnswered(idx) ? "bg-emerald-200" : "bg-slate-200"
+                  isQuestionAnswered(idx) ? "w-1.5 bg-emerald-200" : "w-1.5 bg-slate-200"
               )}
             />
           ))}
@@ -249,10 +251,10 @@ export default function ExamActiveCard({
               setShowQuestionMap(true);
             }
           }}
-          className="flex items-center gap-2 px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-all shadow-md"
+          className="flex items-center justify-center gap-1.5 sm:gap-2 px-5 sm:px-8 py-3 min-h-[48px] bg-slate-800 text-white rounded-xl font-bold text-sm sm:text-base hover:bg-slate-900 active:scale-95 transition-all shadow-md shrink-0"
         >
-          {currentIndex < examQuestions.length - 1 ? 'Tiếp theo' : 'Kiểm tra lại'}
-          <ChevronRight className="w-5 h-5" />
+          <span>{currentIndex < examQuestions.length - 1 ? 'Tiếp theo' : 'Kiểm tra lại'}</span>
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
     </motion.div>
