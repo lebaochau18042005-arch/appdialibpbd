@@ -1,14 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Users, Search, X, BarChart2, Calendar, Clock, Target,
   MessageSquare, ChevronRight, TrendingUp, TrendingDown,
   Award, BookOpen, Download, Filter, CheckCircle2, XCircle, RefreshCw,
-  ClipboardList, ChevronDown, ChevronUp, Edit3, Save
+  ClipboardList, ChevronDown, ChevronUp, Edit3, Save, Plus, FileSpreadsheet
 } from 'lucide-react';
 import { QuizAttempt, StudentSummary, TopicStats } from '../../types';
 import { examService } from '../../services/examService';
 import { sanitizeEmailKey, teacherWorkspaceService } from '../../services/teacherWorkspaceService';
+import { rosterService, ClassRoster, StudentEntry } from '../../services/rosterService';
+import { isStudentNameMatch, isClassMatch, normalizeClassName } from '../../utils/studentMatcher';
+import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
 import ProgressChart from '../charts/ProgressChart';
 
@@ -22,9 +25,6 @@ function buildStudentList(attempts: QuizAttempt[]): StudentSummary[] {
   const map = new Map<string, QuizAttempt[]>();
 
   for (const a of attempts) {
-    // For authenticated users: use userId as key (stable across sessions).
-    // For anonymous/guest users: use "name::class" so each named student
-    // appears as a separate row instead of all collapsing into one anonymous entry.
     const isAnon = !a.userId
       || a.userId === 'anonymous'
       || a.userId.includes('anonymous')
@@ -37,7 +37,6 @@ function buildStudentList(attempts: QuizAttempt[]): StudentSummary[] {
   }
 
   return Array.from(map.entries()).map(([key, atts]) => {
-    // Filter out attempts with invalid/missing scores
     const validScores = atts.map(a => a.score).filter(s => typeof s === 'number' && !isNaN(s));
     const sorted = [...atts].sort((a, b) => {
       const da = a.date ? new Date(a.date).getTime() : 0;
@@ -90,7 +89,7 @@ function computeTopicStats(attempts: QuizAttempt[]): TopicStats[] {
 }
 
 // Export students to CSV
-function exportCSV(students: StudentSummary[]) {
+function exportCSV(students: StudentSummary[], className?: string) {
   const rows = [
     ['Họ tên', 'Lớp', 'Số bài làm', 'Điểm TB', 'Điểm cao nhất', 'Điểm thấp nhất', 'Ngày gần nhất'],
     ...students.map(s => [
@@ -108,7 +107,7 @@ function exportCSV(students: StudentSummary[]) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `danh_sach_hoc_sinh_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
+  link.download = `danh_sach_hoc_sinh_${className ? className.replace(/\s+/g, '_') + '_' : ''}${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -243,7 +242,6 @@ function StudentDetailPanel({ student, onClose, onRefresh }: DetailPanelProps) {
           <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
             <Calendar size={14} /> Lịch sử bài làm ({student.attempts.length})
           </h4>
-          {/* Exam vs practice summary */}
           <div className="flex gap-2 mb-3">
             <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
               <ClipboardList size={10} /> Đề giao: {student.attempts.filter(a => a.mode === 'exam').length}
@@ -339,146 +337,218 @@ function StudentDetailPanel({ student, onClose, onRefresh }: DetailPanelProps) {
   );
 }
 
-// ─── Class Roster Panel ───────────────────────────────────────────────────────
+// ─── Multi-Class Interactive Roster Panel ───────────────────────────────────────────────
 interface RosterPanelProps {
-  rosterText: string;
+  selectedClass: string;
+  onSelectClass: (cls: string) => void;
+  availableClasses: string[];
   rosterNames: string[];
-  rosterStats: { done: string[]; notDone: string[] };
-  doneNames: Set<string>;
+  doneList: { name: string; summary?: StudentSummary; score?: number }[];
+  notDoneList: string[];
   showRoster: boolean;
   setShowRoster: (v: boolean) => void;
-  editingRoster: boolean;
-  setEditingRoster: (v: boolean) => void;
-  draftRoster: string;
-  setDraftRoster: (v: string) => void;
-  saveRoster: () => void;
+  onSaveClassRoster: (className: string, students: StudentEntry[]) => void;
   exportNotDone: () => void;
 }
 
 function ClassRosterPanel({
-  rosterNames, rosterStats, doneNames,
+  selectedClass, onSelectClass, availableClasses,
+  rosterNames, doneList, notDoneList,
   showRoster, setShowRoster,
-  editingRoster, setEditingRoster,
-  draftRoster, setDraftRoster,
-  saveRoster, exportNotDone,
+  onSaveClassRoster, exportNotDone,
 }: RosterPanelProps) {
+  const [editing, setEditing] = useState(false);
+  const [draftText, setDraftText] = useState('');
+  const [filterMode, setFilterMode] = useState<'all' | 'done' | 'notDone'>('all');
+
+  const startEdit = () => {
+    setDraftText(rosterNames.join('\n'));
+    setEditing(true);
+  };
+
+  const handleSave = () => {
+    const lines = draftText.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+    const targetCls = selectedClass === 'Tất cả' ? '12C1' : selectedClass;
+    onSaveClassRoster(targetCls, lines.map(name => ({ name })));
+    setEditing(false);
+  };
+
+  const doneSet = useMemo(() => new Set(doneList.map(d => d.name.toLowerCase())), [doneList]);
+
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-4">
-      {/* Collapsible header */}
-      <button
-        onClick={() => setShowRoster(!showRoster)}
-        className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
-            <ClipboardList size={18} />
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-5">
+      {/* Header */}
+      <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100/80 bg-slate-50/40">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setShowRoster(!showRoster)}>
+          <div className="w-11 h-11 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center shadow-sm">
+            <ClipboardList size={20} />
           </div>
-          <div className="text-left">
-            <p className="font-black text-slate-800 text-sm">Danh sách lớp</p>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-slate-800 text-base">
+                Theo dõi danh sách lớp {selectedClass !== 'Tất cả' ? <span className="text-indigo-600 font-black">Lớp {selectedClass}</span> : '(Toàn bộ)'}
+              </h3>
+              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-black rounded-full">
+                {rosterNames.length} HS
+              </span>
+            </div>
             {rosterNames.length > 0 ? (
-              <p className="text-xs text-slate-400 font-medium">
-                <span className="text-emerald-600 font-black">{rosterStats.done.length}</span>
-                /{rosterNames.length} học sinh đã làm bài
-                {rosterStats.notDone.length > 0 && (
-                  <span className="text-rose-500 font-black"> · {rosterStats.notDone.length} chưa làm</span>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <span className="text-emerald-600 font-black">{doneList.length}</span>/{rosterNames.length} học sinh đã làm bài
+                {notDoneList.length > 0 && (
+                  <span className="text-rose-500 font-black"> · {notDoneList.length} chưa làm</span>
                 )}
               </p>
             ) : (
-              <p className="text-xs text-slate-400 font-medium">Nhập danh sách tên học sinh để theo dõi</p>
+              <p className="text-xs text-slate-400 font-medium">Chưa có danh sách tên học sinh cho lớp này</p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {rosterStats.notDone.length > 0 && (
+
+        {/* Action buttons */}
+        <div className="flex items-center flex-wrap gap-2">
+          {/* Class switcher buttons */}
+          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-xs max-w-full overflow-x-auto">
+            {availableClasses.map(cls => (
+              <button
+                key={cls}
+                onClick={() => onSelectClass(cls)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-black transition-all whitespace-nowrap',
+                  selectedClass === cls
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100'
+                )}
+              >
+                {cls}
+              </button>
+            ))}
+          </div>
+
+          {notDoneList.length > 0 && (
             <button
-              onClick={e => { e.stopPropagation(); exportNotDone(); }}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors"
+              onClick={exportNotDone}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200/80 rounded-xl hover:bg-rose-100 transition-colors shadow-xs"
             >
-              <Download size={12} /> Xuất DS chưa làm
+              <Download size={13} /> Xuất DS chưa làm ({notDoneList.length})
             </button>
           )}
-          {showRoster ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
-        </div>
-      </button>
 
-      {/* Expandable body */}
+          <button
+            onClick={() => setShowRoster(!showRoster)}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            {showRoster ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Expandable student pills */}
       <AnimatePresence>
         {showRoster && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-slate-100"
-          >
-            <div className="p-5">
-              {editingRoster ? (
-                <div className="space-y-3">
-                  <p className="text-xs text-slate-500 font-medium">Nhập mỗi tên trên một dòng (phải khớp chính xác với tên học sinh nhập khi vào app):</p>
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="p-5 space-y-4">
+              {editing ? (
+                <div className="space-y-3 bg-amber-50/50 p-4 rounded-2xl border border-amber-200/60">
+                  <p className="text-xs font-bold text-amber-900">
+                    Nhập danh sách học sinh {selectedClass !== 'Tất cả' ? `Lớp ${selectedClass}` : ''} (mỗi tên trên một dòng):
+                  </p>
                   <textarea
-                    value={draftRoster}
-                    onChange={e => setDraftRoster(e.target.value)}
+                    value={draftText}
+                    onChange={e => setDraftText(e.target.value)}
                     rows={8}
-                    placeholder="Nguyễn Văn A&#10;Trần Thị B&#10;Lê Văn C&#10;..."
-                    className="w-full p-4 text-sm border border-slate-200 rounded-2xl resize-none focus:ring-2 focus:ring-amber-400 outline-none font-mono leading-loose"
+                    placeholder={"Nguyễn Văn A\nTrần Thị B\nLê Văn C..."}
+                    className="w-full p-4 text-sm border border-amber-300 rounded-xl resize-none focus:ring-2 focus:ring-amber-400 outline-none font-mono leading-relaxed bg-white font-medium"
                   />
                   <div className="flex gap-2 justify-end">
-                    <button
-                      onClick={() => setEditingRoster(false)}
-                      className="px-4 py-2 text-sm text-slate-500 border border-slate-200 rounded-xl font-bold hover:bg-slate-50"
-                    >Hủy</button>
-                    <button
-                      onClick={saveRoster}
-                      className="flex items-center gap-2 px-5 py-2 text-sm text-white bg-amber-500 rounded-xl font-bold hover:bg-amber-600 transition-colors"
-                    >
+                    <button onClick={() => setEditing(false)} className="px-4 py-2 text-xs text-slate-500 border border-slate-200 rounded-xl font-bold hover:bg-slate-100 bg-white">Hủy</button>
+                    <button onClick={handleSave} className="flex items-center gap-1.5 px-5 py-2 text-xs text-white bg-amber-600 rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-sm">
                       <Save size={14} /> Lưu danh sách
                     </button>
                   </div>
                 </div>
               ) : rosterNames.length === 0 ? (
-                <div className="text-center py-6">
-                  <p className="text-slate-400 text-sm mb-3">Chưa có danh sách. Nhấn nút bên dưới để nhập tên học sinh.</p>
+                <div className="text-center py-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                  <ClipboardList size={32} className="mx-auto text-slate-300 mb-2" />
+                  <p className="text-slate-500 font-bold text-sm">Chưa có danh sách học sinh cho {selectedClass !== 'Tất cả' ? `lớp ${selectedClass}` : 'mục này'}.</p>
+                  <p className="text-slate-400 text-xs mt-1 mb-4">Bạn có thể dán danh sách tên học sinh để hệ thống tự động kiểm tra ai đã làm và ai chưa làm.</p>
                   <button
-                    onClick={() => setEditingRoster(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl font-bold hover:bg-amber-100 transition-colors mx-auto"
+                    onClick={startEdit}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-100"
                   >
-                    <Edit3 size={14} /> Nhập danh sách lớp
+                    <Plus size={14} /> Nhập danh sách lớp {selectedClass !== 'Tất cả' ? selectedClass : ''}
                   </button>
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {rosterNames.map(name => {
-                      const done = doneNames.has(name.toLowerCase());
-                      return (
-                        <span
-                          key={name}
-                          className={cn(
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border',
-                            done
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-rose-50 text-rose-700 border-rose-200'
-                          )}
-                        >
-                          {done
-                            ? <CheckCircle2 size={11} className="text-emerald-500" />
-                            : <XCircle size={11} className="text-rose-400" />
-                          }
-                          {name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <div className="flex gap-4 text-xs font-bold">
-                      <span className="flex items-center gap-1 text-emerald-600"><CheckCircle2 size={12} />{rosterStats.done.length} đã làm</span>
-                      <span className="flex items-center gap-1 text-rose-500"><XCircle size={12} />{rosterStats.notDone.length} chưa làm</span>
+                  {/* Filter chips */}
+                  <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setFilterMode('all')}
+                        className={cn('px-3 py-1 rounded-lg text-xs font-bold transition-colors', filterMode === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}
+                      >
+                        Tất cả ({rosterNames.length})
+                      </button>
+                      <button
+                        onClick={() => setFilterMode('done')}
+                        className={cn('px-3 py-1 rounded-lg text-xs font-bold transition-colors flex items-center gap-1', filterMode === 'done' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100')}
+                      >
+                        <CheckCircle2 size={12} /> Đã làm ({doneList.length})
+                      </button>
+                      <button
+                        onClick={() => setFilterMode('notDone')}
+                        className={cn('px-3 py-1 rounded-lg text-xs font-bold transition-colors flex items-center gap-1', filterMode === 'notDone' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100')}
+                      >
+                        <XCircle size={12} /> Chưa làm ({notDoneList.length})
+                      </button>
                     </div>
+
                     <button
-                      onClick={() => { setDraftRoster(rosterNames.join('\n')); setEditingRoster(true); }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                      onClick={startEdit}
+                      className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors"
                     >
-                      <Edit3 size={12} /> Chỉnh sửa
+                      <Edit3 size={13} /> Sửa danh sách
                     </button>
+                  </div>
+
+                  {/* Student pills grid */}
+                  <div className="flex flex-wrap gap-2 max-h-72 overflow-y-auto pr-1">
+                    {rosterNames
+                      .filter(name => {
+                        const isDone = doneSet.has(name.toLowerCase());
+                        if (filterMode === 'done') return isDone;
+                        if (filterMode === 'notDone') return !isDone;
+                        return true;
+                      })
+                      .map((name, index) => {
+                        const doneInfo = doneList.find(d => d.name.toLowerCase() === name.toLowerCase());
+                        const isDone = !!doneInfo;
+
+                        return (
+                          <div
+                            key={`${name}_${index}`}
+                            className={cn(
+                              'inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all shadow-2xs',
+                              isDone
+                                ? 'bg-emerald-50/80 text-emerald-800 border-emerald-200 hover:bg-emerald-100/70'
+                                : 'bg-rose-50/80 text-rose-700 border-rose-200 hover:bg-rose-100/70'
+                            )}
+                          >
+                            {isDone ? (
+                              <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                            ) : (
+                              <XCircle size={14} className="text-rose-500 shrink-0" />
+                            )}
+                            <span className="truncate max-w-[200px]">{name}</span>
+                            {isDone && typeof doneInfo.score === 'number' && (
+                              <span className="px-1.5 py-0.5 bg-emerald-200/60 text-emerald-900 rounded text-[10px] font-black shrink-0">
+                                {doneInfo.score.toFixed(1)}đ
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 </>
               )}
@@ -490,84 +560,115 @@ function ClassRosterPanel({
   );
 }
 
+// ─── Main Student Management ──────────────────────────────────────────────────
 export default function StudentManagement({ attempts, onRefresh }: StudentManagementProps) {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [selectedClass, setSelectedClass] = useState('Tất cả');
   const [selectedStudent, setSelectedStudent] = useState<StudentSummary | null>(null);
+  const [showRoster, setShowRoster] = useState(true);
+
+  const activeTeacherEmail = teacherWorkspaceService.getActiveTeacherEmail() || user?.email || '';
+  const isSuperAdmin = activeTeacherEmail.toLowerCase() === 'lebaochau18042005@gmail.com';
+
+  // Real-time synced rosters
+  const [savedRosters, setSavedRosters] = useState<ClassRoster[]>(() => rosterService.getRosters(activeTeacherEmail));
+
+  useEffect(() => {
+    const subKey = user?.uid || activeTeacherEmail;
+    if (!subKey) return;
+    const unsub = rosterService.subscribeToRosters(subKey, setSavedRosters, activeTeacherEmail);
+    return () => unsub();
+  }, [user?.uid, activeTeacherEmail]);
 
   const students = useMemo(() => buildStudentList(attempts), [attempts]);
 
+  // Combined available classes
   const classes = useMemo(() => {
-    const set = new Set(students.map(s => s.className));
-    return ['Tất cả', ...Array.from(set)];
-  }, [students]);
+    const set = new Set<string>();
+    savedRosters.forEach(r => { if (r.className) set.add(r.className); });
+    students.forEach(s => { if (s.className && s.className !== 'Chưa xác định') set.add(s.className); });
+    const list = Array.from(set).sort();
+    return ['Tất cả', ...list];
+  }, [savedRosters, students]);
+
+  // Roster names for the selected class
+  const currentRosterNames = useMemo(() => {
+    if (selectedClass !== 'Tất cả') {
+      const matchRoster = savedRosters.find(r => isClassMatch(r.className, selectedClass));
+      if (matchRoster && matchRoster.students.length > 0) {
+        return matchRoster.students.map(s => s.name);
+      }
+      // Check legacy class roster in localStorage
+      const legacy = localStorage.getItem('geo_pro_class_roster') || '';
+      if (legacy) return legacy.split('\n').map(n => n.trim()).filter(Boolean);
+      // Fallback: students from attempts of this class
+      return students.filter(s => isClassMatch(s.className, selectedClass)).map(s => s.userName);
+    }
+    // "Tất cả": combine all students from all saved rosters
+    if (savedRosters.length > 0) {
+      const combined: string[] = [];
+      savedRosters.forEach(r => r.students.forEach(s => {
+        if (!combined.includes(s.name)) combined.push(s.name);
+      }));
+      if (combined.length > 0) return combined;
+    }
+    const legacy = localStorage.getItem('geo_pro_class_roster') || '';
+    if (legacy) return legacy.split('\n').map(n => n.trim()).filter(Boolean);
+    return students.map(s => s.userName);
+  }, [selectedClass, savedRosters, students]);
+
+  // Calculate done and not done list for this roster
+  const { doneList, notDoneList } = useMemo(() => {
+    const relevantStudents = selectedClass === 'Tất cả'
+      ? students
+      : students.filter(s => isClassMatch(s.className, selectedClass));
+
+    const done: { name: string; summary?: StudentSummary; score?: number }[] = [];
+    const notDone: string[] = [];
+
+    currentRosterNames.forEach(name => {
+      // Smart fuzzy & diacritic-tolerant name matcher
+      const match = relevantStudents.find(s => isStudentNameMatch(name, s.userName));
+      if (match) {
+        done.push({ name, summary: match, score: match.highestScore });
+      } else {
+        notDone.push(name);
+      }
+    });
+
+    return { doneList: done, notDoneList: notDone };
+  }, [currentRosterNames, students, selectedClass]);
+
+  const handleSaveClassRoster = (className: string, newStudents: StudentEntry[]) => {
+    rosterService.saveRoster(className, newStudents, user?.uid, activeTeacherEmail);
+    // Also update legacy key for compatibility
+    localStorage.setItem('geo_pro_class_roster', newStudents.map(s => s.name).join('\n'));
+    setSavedRosters(rosterService.getRosters(activeTeacherEmail));
+  };
+
+  const handleExportNotDone = () => {
+    const csv = ['Họ và tên', 'Lớp', 'Trạng thái', ...notDoneList.map(n => `"${n}",${selectedClass !== 'Tất cả' ? selectedClass : 'Chưa làm'},Chưa làm bài`)].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hoc_sinh_chua_lam_bai_${selectedClass.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const filtered = useMemo(() => {
     return students.filter(s => {
-      const matchClass = selectedClass === 'Tất cả' || s.className === selectedClass;
+      const matchClass = selectedClass === 'Tất cả' || isClassMatch(s.className, selectedClass);
       const matchSearch = s.userName.toLowerCase().includes(search.toLowerCase());
       return matchClass && matchSearch;
     });
   }, [students, search, selectedClass]);
 
-  const activeTeacherEmail = teacherWorkspaceService.getActiveTeacherEmail() || '';
-  const isSuperAdmin = activeTeacherEmail.toLowerCase() === 'lebaochau18042005@gmail.com';
-  const LS_ROSTER_KEY = !activeTeacherEmail || isSuperAdmin
-    ? 'geo_pro_class_roster'
-    : `geo_pro_class_roster_${sanitizeEmailKey(activeTeacherEmail)}`;
-
-  const [rosterText, setRosterText] = useState<string>(() => {
-    const val = localStorage.getItem(LS_ROSTER_KEY);
-    if (val) return val;
-    if (isSuperAdmin && LS_ROSTER_KEY !== 'geo_pro_class_roster') {
-      return localStorage.getItem('geo_pro_class_roster') || '';
-    }
-    return '';
-  });
-  const [showRoster, setShowRoster] = useState(true);
-  const [editingRoster, setEditingRoster] = useState(false);
-  const [draftRoster, setDraftRoster] = useState(rosterText);
-
-  // Sync draftRoster if rosterText changes
-  React.useEffect(() => {
-    const val = localStorage.getItem(LS_ROSTER_KEY) || (isSuperAdmin ? localStorage.getItem('geo_pro_class_roster') || '' : '');
-    setRosterText(val);
-    setDraftRoster(val);
-  }, [LS_ROSTER_KEY, isSuperAdmin]);
-
-  const rosterNames = useMemo(() =>
-    rosterText.split('\n').map(n => n.trim()).filter(Boolean),
-    [rosterText]
-  );
-
-  const doneNames = useMemo(() =>
-    new Set(students.map(s => s.userName.toLowerCase().trim())),
-    [students]
-  );
-
-  const rosterStats = useMemo(() => {
-    const done = rosterNames.filter(n => doneNames.has(n.toLowerCase()));
-    const notDone = rosterNames.filter(n => !doneNames.has(n.toLowerCase()));
-    return { done, notDone };
-  }, [rosterNames, doneNames]);
-
-  const saveRoster = () => {
-    localStorage.setItem(LS_ROSTER_KEY, draftRoster);
-    setRosterText(draftRoster);
-    setEditingRoster(false);
-  };
-
-  const exportNotDone = () => {
-    const csv = ['Họ tên', ...rosterStats.notDone].join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = 'hoc_sinh_chua_lam_bai.csv';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
-  };
-
-  if (attempts.length === 0 && rosterNames.length === 0) {
+  if (attempts.length === 0 && currentRosterNames.length === 0 && savedRosters.length === 0) {
     return (
       <div className="bg-white p-16 rounded-3xl border border-slate-100 text-center shadow-sm">
         <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -581,151 +682,159 @@ export default function StudentManagement({ attempts, onRefresh }: StudentManage
 
   return (
     <>
-    <ClassRosterPanel
-      rosterText={rosterText} rosterNames={rosterNames} rosterStats={rosterStats}
-      doneNames={doneNames} showRoster={showRoster} setShowRoster={setShowRoster}
-      editingRoster={editingRoster} setEditingRoster={setEditingRoster}
-      draftRoster={draftRoster} setDraftRoster={setDraftRoster}
-      saveRoster={saveRoster} exportNotDone={exportNotDone}
-    />
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-      {/* Toolbar */}
-      <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-            <Users size={22} />
-          </div>
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Danh sách học sinh</h2>
-            <p className="text-sm text-slate-500">{filtered.length} / {students.length} học sinh</p>
-          </div>
-        </div>
+      {/* Visual Multi-Class Roster Status Panel */}
+      <ClassRosterPanel
+        selectedClass={selectedClass}
+        onSelectClass={setSelectedClass}
+        availableClasses={classes}
+        rosterNames={currentRosterNames}
+        doneList={doneList}
+        notDoneList={notDoneList}
+        showRoster={showRoster}
+        setShowRoster={setShowRoster}
+        onSaveClassRoster={handleSaveClassRoster}
+        exportNotDone={handleExportNotDone}
+      />
 
-        <div className="flex flex-wrap gap-3 w-full md:w-auto">
-          {/* Search */}
-          <div className="relative flex-1 md:flex-none">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-            <input
-              type="text"
-              placeholder="Tìm tên học sinh..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none w-full md:w-56 font-medium"
-            />
+      {/* Main Table Container */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        {/* Toolbar */}
+        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+              <Users size={22} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Danh sách bài nộp của học sinh</h2>
+              <p className="text-sm text-slate-500">{filtered.length} / {students.length} học sinh có bài làm</p>
+            </div>
           </div>
 
-          {/* Class filter */}
-          <div className="relative">
-            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
-            <select
-              value={selectedClass}
-              onChange={e => setSelectedClass(e.target.value)}
-              className="pl-8 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none bg-white font-medium appearance-none cursor-pointer"
+          <div className="flex flex-wrap gap-3 w-full md:w-auto">
+            {/* Search */}
+            <div className="relative flex-1 md:flex-none">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+              <input
+                type="text"
+                placeholder="Tìm tên học sinh..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none w-full md:w-56 font-medium"
+              />
+            </div>
+
+            {/* Class filter dropdown */}
+            <div className="relative">
+              <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+              <select
+                value={selectedClass}
+                onChange={e => setSelectedClass(e.target.value)}
+                className="pl-8 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none bg-white font-medium appearance-none cursor-pointer"
+              >
+                {classes.map(c => <option key={c} value={c}>{c === 'Tất cả' ? 'Tất cả các lớp' : `Lớp ${c}`}</option>)}
+              </select>
+            </div>
+
+            {/* Export */}
+            <button
+              onClick={() => exportCSV(filtered, selectedClass)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
             >
-              {classes.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+              <Download size={16} /> Xuất CSV
+            </button>
           </div>
+        </div>
 
-          {/* Export */}
-          <button
-            onClick={() => exportCSV(filtered)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
-          >
-            <Download size={16} /> Xuất CSV
-          </button>
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-50">
+                {['Học sinh', 'Lớp', 'Bài đã làm', 'Điểm TB', 'Cao nhất', 'Thấp nhất', 'Gần nhất', ''].map(h => (
+                  <th key={h} className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filtered.map(student => {
+                const trend = student.attempts.length >= 2
+                  ? student.attempts[0].score - student.attempts[1].score
+                  : 0;
+
+                return (
+                  <tr
+                    key={student.key}
+                    className="hover:bg-slate-50/70 cursor-pointer transition-colors group"
+                    onClick={() => setSelectedStudent(student)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm shrink-0">
+                          {student.userName.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{student.userName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-1 text-xs font-bold bg-slate-100 text-slate-600 rounded-lg">{student.className}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-black text-slate-700">{student.totalAttempts}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <ScoreBadge score={student.avgScore} />
+                        {student.attempts.length >= 2 && (
+                          trend > 0
+                            ? <TrendingUp size={14} className="text-emerald-500" />
+                            : trend < 0
+                              ? <TrendingDown size={14} className="text-rose-500" />
+                              : null
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><ScoreBadge score={student.highestScore} /></td>
+                    <td className="px-6 py-4"><ScoreBadge score={student.lowestScore} /></td>
+                    <td className="px-6 py-4 text-xs text-slate-400 font-medium whitespace-nowrap">
+                      {student.lastAttemptDate && !isNaN(new Date(student.lastAttemptDate).getTime())
+                        ? new Date(student.lastAttemptDate).toLocaleDateString('vi-VN')
+                        : '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {filtered.length === 0 && (
+            <div className="p-12 text-center text-slate-400">
+              <Search size={32} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Không tìm thấy học sinh phù hợp trong lớp này</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-slate-50">
-              {['Học sinh', 'Lớp', 'Bài đã làm', 'Điểm TB', 'Cao nhất', 'Thấp nhất', 'Gần nhất', ''].map(h => (
-                <th key={h} className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {filtered.map(student => {
-              const trend = student.attempts.length >= 2
-                ? student.attempts[0].score - student.attempts[1].score
-                : 0;
-
-              return (
-                <tr
-                  key={student.key}
-                  className="hover:bg-slate-50/70 cursor-pointer transition-colors group"
-                  onClick={() => setSelectedStudent(student)}
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm shrink-0">
-                        {student.userName.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{student.userName}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 text-xs font-bold bg-slate-100 text-slate-600 rounded-lg">{student.className}</span>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-black text-slate-700">{student.totalAttempts}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <ScoreBadge score={student.avgScore} />
-                      {student.attempts.length >= 2 && (
-                        trend > 0
-                          ? <TrendingUp size={14} className="text-emerald-500" />
-                          : trend < 0
-                            ? <TrendingDown size={14} className="text-rose-500" />
-                            : null
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4"><ScoreBadge score={student.highestScore} /></td>
-                  <td className="px-6 py-4"><ScoreBadge score={student.lowestScore} /></td>
-                  <td className="px-6 py-4 text-xs text-slate-400 font-medium whitespace-nowrap">
-                    {student.lastAttemptDate && !isNaN(new Date(student.lastAttemptDate).getTime())
-                      ? new Date(student.lastAttemptDate).toLocaleDateString('vi-VN')
-                      : '—'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {filtered.length === 0 && (
-          <div className="p-12 text-center text-slate-400">
-            <Search size={32} className="mx-auto mb-3 opacity-30" />
-            <p className="font-medium">Không tìm thấy học sinh phù hợp</p>
-          </div>
+      {/* Detail panel */}
+      <AnimatePresence>
+        {selectedStudent && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+              onClick={() => setSelectedStudent(null)}
+            />
+            <StudentDetailPanel
+              student={selectedStudent}
+              onClose={() => setSelectedStudent(null)}
+              onRefresh={onRefresh}
+            />
+          </>
         )}
-      </div>
-    </div>
-
-    {/* Detail panel */}
-    <AnimatePresence>
-      {selectedStudent && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
-            onClick={() => setSelectedStudent(null)}
-          />
-          <StudentDetailPanel
-            student={selectedStudent}
-            onClose={() => setSelectedStudent(null)}
-            onRefresh={onRefresh}
-          />
-        </>
-      )}
-    </AnimatePresence>
+      </AnimatePresence>
     </>
   );
 }

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Send, CheckCircle2, RefreshCw, ClipboardList, ChevronDown,
   ChevronUp, MessageSquare, Save, X, BookOpen, Users, Clock,
-  Shuffle, ShieldCheck, AlertTriangle
+  Shuffle, ShieldCheck, AlertTriangle, Download, XCircle, Search
 } from 'lucide-react';
 import { Exam, ExamAssignment, QuizAttempt } from '../../types';
 import { assignmentService } from '../../services/assignmentService';
@@ -11,6 +11,8 @@ import { examService } from '../../services/examService';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
 import { teacherWorkspaceService } from '../../services/teacherWorkspaceService';
+import { rosterService, ClassRoster } from '../../services/rosterService';
+import { isStudentNameMatch, isClassMatch } from '../../utils/studentMatcher';
 import StudentPicker, { AssignTarget } from './StudentPicker';
 
 interface Props {
@@ -19,30 +21,100 @@ interface Props {
 }
 
 // ─── Per-assignment roster panel ──────────────────────────────────────────────
-function AssignmentRoster({ assignment, attempts, onComment }: {
+function AssignmentRoster({ assignment, attempts, rosters, onComment }: {
   assignment: ExamAssignment;
   attempts: QuizAttempt[];
+  rosters: ClassRoster[];
   onComment: (a: QuizAttempt) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const related = useMemo(() => {
+  const [filterMode, setFilterMode] = useState<'all' | 'done' | 'notDone'>('all');
+
+  // Related attempts for this assignment
+  const relatedAttempts = useMemo(() => {
     const seen = new Set<string>();
     return attempts.filter(a => {
-      if (a.examId !== assignment.examId) return false;
+      const matchExam = a.examId === assignment.examId
+        || a.examId === assignment.id
+        || a.examTitle === assignment.examTitle
+        || (a.examTitle && assignment.examTitle && a.examTitle.trim().toLowerCase() === assignment.examTitle.trim().toLowerCase());
+      if (!matchExam) return false;
+
+      // Match class if target class specified
+      if (assignment.targetClass && assignment.targetClass !== 'all') {
+        if (a.className && !isClassMatch(a.className, assignment.targetClass)) {
+          return false;
+        }
+      }
+
       const k = a.userId || a.userName;
       if (seen.has(k)) return false;
-      seen.add(k); return true;
+      seen.add(k);
+      return true;
     });
-  }, [attempts, assignment.examId]);
+  }, [attempts, assignment]);
 
-  // If assignment targeted specific students, compute who hasn't done it
-  const targetStudents: string[] = (assignment as any).targetStudents || [];
+  // Target student names for this assignment
+  const targetNames = useMemo(() => {
+    const explicitStudents: string[] = (assignment as any).targetStudents || [];
+    if (explicitStudents.length > 0) return explicitStudents;
+
+    if (assignment.targetClass && assignment.targetClass !== 'all') {
+      const matchRoster = rosters.find(r => isClassMatch(r.className, assignment.targetClass));
+      if (matchRoster && matchRoster.students.length > 0) {
+        return matchRoster.students.map(s => s.name);
+      }
+    }
+    return [];
+  }, [assignment, rosters]);
+
+  // Compute status for all target students
+  const { doneStudents, notDoneStudents, extraDone } = useMemo(() => {
+    const done: { name: string; attempt: QuizAttempt }[] = [];
+    const notDone: string[] = [];
+    const matchedAttemptIds = new Set<string>();
+
+    targetNames.forEach(name => {
+      const match = relatedAttempts.find(a => isStudentNameMatch(name, a.userName));
+      if (match) {
+        done.push({ name, attempt: match });
+        matchedAttemptIds.add(match.id);
+      } else {
+        notDone.push(name);
+      }
+    });
+
+    // Any attempts not explicitly in roster list
+    const extra = relatedAttempts.filter(a => !matchedAttemptIds.has(a.id));
+
+    return { doneStudents: done, notDoneStudents: notDone, extraDone: extra };
+  }, [targetNames, relatedAttempts]);
+
+  const totalTargetCount = targetNames.length;
+  const totalDoneCount = targetNames.length > 0 ? doneStudents.length + extraDone.length : relatedAttempts.length;
+
+  const exportNotDoneCSV = () => {
+    if (notDoneStudents.length === 0) return;
+    const csv = ['Họ và tên', 'Lớp', 'Đề thi', 'Hạn nộp', 'Trạng thái',
+      ...notDoneStudents.map(n => `"${n}",${assignment.targetClass || 'Chưa rõ'},"${assignment.examTitle}","${assignment.dueDate || 'Không có'}",Chưa làm bài`)
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `chua_lam_${(assignment.targetClass || 'lop').replace(/\s+/g, '_')}_${(assignment.examTitle || 'dethi').slice(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="border border-slate-100 rounded-2xl overflow-hidden">
+    <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-xs">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors text-left"
+        className="w-full flex items-center gap-3 p-4 hover:bg-slate-50/80 transition-colors text-left"
       >
         <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
           <BookOpen size={16} />
@@ -51,17 +123,24 @@ function AssignmentRoster({ assignment, attempts, onComment }: {
           <p className="font-bold text-slate-800 text-sm line-clamp-1">{assignment.examTitle}</p>
           <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] font-bold">
             <span className="text-slate-500 flex items-center gap-1"><Users size={10} />
-              {targetStudents.length > 0 ? `${targetStudents.length} HS cụ thể` : `Lớp ${assignment.targetClass}`}
+              {targetNames.length > 0 ? `Lớp ${assignment.targetClass} (${targetNames.length} HS)` : `Lớp ${assignment.targetClass}`}
             </span>
-            <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 size={10} /> {related.length} đã làm</span>
+            <span className="text-emerald-600 flex items-center gap-1 font-black">
+              <CheckCircle2 size={11} /> {totalTargetCount > 0 ? `${totalDoneCount}/${totalTargetCount} đã làm` : `${totalDoneCount} đã làm`}
+            </span>
+            {notDoneStudents.length > 0 && (
+              <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded text-[10px] font-black">
+                {notDoneStudents.length} chưa làm
+              </span>
+            )}
             {assignment.shuffleQuestions && (
-              <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200/60 rounded flex items-center gap-1 font-bold">
-                <Shuffle size={10} /> Xáo đề
+              <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200/60 rounded flex items-center gap-1 font-bold text-[10px]">
+                <Shuffle size={9} /> Xáo đề
               </span>
             )}
             {assignment.antiCheat && (
-              <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200/60 rounded flex items-center gap-1 font-bold">
-                <ShieldCheck size={10} /> Giám sát (tối đa {assignment.maxTabSwitches ?? 3} lần)
+              <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200/60 rounded flex items-center gap-1 font-bold text-[10px]">
+                <ShieldCheck size={9} /> Giám sát ({assignment.maxTabSwitches ?? 3} lần)
               </span>
             )}
             {assignment.dueDate && (
@@ -78,59 +157,128 @@ function AssignmentRoster({ assignment, attempts, onComment }: {
       <AnimatePresence>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-slate-100">
-            <div className="p-4 bg-slate-50/50 space-y-2">
-              {related.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-4">Chưa có học sinh nào làm bài.</p>
-              ) : (
-                <>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Đã nộp bài ({related.length})</p>
-                  {related.map(attempt => (
-                    <div key={attempt.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-sm shrink-0">
-                        {(attempt.userName || 'H').charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-slate-800 truncate">{attempt.userName || 'Học sinh'}</p>
-                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-medium">
-                          <span>Điểm: <span className={cn('font-black', attempt.score >= 8 ? 'text-emerald-600' : attempt.score >= 5 ? 'text-amber-600' : 'text-rose-600')}>{attempt.score.toFixed(1)}</span></span>
-                          <span>{new Date(attempt.date).toLocaleDateString('vi-VN')}</span>
-                          {attempt.className && <span className="px-1.5 py-0.5 bg-slate-100 rounded-md">{attempt.className}</span>}
-                          {attempt.tabSwitches !== undefined && attempt.tabSwitches > 0 && (
-                            <span className="px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold rounded-md flex items-center gap-1 animate-pulse">
-                              <AlertTriangle size={10} /> Rời tab: {attempt.tabSwitches} lần
-                            </span>
-                          )}
-                        </div>
-                        {attempt.teacherComment && <p className="text-[11px] text-indigo-600 italic mt-0.5 line-clamp-1">"{attempt.teacherComment}"</p>}
-                      </div>
-                      <button
-                        onClick={() => onComment(attempt)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors shrink-0"
-                      >
-                        <MessageSquare size={11} />{attempt.teacherComment ? 'Sửa' : 'Nhận xét'}
-                      </button>
+            <div className="p-4 bg-slate-50/50 space-y-4">
+              {/* Target Class Roster Pills View */}
+              {targetNames.length > 0 && (
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                        Danh sách học sinh lớp {assignment.targetClass} ({targetNames.length})
+                      </span>
                     </div>
-                  ))}
-                </>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setFilterMode('all')}
+                          className={cn('px-2.5 py-1 rounded-lg text-[11px] font-bold', filterMode === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600')}
+                        >
+                          Tất cả ({targetNames.length})
+                        </button>
+                        <button
+                          onClick={() => setFilterMode('done')}
+                          className={cn('px-2.5 py-1 rounded-lg text-[11px] font-bold text-emerald-700', filterMode === 'done' ? 'bg-emerald-600 text-white' : 'bg-emerald-50')}
+                        >
+                          Đã làm ({doneStudents.length})
+                        </button>
+                        <button
+                          onClick={() => setFilterMode('notDone')}
+                          className={cn('px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-700', filterMode === 'notDone' ? 'bg-rose-600 text-white' : 'bg-rose-50')}
+                        >
+                          Chưa làm ({notDoneStudents.length})
+                        </button>
+                      </div>
+
+                      {notDoneStudents.length > 0 && (
+                        <button
+                          onClick={exportNotDoneCSV}
+                          className="flex items-center gap-1 px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition-colors"
+                        >
+                          <Download size={12} /> Xuất DS chưa làm
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pills */}
+                  <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
+                    {targetNames
+                      .filter(name => {
+                        const isDone = doneStudents.some(d => d.name.toLowerCase() === name.toLowerCase());
+                        if (filterMode === 'done') return isDone;
+                        if (filterMode === 'notDone') return !isDone;
+                        return true;
+                      })
+                      .map((name, i) => {
+                        const match = doneStudents.find(d => d.name.toLowerCase() === name.toLowerCase());
+                        const isDone = !!match;
+
+                        return (
+                          <div
+                            key={i}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all',
+                              isDone
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
+                            )}
+                          >
+                            {isDone ? <CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> : <XCircle size={12} className="text-rose-500 shrink-0" />}
+                            <span className="truncate max-w-[150px]">{name}</span>
+                            {isDone && typeof match?.attempt?.score === 'number' && (
+                              <span className="px-1 py-0.2 bg-emerald-200/70 text-emerald-900 rounded text-[9px] font-black shrink-0">
+                                {match.attempt.score.toFixed(1)}đ
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
               )}
 
-              {/* Show who hasn't done it yet (from individual targeting) */}
-              {targetStudents.length > 0 && (() => {
-                const doneNames = new Set(related.map(a => a.userName));
-                const notDone = targetStudents.filter(n => !doneNames.has(n));
-                return notDone.length > 0 ? (
-                  <>
-                    <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mt-4 mb-2">Chưa làm ({notDone.length})</p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {notDone.map((name, i) => (
-                        <span key={i} className="text-xs font-medium text-slate-500 px-2.5 py-1.5 bg-rose-50 border border-rose-100 rounded-lg truncate">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                ) : null;
-              })()}
+              {/* Submitted Attempts List */}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Chi tiết bài nộp ({relatedAttempts.length})
+                </p>
+                {relatedAttempts.length === 0 ? (
+                  <p className="text-slate-400 text-xs text-center py-4 bg-white rounded-xl border border-slate-100">
+                    Chưa có học sinh nào nộp bài.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {relatedAttempts.map(attempt => (
+                      <div key={attempt.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 shadow-2xs">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-sm shrink-0">
+                          {(attempt.userName || 'H').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-slate-800 truncate">{attempt.userName || 'Học sinh'}</p>
+                          <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-medium">
+                            <span>Điểm: <span className={cn('font-black', attempt.score >= 8 ? 'text-emerald-600' : attempt.score >= 5 ? 'text-amber-600' : 'text-rose-600')}>{attempt.score.toFixed(1)}</span></span>
+                            <span>{new Date(attempt.date).toLocaleString('vi-VN')}</span>
+                            {attempt.className && <span className="px-1.5 py-0.5 bg-slate-100 rounded-md font-bold">{attempt.className}</span>}
+                            {attempt.tabSwitches !== undefined && attempt.tabSwitches > 0 && (
+                              <span className="px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold rounded-md flex items-center gap-1 animate-pulse">
+                                <AlertTriangle size={10} /> Rời tab: {attempt.tabSwitches} lần
+                              </span>
+                            )}
+                          </div>
+                          {attempt.teacherComment && <p className="text-[11px] text-indigo-600 italic mt-0.5 line-clamp-1">"{attempt.teacherComment}"</p>}
+                        </div>
+                        <button
+                          onClick={() => onComment(attempt)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors shrink-0"
+                        >
+                          <MessageSquare size={11} />{attempt.teacherComment ? 'Sửa' : 'Nhận xét'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -181,7 +329,7 @@ function CommentModal({ attempt, onClose, onSaved }: { attempt: QuizAttempt; onC
   );
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────────
+// ─── Main Assign Panel ─────────────────────────────────────────────────────────
 export default function ExamAssignPanel({ exams, attempts }: Props) {
   const { user, profile } = useAuth();
   const [assignments, setAssignments] = useState<ExamAssignment[]>([]);
@@ -196,19 +344,23 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
   const [commentingAttempt, setCommentingAttempt] = useState<QuizAttempt | null>(null);
   const [attemptsList, setAttemptsList] = useState<QuizAttempt[]>(attempts);
 
+  const activeTeacherEmail = teacherWorkspaceService.getActiveTeacherEmail() || user?.email || '';
+  const [rosters, setRosters] = useState<ClassRoster[]>(() => rosterService.getRosters(activeTeacherEmail));
+
   const teacherName = (profile as any)?.name || (user as any)?.displayName || 'Giáo viên';
 
   useEffect(() => {
-    const activeEmail = teacherWorkspaceService.getActiveTeacherEmail() || user?.email || '';
-    const subKey = user?.uid || activeEmail;
+    const subKey = user?.uid || activeTeacherEmail;
     if (!subKey) return;
     const unsubAssign = assignmentService.subscribeToAssignments(subKey, setAssignments);
-    const unsubAttempts = examService.subscribeToAttempts(setAttemptsList, activeEmail);
+    const unsubAttempts = examService.subscribeToAttempts(setAttemptsList, activeTeacherEmail);
+    const unsubRosters = rosterService.subscribeToRosters(subKey, setRosters, activeTeacherEmail);
     return () => {
       unsubAssign();
       unsubAttempts();
+      unsubRosters();
     };
-  }, [user?.uid, user?.email]);
+  }, [user?.uid, activeTeacherEmail]);
 
   const handleAssign = async () => {
     if (!selectedExamId || !assignTarget) { alert('Vui lòng chọn đề thi và đối tượng nhận đề!'); return; }
@@ -220,7 +372,6 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
       : assignTarget.type === 'class' ? assignTarget.targetClass
         : assignTarget.targetClass;
     const targetStudents = assignTarget.type === 'individuals' ? assignTarget.students : [];
-    const activeEmail = teacherWorkspaceService.getActiveTeacherEmail();
 
     await assignmentService.assignExam(
       exam.id, exam.title, teacherName, targetClass,
@@ -230,7 +381,7 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
       shuffleQuestions,
       antiCheat,
       maxTabSwitches,
-      activeEmail
+      activeTeacherEmail
     );
     setSuccess(`Đã giao đề "${exam.title}" cho ${assignTarget.type === 'individuals' ? `${targetStudents.length} học sinh` : `lớp "${targetClass}"`}!`);
     setSelectedExamId('');
@@ -369,7 +520,7 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
         ) : (
           <div className="p-4 space-y-3">
             {assignments.map(a => (
-              <AssignmentRoster key={a.id} assignment={a} attempts={attemptsList} onComment={setCommentingAttempt} />
+              <AssignmentRoster key={a.id} assignment={a} attempts={attemptsList} rosters={rosters} onComment={setCommentingAttempt} />
             ))}
           </div>
         )}
@@ -377,7 +528,7 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
 
       <AnimatePresence>
         {commentingAttempt && (
-          <CommentModal attempt={commentingAttempt} onClose={() => setCommentingAttempt(null)} onSaved={() => examService.subscribeToAttempts(setAttemptsList)} />
+          <CommentModal attempt={commentingAttempt} onClose={() => setCommentingAttempt(null)} onSaved={() => examService.subscribeToAttempts(setAttemptsList, activeTeacherEmail)} />
         )}
       </AnimatePresence>
     </div>
