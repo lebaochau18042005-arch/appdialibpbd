@@ -447,6 +447,8 @@ export default function TeacherDashboard() {
       setLoading(false);
     };
 
+    const isSuperAdmin = activeTeacherEmail?.toLowerCase() === 'lebaochau18042005@gmail.com';
+
     // Subscribe RTDB attempts (cross-device student submissions filtered by teacher workspace)
     unsubscribeRTDBAttempts = (examService as any).subscribeToRTDBAttempts?.((data: QuizAttempt[]) => {
       rtdbAttempts.splice(0, rtdbAttempts.length, ...data);
@@ -457,11 +459,14 @@ export default function TeacherDashboard() {
     unsubscribeAttempts = examService.subscribeToAttempts((data) => {
       let filtered = data;
       if (activeTeacherEmail) {
-        filtered = data.filter(a => !a.teacherEmail || a.teacherEmail.toLowerCase() === activeTeacherEmail.toLowerCase());
+        filtered = data.filter(a => {
+          if (!a.teacherEmail) return isSuperAdmin;
+          return a.teacherEmail.toLowerCase() === activeTeacherEmail.toLowerCase();
+        });
       }
       fsAttempts.splice(0, fsAttempts.length, ...filtered);
       mergeAndSetAttempts();
-    });
+    }, activeTeacherEmail);
 
     const creatorKey = user?.uid || activeTeacherEmail || '';
     if (creatorKey) {
@@ -484,10 +489,14 @@ export default function TeacherDashboard() {
     // This is now handled by real-time listeners, 
     // but we keep it for manual refresh if needed
     setLoading(true);
+    const isSuperAdmin = activeTeacherEmail?.toLowerCase() === 'lebaochau18042005@gmail.com';
     try {
       let attemptsData = await examService.getAllAttempts();
       if (activeTeacherEmail) {
-        attemptsData = attemptsData.filter(a => !a.teacherEmail || a.teacherEmail.toLowerCase() === activeTeacherEmail.toLowerCase());
+        attemptsData = attemptsData.filter(a => {
+          if (!a.teacherEmail) return isSuperAdmin;
+          return a.teacherEmail.toLowerCase() === activeTeacherEmail.toLowerCase();
+        });
       }
       const examsData = user ? await examService.getExamsByCreator(user.uid) : await examService.getAllExams();
       setAttempts(attemptsData);

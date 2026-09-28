@@ -168,6 +168,33 @@ export default function AdminSettings() {
                 }
             }
 
+            // 4. Migrate Attempts in Firestore (stamp legacy attempts with Admin email)
+            const targetEmail = user.email || 'lebaochau18042005@gmail.com';
+            const attemptsSnap = await getDocs(collection(db, 'attempts'));
+            const batchAttempts = attemptsSnap.docs.map(attDoc => {
+                const data = attDoc.data();
+                if (!data.teacherEmail) {
+                    return setDoc(doc(db, 'attempts', attDoc.id), {
+                        teacherEmail: targetEmail
+                    }, { merge: true });
+                }
+                return Promise.resolve();
+            });
+            await Promise.all(batchAttempts);
+
+            // 5. Migrate Attempts in RTDB
+            const rtdbAttemptsSnap = await get(ref(rtdb, 'attempts'));
+            if (rtdbAttemptsSnap.exists()) {
+                const allAtts = rtdbAttemptsSnap.val();
+                for (const [attId, attVal] of Object.entries(allAtts)) {
+                    if (attVal && typeof attVal === 'object' && !(attVal as any).teacherEmail) {
+                        await update(ref(rtdb, `attempts/${attId}`), {
+                            teacherEmail: targetEmail
+                        });
+                    }
+                }
+            }
+
             setMigrationDone(true);
             alert('Đã chuyển đổi toàn bộ dữ liệu thành công!');
         } catch (error: any) {

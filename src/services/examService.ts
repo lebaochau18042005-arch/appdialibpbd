@@ -43,16 +43,37 @@ function sanitizeForFirestore<T>(obj: T): T {
 }
 
 export const examService = {
-  // Real-time listeners
-  subscribeToAttempts(callback: (attempts: QuizAttempt[]) => void): Unsubscribe {
+  // Real-time listeners with strict teacher workspace isolation
+  subscribeToAttempts(callback: (attempts: QuizAttempt[]) => void, teacherEmail?: string): Unsubscribe {
     const q = collection(db, 'attempts');
+    const finalEmail = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
+    const isSuperAdmin = finalEmail === 'lebaochau18042005@gmail.com';
+
     const unsub = onSnapshot(q, (snapshot) => {
-      const fsAttempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuizAttempt));
-      const lsAttempts = lsGetAttempts().filter(la => !fsAttempts.find(fa => fa.id === la.id));
+      let fsAttempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuizAttempt));
+      if (finalEmail) {
+        fsAttempts = fsAttempts.filter(a => {
+          if (!a.teacherEmail) return isSuperAdmin;
+          return a.teacherEmail.trim().toLowerCase() === finalEmail;
+        });
+      }
+      let lsAttempts = lsGetAttempts().filter(la => !fsAttempts.find(fa => fa.id === la.id));
+      if (finalEmail) {
+        lsAttempts = lsAttempts.filter(a => {
+          if (!a.teacherEmail) return isSuperAdmin;
+          return a.teacherEmail.trim().toLowerCase() === finalEmail;
+        });
+      }
       callback([...fsAttempts, ...lsAttempts]);
     }, (_error) => {
-      // Firestore failed - use only localStorage
-      callback(lsGetAttempts());
+      let lsAttempts = lsGetAttempts();
+      if (finalEmail) {
+        lsAttempts = lsAttempts.filter(a => {
+          if (!a.teacherEmail) return isSuperAdmin;
+          return a.teacherEmail.trim().toLowerCase() === finalEmail;
+        });
+      }
+      callback(lsAttempts);
     });
     return unsub;
   },
@@ -858,9 +879,10 @@ CẤU TRÚC BẮT BUỘC:
         list.push({ id: child.key, ...d });
       });
       if (finalEmail) {
+        const isSuperAdmin = finalEmail === 'lebaochau18042005@gmail.com';
         list = list.filter(a => {
-          if (!a.teacherEmail) return true;
-          return a.teacherEmail.toLowerCase() === finalEmail;
+          if (!a.teacherEmail) return isSuperAdmin;
+          return a.teacherEmail.trim().toLowerCase() === finalEmail;
         });
       }
       list.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
@@ -892,11 +914,25 @@ CẤU TRÚC BẮT BUỘC:
     }
   },
 
-  async getAllAttempts(): Promise<QuizAttempt[]> {
-    const lsAttempts = lsGetAttempts();
+  async getAllAttempts(teacherEmail?: string): Promise<QuizAttempt[]> {
+    const finalEmail = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
+    const isSuperAdmin = finalEmail === 'lebaochau18042005@gmail.com';
+    let lsAttempts = lsGetAttempts();
+    if (finalEmail) {
+      lsAttempts = lsAttempts.filter(a => {
+        if (!a.teacherEmail) return isSuperAdmin;
+        return a.teacherEmail.trim().toLowerCase() === finalEmail;
+      });
+    }
     try {
       const querySnapshot = await getDocs(collection(db, 'attempts'));
-      const fsAttempts = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuizAttempt));
+      let fsAttempts = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuizAttempt));
+      if (finalEmail) {
+        fsAttempts = fsAttempts.filter(a => {
+          if (!a.teacherEmail) return isSuperAdmin;
+          return a.teacherEmail.trim().toLowerCase() === finalEmail;
+        });
+      }
       const onlyLocal = lsAttempts.filter(la => !fsAttempts.find(fa => fa.id === la.id));
       return [...fsAttempts, ...onlyLocal];
     } catch (error) {

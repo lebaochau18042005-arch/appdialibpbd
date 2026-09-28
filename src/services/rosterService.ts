@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { rtdb } from '../firebase';
 import { ref, set, get, onValue, off, remove } from 'firebase/database';
+import { sanitizeEmailKey, teacherWorkspaceService } from './teacherWorkspaceService';
 
 // Types
 export interface StudentEntry {
@@ -16,14 +17,35 @@ export interface ClassRoster {
 
 const LS_KEY = 'geo_pro_rosters';
 
+function getRosterLsKey(teacherEmail?: string): string {
+  const email = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
+  if (!email || email === 'lebaochau18042005@gmail.com') {
+    return LS_KEY;
+  }
+  return `${LS_KEY}_${sanitizeEmailKey(email)}`;
+}
+
 // ─── Persistence ──────────────────────────────────────────────────────────────
 export const rosterService = {
-  getRosters(): ClassRoster[] {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+  getRosters(teacherEmail?: string): ClassRoster[] {
+    const key = getRosterLsKey(teacherEmail);
+    try {
+      const data = localStorage.getItem(key);
+      if (data) return JSON.parse(data);
+      // Super admin falls back to global LS_KEY if scoped key is empty
+      const active = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
+      if (active === 'lebaochau18042005@gmail.com' && key !== LS_KEY) {
+        return JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      }
+      return [];
+    } catch {
+      return [];
+    }
   },
 
-  saveRoster(className: string, students: StudentEntry[], creatorId?: string): ClassRoster {
-    const rosters = this.getRosters();
+  saveRoster(className: string, students: StudentEntry[], creatorId?: string, teacherEmail?: string): ClassRoster {
+    const key = getRosterLsKey(teacherEmail);
+    const rosters = this.getRosters(teacherEmail);
     const existing = rosters.find(r => r.className.toLowerCase() === className.toLowerCase());
     const roster: ClassRoster = {
       id: existing?.id || `roster_${Date.now()}`,
@@ -33,7 +55,7 @@ export const rosterService = {
     };
     const updated = rosters.filter(r => r.id !== roster.id);
     updated.unshift(roster);
-    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+    localStorage.setItem(key, JSON.stringify(updated));
     // Sync to RTDB for cross-device student auto-detect if creatorId provided
     if (creatorId) {
       this.syncRosterToRTDB(roster, creatorId);
@@ -100,13 +122,20 @@ export const rosterService = {
     }
   },
 
-  // Teacher: subscribe to rosters from RTDB (for session grouping view)
-  subscribeToRosters(creatorId: string, callback: (rosters: ClassRoster[]) => void): () => void {
-    if (!creatorId) { callback(this.getRosters()); return () => { }; }
+  // Teacher: subscribe to rosters from RTDB (isolated by creatorId / teacher workspace)
+  subscribeToRosters(creatorId: string, callback: (rosters: ClassRoster[]) => void, teacherEmail?: string): () => void {
+    const activeEmail = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
+    if (!creatorId) {
+      callback(this.getRosters(activeEmail));
+      return () => { };
+    }
     const rostersRef = ref(rtdb, `rosters/${creatorId}`);
     const handler = (snap: any) => {
-      const localRosters = this.getRosters();
-      if (!snap.exists()) { callback(localRosters); return; }
+      const localRosters = this.getRosters(activeEmail);
+      if (!snap.exists()) {
+        callback(localRosters);
+        return;
+      }
       const list: ClassRoster[] = [];
       snap.forEach((child: any) => {
         const data = child.val();
@@ -121,7 +150,7 @@ export const rosterService = {
         });
       });
 
-      // Merge local elements that might have failed to sync to RTDB
+      // Merge local elements that belong to this teacher
       const merged = [...list];
       for (const lr of localRosters) {
         if (!list.some(r => r.className.toLowerCase() === lr.className.toLowerCase())) {
@@ -134,25 +163,26 @@ export const rosterService = {
 
       callback(merged);
     };
-    onValue(rostersRef, handler, () => callback(this.getRosters()));
+    onValue(rostersRef, handler, () => callback(this.getRosters(activeEmail)));
     return () => off(rostersRef, 'value', handler);
   },
 
-  deleteRoster(id: string, creatorId?: string) {
-    const updated = this.getRosters().filter(r => r.id !== id);
-    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+  deleteRoster(id: string, creatorId?: string, teacherEmail?: string) {
+    const key = getRosterLsKey(teacherEmail);
+    const updated = this.getRosters(teacherEmail).filter(r => r.id !== id);
+    localStorage.setItem(key, JSON.stringify(updated));
     // Also remove from RTDB
     if (creatorId) {
       try { remove(ref(rtdb, `rosters/${creatorId}/${id}`)); } catch { }
     }
   },
 
-  getClassNames(): string[] {
-    return this.getRosters().map(r => r.className);
+  getClassNames(teacherEmail?: string): string[] {
+    return this.getRosters(teacherEmail).map(r => r.className);
   },
 
-  getStudentsForClass(className: string): StudentEntry[] {
-    const r = this.getRosters().find(r => r.className.toLowerCase() === className.toLowerCase());
+  getStudentsForClass(className: string, teacherEmail?: string): StudentEntry[] {
+    const r = this.getRosters(teacherEmail).find(r => r.className.toLowerCase() === className.toLowerCase());
     return r?.students || [];
   },
 

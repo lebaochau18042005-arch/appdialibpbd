@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { rosterService, ClassRoster, StudentEntry } from '../../services/rosterService';
 import { useAuth } from '../../contexts/AuthContext';
+import { teacherWorkspaceService } from '../../services/teacherWorkspaceService';
 import { cn } from '../../utils/cn';
 
 interface Props {
@@ -21,7 +22,8 @@ function FileIcon({ ext }: { ext: string }) {
 
 export default function RosterUploader({ onRosterChange }: Props) {
   const { user } = useAuth();
-  const [rosters, setRosters] = useState<ClassRoster[]>(() => rosterService.getRosters());
+  const activeTeacherEmail = teacherWorkspaceService.getActiveTeacherEmail() || user?.email || '';
+  const [rosters, setRosters] = useState<ClassRoster[]>(() => rosterService.getRosters(activeTeacherEmail));
   const [dragging, setDragging] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState('');
@@ -33,8 +35,19 @@ export default function RosterUploader({ onRosterChange }: Props) {
   const [manualText, setManualText] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Subscribe to real-time rosters from RTDB for this teacher
+  React.useEffect(() => {
+    const creatorKey = user?.uid || activeTeacherEmail;
+    if (!creatorKey) return;
+    const unsub = rosterService.subscribeToRosters(creatorKey, (data) => {
+      setRosters(data);
+      onRosterChange?.();
+    }, activeTeacherEmail);
+    return () => unsub();
+  }, [user?.uid, activeTeacherEmail]);
+
   const refresh = () => {
-    const r = rosterService.getRosters();
+    const r = rosterService.getRosters(activeTeacherEmail);
     setRosters(r);
     onRosterChange?.();
   };
@@ -66,7 +79,7 @@ export default function RosterUploader({ onRosterChange }: Props) {
   const handleSave = () => {
     if (!className.trim()) { setError('Hãy nhập tên lớp!'); return; }
     if (!preview || preview.length === 0) { setError('Chưa có danh sách học sinh.'); return; }
-    rosterService.saveRoster(className.trim(), preview, user?.uid);
+    rosterService.saveRoster(className.trim(), preview, user?.uid, activeTeacherEmail);
     setPreview(null);
     setPreviewFile('');
     setClassName('');
@@ -77,7 +90,7 @@ export default function RosterUploader({ onRosterChange }: Props) {
     if (!className.trim()) { setError('Hãy nhập tên lớp!'); return; }
     const students = manualText.split('\n').map(l => l.trim()).filter(l => l.length > 1).map(name => ({ name }));
     if (students.length === 0) { setError('Chưa có tên học sinh nào.'); return; }
-    rosterService.saveRoster(className.trim(), students, user?.uid);
+    rosterService.saveRoster(className.trim(), students, user?.uid, activeTeacherEmail);
     setManualText('');
     setManualMode(false);
     refresh();
@@ -85,7 +98,7 @@ export default function RosterUploader({ onRosterChange }: Props) {
 
   const handleDelete = (id: string) => {
     if (!confirm('Xóa danh sách này?')) return;
-    rosterService.deleteRoster(id, user?.uid);
+    rosterService.deleteRoster(id, user?.uid, activeTeacherEmail);
     refresh();
   };
 

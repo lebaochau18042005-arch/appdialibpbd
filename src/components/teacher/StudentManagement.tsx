@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { QuizAttempt, StudentSummary, TopicStats } from '../../types';
 import { examService } from '../../services/examService';
+import { sanitizeEmailKey, teacherWorkspaceService } from '../../services/teacherWorkspaceService';
 import { cn } from '../../utils/cn';
 import ProgressChart from '../charts/ProgressChart';
 
@@ -509,11 +510,30 @@ export default function StudentManagement({ attempts, onRefresh }: StudentManage
     });
   }, [students, search, selectedClass]);
 
-  const LS_ROSTER_KEY = 'geo_pro_class_roster';
-  const [rosterText, setRosterText] = useState<string>(() => localStorage.getItem(LS_ROSTER_KEY) || '');
+  const activeTeacherEmail = teacherWorkspaceService.getActiveTeacherEmail() || '';
+  const isSuperAdmin = activeTeacherEmail.toLowerCase() === 'lebaochau18042005@gmail.com';
+  const LS_ROSTER_KEY = !activeTeacherEmail || isSuperAdmin
+    ? 'geo_pro_class_roster'
+    : `geo_pro_class_roster_${sanitizeEmailKey(activeTeacherEmail)}`;
+
+  const [rosterText, setRosterText] = useState<string>(() => {
+    const val = localStorage.getItem(LS_ROSTER_KEY);
+    if (val) return val;
+    if (isSuperAdmin && LS_ROSTER_KEY !== 'geo_pro_class_roster') {
+      return localStorage.getItem('geo_pro_class_roster') || '';
+    }
+    return '';
+  });
   const [showRoster, setShowRoster] = useState(true);
   const [editingRoster, setEditingRoster] = useState(false);
   const [draftRoster, setDraftRoster] = useState(rosterText);
+
+  // Sync draftRoster if rosterText changes
+  React.useEffect(() => {
+    const val = localStorage.getItem(LS_ROSTER_KEY) || (isSuperAdmin ? localStorage.getItem('geo_pro_class_roster') || '' : '');
+    setRosterText(val);
+    setDraftRoster(val);
+  }, [LS_ROSTER_KEY, isSuperAdmin]);
 
   const rosterNames = useMemo(() =>
     rosterText.split('\n').map(n => n.trim()).filter(Boolean),

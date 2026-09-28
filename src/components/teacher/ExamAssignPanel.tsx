@@ -199,13 +199,16 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
   const teacherName = (profile as any)?.name || (user as any)?.displayName || 'Giáo viên';
 
   useEffect(() => {
-    const activeEmail = teacherWorkspaceService.getActiveTeacherEmail();
+    const activeEmail = teacherWorkspaceService.getActiveTeacherEmail() || user?.email || '';
     const subKey = user?.uid || activeEmail;
     if (!subKey) return;
-    const unsub = assignmentService.subscribeToAssignments(subKey, setAssignments);
-    return () => unsub();
-  }, [user]);
-  useEffect(() => { const unsub = examService.subscribeToAttempts(setAttemptsList); return () => unsub(); }, []);
+    const unsubAssign = assignmentService.subscribeToAssignments(subKey, setAssignments);
+    const unsubAttempts = examService.subscribeToAttempts(setAttemptsList, activeEmail);
+    return () => {
+      unsubAssign();
+      unsubAttempts();
+    };
+  }, [user?.uid, user?.email]);
 
   const handleAssign = async () => {
     if (!selectedExamId || !assignTarget) { alert('Vui lòng chọn đề thi và đối tượng nhận đề!'); return; }

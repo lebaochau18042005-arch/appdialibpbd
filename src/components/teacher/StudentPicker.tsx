@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Search, Check, ChevronDown, GraduationCap } from 'lucide-react';
 import { rosterService, StudentEntry, ClassRoster } from '../../services/rosterService';
 import { useAuth } from '../../contexts/AuthContext';
+import { teacherWorkspaceService } from '../../services/teacherWorkspaceService';
 import { cn } from '../../utils/cn';
 
 export type AssignTarget =
@@ -16,7 +17,8 @@ interface Props {
 
 export default function StudentPicker({ value, onChange }: Props) {
   const { user } = useAuth();
-  const [rosters, setRosters] = useState<ClassRoster[]>(() => rosterService.getRosters());
+  const activeTeacherEmail = teacherWorkspaceService.getActiveTeacherEmail() || user?.email || '';
+  const [rosters, setRosters] = useState<ClassRoster[]>(() => rosterService.getRosters(activeTeacherEmail));
   const [tab, setTab] = useState<'class' | 'individual'>('class');
   const [selectedClass, setSelectedClass] = useState('');
   const [customClass, setCustomClass] = useState('');
@@ -26,13 +28,14 @@ export default function StudentPicker({ value, onChange }: Props) {
 
   // Subscribe to RTDB rosters for cross-device sync
   useEffect(() => {
-    if (!user?.uid) return;
-    const unsub = rosterService.subscribeToRosters(user.uid, setRosters);
+    const creatorKey = user?.uid || activeTeacherEmail;
+    if (!creatorKey) return;
+    const unsub = rosterService.subscribeToRosters(creatorKey, setRosters, activeTeacherEmail);
     return () => unsub();
-  }, [user]);
+  }, [user?.uid, activeTeacherEmail]);
 
   const students: StudentEntry[] = selectedClass
-    ? rosterService.getStudentsForClass(selectedClass)
+    ? rosterService.getStudentsForClass(selectedClass, activeTeacherEmail)
     : [];
 
   const filtered = students.filter(s =>
