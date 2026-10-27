@@ -1009,11 +1009,12 @@ export default function TeacherDashboard() {
           setComment={setComment}
           setProgress={setProgress}
           teacherEmail={activeTeacherEmail}
+          exams={exams}
         />
       )}
 
       {activeTab === 'students' && (
-        <StudentManagement attempts={attempts} onRefresh={loadData} />
+        <StudentManagement attempts={attempts} onRefresh={loadData} exams={exams} />
       )}
 
       {activeTab === 'admin' && isAdmin && (

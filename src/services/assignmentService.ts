@@ -36,7 +36,12 @@ export const assignmentService = {
     shuffleQuestions: boolean = true,
     antiCheat: boolean = true,
     maxTabSwitches: number = 3,
-    teacherEmail?: string
+    teacherEmail?: string,
+    allowRetake: boolean = true,
+    maxRetakes: number = 999,
+    retakeCondition: 'always' | 'below_score' | 'has_mistakes' = 'always',
+    retakeThresholdScore: number = 5.0,
+    gradingPolicy: 'highest' | 'latest' = 'highest'
   ): Promise<string> {
     const createdAt = new Date().toISOString();
     const finalTeacherEmail = (teacherEmail || teacherWorkspaceService.getActiveTeacherEmail() || '').trim().toLowerCase();
@@ -51,6 +56,11 @@ export const assignmentService = {
       shuffleQuestions,
       antiCheat,
       maxTabSwitches,
+      allowRetake,
+      maxRetakes,
+      retakeCondition,
+      retakeThresholdScore,
+      gradingPolicy,
       ...(dueDate ? { dueDate } : {}),
       ...(targetStudents?.length ? { targetStudents } : {}),
       ...(examQuestions?.length ? { questions: examQuestions } : {}),
@@ -77,6 +87,11 @@ export const assignmentService = {
       shuffleQuestions,
       antiCheat,
       maxTabSwitches,
+      allowRetake,
+      maxRetakes,
+      retakeCondition,
+      retakeThresholdScore,
+      gradingPolicy,
       ...(dueDate ? { dueDate } : {}),
       ...(targetStudents?.length ? { targetStudents } : {}),
     };
@@ -125,22 +140,32 @@ export const assignmentService = {
     } catch { return null; }
   },
 
-  // Get full assignment configuration (shuffle, antiCheat, maxTabSwitches)
+  // Get full assignment configuration (shuffle, antiCheat, maxTabSwitches, retake options)
   async getAssignmentConfig(examId: string, assignmentId?: string): Promise<{
     shuffleQuestions: boolean;
     antiCheat: boolean;
     maxTabSwitches: number;
+    allowRetake?: boolean;
+    maxRetakes?: number;
+    retakeCondition?: 'always' | 'below_score' | 'has_mistakes';
+    retakeThresholdScore?: number;
+    gradingPolicy?: 'highest' | 'latest';
     teacherEmail?: string;
     assignment?: ExamAssignment;
   }> {
     // 1. Check localStorage first
     const local = lsGet();
     const foundLocal = local.find(a => (assignmentId && a.id === assignmentId) || a.examId === examId);
-    if (foundLocal && (foundLocal.shuffleQuestions !== undefined || foundLocal.antiCheat !== undefined)) {
+    if (foundLocal && (foundLocal.shuffleQuestions !== undefined || foundLocal.antiCheat !== undefined || foundLocal.allowRetake !== undefined)) {
       return {
         shuffleQuestions: foundLocal.shuffleQuestions ?? true,
         antiCheat: foundLocal.antiCheat ?? false,
         maxTabSwitches: foundLocal.maxTabSwitches ?? 3,
+        allowRetake: foundLocal.allowRetake ?? true,
+        maxRetakes: foundLocal.maxRetakes ?? 999,
+        retakeCondition: foundLocal.retakeCondition ?? 'always',
+        retakeThresholdScore: foundLocal.retakeThresholdScore ?? 5.0,
+        gradingPolicy: foundLocal.gradingPolicy ?? 'highest',
         teacherEmail: foundLocal.teacherEmail,
         assignment: foundLocal,
       };
@@ -167,6 +192,11 @@ export const assignmentService = {
             shuffleQuestions: match.shuffleQuestions ?? true,
             antiCheat: match.antiCheat ?? false,
             maxTabSwitches: match.maxTabSwitches ?? 3,
+            allowRetake: match.allowRetake ?? true,
+            maxRetakes: match.maxRetakes ?? 999,
+            retakeCondition: match.retakeCondition ?? 'always',
+            retakeThresholdScore: match.retakeThresholdScore ?? 5.0,
+            gradingPolicy: match.gradingPolicy ?? 'highest',
             teacherEmail: match.teacherEmail || foundLocal?.teacherEmail,
             assignment: match,
           };
@@ -180,6 +210,11 @@ export const assignmentService = {
       shuffleQuestions: foundLocal?.shuffleQuestions ?? true,
       antiCheat: foundLocal?.antiCheat ?? false,
       maxTabSwitches: foundLocal?.maxTabSwitches ?? 3,
+      allowRetake: foundLocal?.allowRetake ?? true,
+      maxRetakes: foundLocal?.maxRetakes ?? 999,
+      retakeCondition: foundLocal?.retakeCondition ?? 'always',
+      retakeThresholdScore: foundLocal?.retakeThresholdScore ?? 5.0,
+      gradingPolicy: foundLocal?.gradingPolicy ?? 'highest',
       teacherEmail: foundLocal?.teacherEmail,
       assignment: foundLocal,
     };
@@ -211,6 +246,11 @@ export const assignmentService = {
           shuffleQuestions: d.shuffleQuestions ?? true,
           antiCheat: d.antiCheat ?? false,
           maxTabSwitches: d.maxTabSwitches ?? 3,
+          allowRetake: d.allowRetake ?? true,
+          maxRetakes: d.maxRetakes ?? 999,
+          retakeCondition: d.retakeCondition ?? 'always',
+          retakeThresholdScore: d.retakeThresholdScore ?? 5.0,
+          gradingPolicy: d.gradingPolicy ?? 'highest',
         });
       });
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -261,6 +301,11 @@ export const assignmentService = {
             shuffleQuestions: d.shuffleQuestions ?? true,
             antiCheat: d.antiCheat ?? false,
             maxTabSwitches: d.maxTabSwitches ?? 3,
+            allowRetake: d.allowRetake ?? true,
+            maxRetakes: d.maxRetakes ?? 999,
+            retakeCondition: d.retakeCondition ?? 'always',
+            retakeThresholdScore: d.retakeThresholdScore ?? 5.0,
+            gradingPolicy: d.gradingPolicy ?? 'highest',
           });
         });
       });

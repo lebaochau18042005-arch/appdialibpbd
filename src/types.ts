@@ -74,6 +74,11 @@ export interface ExamAssignment {
   shuffleQuestions?: boolean;
   antiCheat?: boolean;
   maxTabSwitches?: number;
+  allowRetake?: boolean; // Cho phép học sinh làm lại nhiều lần để ôn tập
+  maxRetakes?: number; // Số lần làm lại tối đa (999: không giới hạn)
+  retakeCondition?: 'always' | 'below_score' | 'has_mistakes'; // Điều kiện làm lại
+  retakeThresholdScore?: number; // Ngưỡng điểm chưa đạt (vd: 5.0)
+  gradingPolicy?: 'highest' | 'latest'; // Ghi nhận điểm cao nhất hay lần gần nhất
 }
 
 export interface Notification {
@@ -106,6 +111,9 @@ export interface QuizAttempt {
   studentProgress?: string;
   tabSwitches?: number;
   violations?: string[];
+  assignmentId?: string;
+  attemptNumber?: number;
+  questionsSnapshot?: Question[];
 }
 
 export interface TeacherWorkspace {

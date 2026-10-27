@@ -4,9 +4,9 @@ import {
   Users, Search, X, BarChart2, Calendar, Clock, Target,
   MessageSquare, ChevronRight, TrendingUp, TrendingDown,
   Award, BookOpen, Download, Filter, CheckCircle2, XCircle, RefreshCw,
-  ClipboardList, ChevronDown, ChevronUp, Edit3, Save, Plus, FileSpreadsheet
+  ClipboardList, ChevronDown, ChevronUp, Edit3, Save, Plus, FileSpreadsheet, Eye
 } from 'lucide-react';
-import { QuizAttempt, StudentSummary, TopicStats } from '../../types';
+import { QuizAttempt, StudentSummary, TopicStats, Exam } from '../../types';
 import { examService } from '../../services/examService';
 import { sanitizeEmailKey, teacherWorkspaceService } from '../../services/teacherWorkspaceService';
 import { rosterService, ClassRoster, StudentEntry } from '../../services/rosterService';
@@ -14,10 +14,12 @@ import { isStudentNameMatch, isClassMatch, normalizeClassName } from '../../util
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
 import ProgressChart from '../charts/ProgressChart';
+import StudentSubmissionDetailModal from './StudentSubmissionDetailModal';
 
 interface StudentManagementProps {
   attempts: QuizAttempt[];
   onRefresh: () => void;
+  exams?: Exam[];
 }
 
 // Build student summaries from attempts
@@ -134,13 +136,15 @@ interface DetailPanelProps {
   student: StudentSummary;
   onClose: () => void;
   onRefresh: () => void;
+  exams?: Exam[];
 }
 
-function StudentDetailPanel({ student, onClose, onRefresh }: DetailPanelProps) {
+function StudentDetailPanel({ student, onClose, onRefresh, exams = [] }: DetailPanelProps) {
   const [commentingId, setCommentingId] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [progress, setProgress] = useState('');
   const [saving, setSaving] = useState(false);
+  const [viewingAttempt, setViewingAttempt] = useState<QuizAttempt | null>(null);
 
   const topicStats = useMemo(() => computeTopicStats(student.attempts), [student]);
 
@@ -320,19 +324,42 @@ function StudentDetailPanel({ student, onClose, onRefresh }: DetailPanelProps) {
                     </div>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => { setCommentingId(attempt.id); setComment(attempt.teacherComment || ''); setProgress(attempt.studentProgress || ''); }}
-                    className="mt-2 flex items-center gap-1 text-[11px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors"
-                  >
-                    <MessageSquare size={11} />
-                    {attempt.teacherComment ? 'Sửa nhận xét' : 'Thêm nhận xét'}
-                  </button>
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      onClick={() => setViewingAttempt(attempt)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                      title="Kiểm tra chi tiết kết quả từng câu học sinh làm"
+                    >
+                      <Eye size={12} />
+                      Kiểm tra bài
+                    </button>
+                    <button
+                      onClick={() => { setCommentingId(attempt.id); setComment(attempt.teacherComment || ''); setProgress(attempt.studentProgress || ''); }}
+                      className="flex items-center gap-1 text-[11px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors"
+                    >
+                      <MessageSquare size={11} />
+                      {attempt.teacherComment ? 'Sửa nhận xét' : 'Thêm nhận xét'}
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Modal xem chi tiết bài làm */}
+      {viewingAttempt && (
+        <StudentSubmissionDetailModal
+          attempt={viewingAttempt}
+          exams={exams}
+          onClose={() => setViewingAttempt(null)}
+          onSaveComment={async (attemptId, c, p) => {
+            await examService.addTeacherComment(attemptId, c, p);
+            onRefresh();
+          }}
+        />
+      )}
     </motion.div>
   );
 }
@@ -561,7 +588,7 @@ function ClassRosterPanel({
 }
 
 // ─── Main Student Management ──────────────────────────────────────────────────
-export default function StudentManagement({ attempts, onRefresh }: StudentManagementProps) {
+export default function StudentManagement({ attempts, onRefresh, exams = [] }: StudentManagementProps) {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [selectedClass, setSelectedClass] = useState('Tất cả');
@@ -831,6 +858,7 @@ export default function StudentManagement({ attempts, onRefresh }: StudentManage
               student={selectedStudent}
               onClose={() => setSelectedStudent(null)}
               onRefresh={onRefresh}
+              exams={exams}
             />
           </>
         )}

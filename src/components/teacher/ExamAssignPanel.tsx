@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Send, CheckCircle2, RefreshCw, ClipboardList, ChevronDown,
   ChevronUp, MessageSquare, Save, X, BookOpen, Users, Clock,
-  Shuffle, ShieldCheck, AlertTriangle, Download, XCircle, Search
+  Shuffle, ShieldCheck, AlertTriangle, Download, XCircle, Search,
+  RotateCcw, Eye, HelpCircle
 } from 'lucide-react';
 import { Exam, ExamAssignment, QuizAttempt } from '../../types';
 import { assignmentService } from '../../services/assignmentService';
@@ -14,6 +15,7 @@ import { teacherWorkspaceService } from '../../services/teacherWorkspaceService'
 import { rosterService, ClassRoster } from '../../services/rosterService';
 import { isStudentNameMatch, isClassMatch } from '../../utils/studentMatcher';
 import StudentPicker, { AssignTarget } from './StudentPicker';
+import StudentSubmissionDetailModal from './StudentSubmissionDetailModal';
 
 interface Props {
   exams: Exam[];
@@ -21,18 +23,18 @@ interface Props {
 }
 
 // ─── Per-assignment roster panel ──────────────────────────────────────────────
-function AssignmentRoster({ assignment, attempts, rosters, onComment }: {
+function AssignmentRoster({ assignment, attempts, rosters, onComment, onViewSubmission }: {
   assignment: ExamAssignment;
   attempts: QuizAttempt[];
   rosters: ClassRoster[];
   onComment: (a: QuizAttempt) => void;
+  onViewSubmission: (a: QuizAttempt) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [filterMode, setFilterMode] = useState<'all' | 'done' | 'notDone'>('all');
 
   // Related attempts for this assignment
   const relatedAttempts = useMemo(() => {
-    const seen = new Set<string>();
     return attempts.filter(a => {
       const matchExam = a.examId === assignment.examId
         || a.examId === assignment.id
@@ -46,10 +48,6 @@ function AssignmentRoster({ assignment, attempts, rosters, onComment }: {
           return false;
         }
       }
-
-      const k = a.userId || a.userName;
-      if (seen.has(k)) return false;
-      seen.add(k);
       return true;
     });
   }, [attempts, assignment]);
@@ -141,6 +139,19 @@ function AssignmentRoster({ assignment, attempts, rosters, onComment }: {
             {assignment.antiCheat && (
               <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 border border-rose-200/60 rounded flex items-center gap-1 font-bold text-[10px]">
                 <ShieldCheck size={9} /> Giám sát ({assignment.maxTabSwitches ?? 3} lần)
+              </span>
+            )}
+            {assignment.allowRetake !== false && (
+              <span className="px-1.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-200/60 rounded flex items-center gap-1 font-bold text-[10px]">
+                <RotateCcw size={9} />
+                {assignment.maxRetakes && assignment.maxRetakes < 999
+                  ? `Làm lại max ${assignment.maxRetakes} lần`
+                  : 'Làm lại không giới hạn'}
+                {assignment.retakeCondition === 'below_score'
+                  ? ` (< ${assignment.retakeThresholdScore ?? 5.0}đ)`
+                  : assignment.retakeCondition === 'has_mistakes'
+                    ? ' (khi có câu sai)'
+                    : ' (để ôn tập)'}
               </span>
             )}
             {assignment.dueDate && (
@@ -260,6 +271,11 @@ function AssignmentRoster({ assignment, attempts, rosters, onComment }: {
                             <span>Điểm: <span className={cn('font-black', attempt.score >= 8 ? 'text-emerald-600' : attempt.score >= 5 ? 'text-amber-600' : 'text-rose-600')}>{attempt.score.toFixed(1)}</span></span>
                             <span>{new Date(attempt.date).toLocaleString('vi-VN')}</span>
                             {attempt.className && <span className="px-1.5 py-0.5 bg-slate-100 rounded-md font-bold">{attempt.className}</span>}
+                            {attempt.attemptNumber && attempt.attemptNumber > 1 && (
+                              <span className="px-1.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-md font-black">
+                                Lần #{attempt.attemptNumber}
+                              </span>
+                            )}
                             {attempt.tabSwitches !== undefined && attempt.tabSwitches > 0 && (
                               <span className="px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold rounded-md flex items-center gap-1 animate-pulse">
                                 <AlertTriangle size={10} /> Rời tab: {attempt.tabSwitches} lần
@@ -268,12 +284,21 @@ function AssignmentRoster({ assignment, attempts, rosters, onComment }: {
                           </div>
                           {attempt.teacherComment && <p className="text-[11px] text-indigo-600 italic mt-0.5 line-clamp-1">"{attempt.teacherComment}"</p>}
                         </div>
-                        <button
-                          onClick={() => onComment(attempt)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors shrink-0"
-                        >
-                          <MessageSquare size={11} />{attempt.teacherComment ? 'Sửa' : 'Nhận xét'}
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => onViewSubmission(attempt)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                            title="Kiểm tra chi tiết kết quả từng câu học sinh làm"
+                          >
+                            <Eye size={12} /> Xem bài làm
+                          </button>
+                          <button
+                            onClick={() => onComment(attempt)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                          >
+                            <MessageSquare size={11} />{attempt.teacherComment ? 'Sửa' : 'Nhận xét'}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -339,6 +364,12 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
   const [shuffleQuestions, setShuffleQuestions] = useState(true);
   const [antiCheat, setAntiCheat] = useState(true);
   const [maxTabSwitches, setMaxTabSwitches] = useState(3);
+  const [allowRetake, setAllowRetake] = useState(true);
+  const [maxRetakes, setMaxRetakes] = useState(999);
+  const [retakeCondition, setRetakeCondition] = useState<'always' | 'below_score' | 'has_mistakes'>('always');
+  const [retakeThresholdScore, setRetakeThresholdScore] = useState(5.0);
+  const [gradingPolicy, setGradingPolicy] = useState<'highest' | 'latest'>('highest');
+  const [viewingAttempt, setViewingAttempt] = useState<QuizAttempt | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [success, setSuccess] = useState('');
   const [commentingAttempt, setCommentingAttempt] = useState<QuizAttempt | null>(null);
@@ -381,7 +412,12 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
       shuffleQuestions,
       antiCheat,
       maxTabSwitches,
-      activeTeacherEmail
+      activeTeacherEmail,
+      allowRetake,
+      maxRetakes,
+      retakeCondition,
+      retakeThresholdScore,
+      gradingPolicy
     );
     setSuccess(`Đã giao đề "${exam.title}" cho ${assignTarget.type === 'individuals' ? `${targetStudents.length} học sinh` : `lớp "${targetClass}"`}!`);
     setSelectedExamId('');
@@ -487,6 +523,137 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
             )}
           </div>
 
+          {/* Cấu hình làm lại & Ôn tập */}
+          <div className="p-4 bg-purple-50/60 border border-purple-200/80 rounded-2xl space-y-3">
+            <div className="flex items-center gap-2 text-xs font-black text-purple-900 uppercase tracking-wider">
+              <RotateCcw size={16} className="text-purple-600" />
+              <span>Cài đặt Làm lại bài thi &amp; Ôn tập kiến thức</span>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={allowRetake}
+                onChange={e => setAllowRetake(e.target.checked)}
+                className="mt-1 w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500 cursor-pointer"
+              />
+              <div className="text-xs">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5 group-hover:text-purple-700 transition-colors">
+                  <RotateCcw size={13} className="text-purple-600" />
+                  Cho phép học sinh làm lại nhiều lần để ôn tập kiến thức
+                </span>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Tạo điều kiện cho học sinh luyện tập nhiều lượt khi làm sai hoặc điểm chưa đạt chuẩn để củng cố kiến thức.
+                </p>
+              </div>
+            </label>
+
+            {allowRetake && (
+              <div className="pl-7 pt-1 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">Số lần làm lại tối đa:</label>
+                    <select
+                      value={maxRetakes}
+                      onChange={e => setMaxRetakes(Number(e.target.value))}
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-white focus:ring-2 focus:ring-purple-400 outline-none"
+                    >
+                      <option value={999}>Không giới hạn (Làm lại thoải mái để ôn tập)</option>
+                      <option value={1}>Tối đa 1 lần làm lại (Tổng 2 lượt)</option>
+                      <option value={2}>Tối đa 2 lần làm lại (Tổng 3 lượt)</option>
+                      <option value={3}>Tối đa 3 lần làm lại (Tổng 4 lượt)</option>
+                      <option value={5}>Tối đa 5 lần làm lại (Tổng 6 lượt)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">Ghi nhận điểm số:</label>
+                    <select
+                      value={gradingPolicy}
+                      onChange={e => setGradingPolicy(e.target.value as any)}
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-white focus:ring-2 focus:ring-purple-400 outline-none"
+                    >
+                      <option value="highest">Lấy điểm cao nhất trong các lần làm (Khuyên dùng)</option>
+                      <option value="latest">Lấy điểm lần làm bài gần nhất</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Điều kiện được làm lại:</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <label className={cn(
+                      'p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all text-xs font-bold',
+                      retakeCondition === 'always'
+                        ? 'border-purple-400 bg-white text-purple-900 shadow-2xs'
+                        : 'border-slate-200 bg-white/70 text-slate-600'
+                    )}>
+                      <input
+                        type="radio"
+                        name="retakeCondition"
+                        value="always"
+                        checked={retakeCondition === 'always'}
+                        onChange={() => setRetakeCondition('always')}
+                        className="text-purple-600 focus:ring-purple-500"
+                      />
+                      <span>Luôn cho phép để ôn tập</span>
+                    </label>
+
+                    <label className={cn(
+                      'p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all text-xs font-bold',
+                      retakeCondition === 'has_mistakes'
+                        ? 'border-purple-400 bg-white text-purple-900 shadow-2xs'
+                        : 'border-slate-200 bg-white/70 text-slate-600'
+                    )}>
+                      <input
+                        type="radio"
+                        name="retakeCondition"
+                        value="has_mistakes"
+                        checked={retakeCondition === 'has_mistakes'}
+                        onChange={() => setRetakeCondition('has_mistakes')}
+                        className="text-purple-600 focus:ring-purple-500"
+                      />
+                      <span>Khi có câu làm sai</span>
+                    </label>
+
+                    <label className={cn(
+                      'p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all text-xs font-bold',
+                      retakeCondition === 'below_score'
+                        ? 'border-purple-400 bg-white text-purple-900 shadow-2xs'
+                        : 'border-slate-200 bg-white/70 text-slate-600'
+                    )}>
+                      <input
+                        type="radio"
+                        name="retakeCondition"
+                        value="below_score"
+                        checked={retakeCondition === 'below_score'}
+                        onChange={() => setRetakeCondition('below_score')}
+                        className="text-purple-600 focus:ring-purple-500"
+                      />
+                      <span>Khi điểm chưa đạt</span>
+                    </label>
+                  </div>
+
+                  {retakeCondition === 'below_score' && (
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-600">Điểm tối thiểu cần đạt:</span>
+                      <select
+                        value={retakeThresholdScore}
+                        onChange={e => setRetakeThresholdScore(Number(e.target.value))}
+                        className="px-3 py-1 border border-purple-300 rounded-lg text-xs font-bold text-purple-900 bg-white focus:ring-2 focus:ring-purple-400 outline-none"
+                      >
+                        <option value={5.0}>Dưới 5.0 điểm (Dưới mức trung bình)</option>
+                        <option value={6.5}>Dưới 6.5 điểm (Dưới mức khá)</option>
+                        <option value={8.0}>Dưới 8.0 điểm (Dưới mức giỏi)</option>
+                        <option value={10.0}>Dưới 10.0 điểm (Chưa tuyệt đối)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <AnimatePresence>
             {success && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -520,7 +687,14 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
         ) : (
           <div className="p-4 space-y-3">
             {assignments.map(a => (
-              <AssignmentRoster key={a.id} assignment={a} attempts={attemptsList} rosters={rosters} onComment={setCommentingAttempt} />
+              <AssignmentRoster
+                key={a.id}
+                assignment={a}
+                attempts={attemptsList}
+                rosters={rosters}
+                onComment={setCommentingAttempt}
+                onViewSubmission={setViewingAttempt}
+              />
             ))}
           </div>
         )}
@@ -531,6 +705,19 @@ export default function ExamAssignPanel({ exams, attempts }: Props) {
           <CommentModal attempt={commentingAttempt} onClose={() => setCommentingAttempt(null)} onSaved={() => examService.subscribeToAttempts(setAttemptsList, activeTeacherEmail)} />
         )}
       </AnimatePresence>
+
+      {/* Modal kiểm tra bài làm của học sinh */}
+      {viewingAttempt && (
+        <StudentSubmissionDetailModal
+          attempt={viewingAttempt}
+          exams={exams}
+          onClose={() => setViewingAttempt(null)}
+          onSaveComment={async (attemptId, comment, progress) => {
+            await examService.addTeacherComment(attemptId, comment, progress);
+            examService.subscribeToAttempts(setAttemptsList, activeTeacherEmail);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -54,6 +54,8 @@ export default function ExamRoom() {
   const assignmentId = searchParams.get('assignmentId');
   const mode = searchParams.get('mode');
   const libraryFileId = searchParams.get('libraryFileId');
+  const isRetake = searchParams.get('retake') === 'true';
+  const attemptNumberParam = Number(searchParams.get('attemptNumber')) || 1;
 
   const owner = learningOwner(user?.uid);
   const draft = useLearningDraft<ExamDraft>(owner, 'exam', '/exam-room?' + searchParams.toString());
@@ -534,6 +536,9 @@ export default function ExamRoom() {
       timeSpent,
       answers: detailedAnswers,
       tabSwitches: tabSwitchesRef.current,
+      assignmentId: assignmentId || undefined,
+      attemptNumber: attemptNumberParam,
+      questionsSnapshot: examQuestions,
     };
 
     try { await examService.saveAttempt(attempt); } catch { setStorageError('Chưa lưu được kết quả bài làm. Hãy giữ trang này để xem lại kết quả.'); }
@@ -688,11 +693,18 @@ export default function ExamRoom() {
         <div className="flex items-center justify-between max-w-6xl mx-auto gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <div className="hidden md:block">
-              <div className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest mb-1",
-                examId ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-              )}>
-                {examId ? 'ĐỀ THI THẬT' : 'ĐỀ THI THỬ'}
+              <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                <div className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest",
+                  examId ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                )}>
+                  {examId ? 'ĐỀ THI THẬT' : 'ĐỀ THI THỬ'}
+                </div>
+                {isRetake && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-purple-500/30 text-purple-300 border border-purple-400/40">
+                    LÀM LẠI #{attemptNumberParam}
+                  </span>
+                )}
               </div>
               <h1 className="text-sm font-black text-white truncate max-w-[200px]">{examTitle}</h1>
             </div>

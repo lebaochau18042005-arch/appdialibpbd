@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { History, Search, RefreshCw, ShieldCheck, MessageSquare, FileSpreadsheet } from 'lucide-react';
-import { QuizAttempt } from '../../types';
+import { History, Search, RefreshCw, ShieldCheck, MessageSquare, FileSpreadsheet, Eye } from 'lucide-react';
+import { QuizAttempt, Exam } from '../../types';
 import { cn } from '../../utils/cn';
 import GoogleSheetModal from './GoogleSheetModal';
+import StudentSubmissionDetailModal from './StudentSubmissionDetailModal';
+import { examService } from '../../services/examService';
 
 interface HistoryTableProps {
   attempts: QuizAttempt[];
@@ -17,6 +19,7 @@ interface HistoryTableProps {
   setComment: (comment: string) => void;
   setProgress: (progress: string) => void;
   teacherEmail?: string;
+  exams?: Exam[];
 }
 
 export default function HistoryTable({
@@ -32,8 +35,10 @@ export default function HistoryTable({
   setComment,
   setProgress,
   teacherEmail,
+  exams = [],
 }: HistoryTableProps) {
   const [showGoogleSheetModal, setShowGoogleSheetModal] = useState(false);
+  const [viewingAttempt, setViewingAttempt] = useState<QuizAttempt | null>(null);
 
   // Guard: filter out any malformed attempt records from RTDB/Firestore merges
   const safeAttempts = (attempts || []).filter((a) => a && a.id);
@@ -207,22 +212,44 @@ export default function HistoryTable({
 
                   {/* Thao tác */}
                   <td className="px-8 py-6 text-right">
-                    <button
-                      onClick={() => {
-                        setCommentingId(attempt.id);
-                        setComment(attempt.teacherComment || '');
-                        setProgress(attempt.studentProgress || '');
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all text-xs font-bold shadow-sm"
-                    >
-                      <MessageSquare size={14} /> NHẬN XÉT
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setViewingAttempt(attempt)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-xs font-bold shadow-2xs"
+                        title="Kiểm tra chi tiết kết quả từng câu học sinh làm"
+                      >
+                        <Eye size={14} /> KIỂM TRA BÀI
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCommentingId(attempt.id);
+                          setComment(attempt.teacherComment || '');
+                          setProgress(attempt.studentProgress || '');
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-all text-xs font-bold shadow-2xs"
+                      >
+                        <MessageSquare size={14} /> NHẬN XÉT
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Modal kiểm tra chi tiết bài làm học sinh */}
+      {viewingAttempt && (
+        <StudentSubmissionDetailModal
+          attempt={viewingAttempt}
+          exams={exams}
+          onClose={() => setViewingAttempt(null)}
+          onSaveComment={async (attemptId, comment, progress) => {
+            await examService.addTeacherComment(attemptId, comment, progress);
+            loadData();
+          }}
+        />
       )}
 
       <GoogleSheetModal
