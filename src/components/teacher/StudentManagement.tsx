@@ -326,18 +326,30 @@ function StudentDetailPanel({ student, onClose, onRefresh, exams = [] }: DetailP
                 ) : (
                   <div className="mt-2 flex items-center gap-3">
                     <button
-                      onClick={() => setViewingAttempt(attempt)}
-                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setViewingAttempt(attempt);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors cursor-pointer shadow-xs"
                       title="Kiểm tra chi tiết kết quả từng câu học sinh làm"
                     >
-                      <Eye size={12} />
+                      <Eye size={13} />
                       Kiểm tra bài
                     </button>
                     <button
-                      onClick={() => { setCommentingId(attempt.id); setComment(attempt.teacherComment || ''); setProgress(attempt.studentProgress || ''); }}
-                      className="flex items-center gap-1 text-[11px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors"
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCommentingId(attempt.id);
+                        setComment(attempt.teacherComment || '');
+                        setProgress(attempt.studentProgress || '');
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
                     >
-                      <MessageSquare size={11} />
+                      <MessageSquare size={12} />
                       {attempt.teacherComment ? 'Sửa nhận xét' : 'Thêm nhận xét'}
                     </button>
                   </div>

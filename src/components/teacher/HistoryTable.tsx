@@ -147,7 +147,7 @@ export default function HistoryTable({
                 <th className="px-8 py-5">Kết quả</th>
                 <th className="px-8 py-5">Thời gian</th>
                 <th className="px-8 py-5">Tiến độ</th>
-                <th className="px-8 py-5 text-right">Thao tác</th>
+                <th className="px-6 py-5 text-right whitespace-nowrap min-w-[240px]">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -211,22 +211,30 @@ export default function HistoryTable({
                   </td>
 
                   {/* Thao tác */}
-                  <td className="px-8 py-6 text-right">
+                  <td className="px-6 py-6 text-right whitespace-nowrap min-w-[240px]">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => setViewingAttempt(attempt)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-xs font-bold shadow-2xs"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setViewingAttempt(attempt);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all text-xs font-black shadow-sm cursor-pointer whitespace-nowrap"
                         title="Kiểm tra chi tiết kết quả từng câu học sinh làm"
                       >
                         <Eye size={14} /> KIỂM TRA BÀI
                       </button>
                       <button
-                        onClick={() => {
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setCommentingId(attempt.id);
                           setComment(attempt.teacherComment || '');
                           setProgress(attempt.studentProgress || '');
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-all text-xs font-bold shadow-2xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-100 transition-all text-xs font-bold shadow-xs cursor-pointer whitespace-nowrap"
                       >
                         <MessageSquare size={14} /> NHẬN XÉT
                       </button>

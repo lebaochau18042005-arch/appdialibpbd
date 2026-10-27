@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, CheckCircle2, XCircle, AlertTriangle, Clock, Calendar,
@@ -6,6 +7,7 @@ import {
   HelpCircle, ChevronRight, Sparkles, Check, ChevronDown, Eye
 } from 'lucide-react';
 import { QuizAttempt, Exam, Question, MultipleChoiceQuestion, TrueFalseQuestion, ShortAnswerQuestion } from '../../types';
+import { questions as standardQuestions } from '../../data';
 import { cn } from '../../utils/cn';
 import RichContent from '../exam/RichContent';
 import DataTableChart from '../exam/DataTableChart';
@@ -39,17 +41,29 @@ export default function StudentSubmissionDetailModal({
     }
   }, [attempt]);
 
-  if (!attempt) return null;
+  // Safely parse raw answers
+  const rawAnswers = useMemo(() => {
+    try {
+      if (!attempt?.answers) return {};
+      if (typeof attempt.answers === 'string') {
+        return JSON.parse(attempt.answers);
+      }
+      return attempt.answers;
+    } catch {
+      return {};
+    }
+  }, [attempt?.answers]);
 
-  // Resolve questions for this attempt:
-  // 1. Snapshot stored with the attempt (most accurate)
-  // 2. Exam found from exams list
-  // 3. Fallback from localStorage
+  // Resolve questions for this attempt with multi-layer fallback
   const resolvedQuestions: Question[] = useMemo(() => {
-    if (attempt.questionsSnapshot && attempt.questionsSnapshot.length > 0) {
+    if (!attempt) return [];
+
+    // 1. Snapshot stored with the attempt (most accurate)
+    if (attempt.questionsSnapshot && Array.isArray(attempt.questionsSnapshot) && attempt.questionsSnapshot.length > 0) {
       return attempt.questionsSnapshot;
     }
 
+    // 2. Exam found from teacher exams list
     if (exams.length > 0) {
       const matchExam = exams.find(e =>
         e.id === attempt.examId ||
@@ -60,7 +74,7 @@ export default function StudentSubmissionDetailModal({
       }
     }
 
-    // Try finding in localStorage exams
+    // 3. Exam found from localStorage
     try {
       const localExams: Exam[] = JSON.parse(localStorage.getItem('geo_pro_local_exams') || '[]');
       const match = localExams.find(e =>
@@ -70,13 +84,48 @@ export default function StudentSubmissionDetailModal({
       if (match?.questions?.length) return match.questions;
     } catch { }
 
+    // 4. Match questions from standard textbook question bank (e.g. for "bai-2-dia-li-12", "bai-1", lesson quizzes)
+    if (rawAnswers && typeof rawAnswers === 'object') {
+      const answerKeys = Object.keys(rawAnswers);
+      const matchedFromBank = standardQuestions.filter(q => answerKeys.includes(q.id));
+      if (matchedFromBank.length > 0) {
+        // Return in same order as answers
+        return answerKeys.map(k => matchedFromBank.find(q => q.id === k)).filter(Boolean) as Question[];
+      }
+    }
+
+    // 5. Match by lesson name or slug in attempt.examTitle or examId (e.g. "bai-2-dia-li-12")
+    const titleOrId = ((attempt.examTitle || '') + ' ' + (attempt.examId || '')).toLowerCase();
+    const lessonMatch = standardQuestions.filter(q => {
+      if (q.lesson && titleOrId.includes(q.lesson.toLowerCase())) return true;
+      if (titleOrId.includes('bai-2') && (q.lesson?.toLowerCase().includes('vị trí') || q.topic?.toLowerCase().includes('tự nhiên'))) return true;
+      return false;
+    });
+    if (lessonMatch.length > 0 && Object.keys(rawAnswers).length > 0) {
+      return lessonMatch.slice(0, Object.keys(rawAnswers).length || 20);
+    }
+
+    // 6. Synthesize question items from attempt.answers so teacher can always review every answer!
+    if (rawAnswers && typeof rawAnswers === 'object' && Object.keys(rawAnswers).length > 0) {
+      return Object.entries(rawAnswers).map(([key, val], idx) => {
+        const itemVal: any = val || {};
+        return {
+          id: key,
+          type: itemVal.questionType || (typeof itemVal.userAnswer === 'object' && itemVal.userAnswer !== null ? 'true_false' : typeof itemVal.userAnswer === 'string' ? 'short_answer' : 'multiple_choice'),
+          text: itemVal.questionText || `Câu ${idx + 1}: ${itemVal.topic ? `Chủ đề ${itemVal.topic}` : 'Câu hỏi kiểm tra'}`,
+          topic: itemVal.topic || 'Địa lí',
+          options: itemVal.options || ['Phương án A', 'Phương án B', 'Phương án C', 'Phương án D'],
+          correctAnswerIndex: itemVal.correctAnswerIndex ?? 0,
+          explanation: itemVal.explanation || '',
+        } as Question;
+      });
+    }
+
     return [];
-  }, [attempt, exams]);
+  }, [attempt, exams, rawAnswers]);
 
   // Helper to extract student's answer for question index or id
   const getStudentAnswer = (q: Question, idx: number) => {
-    const rawAnswers = attempt.answers || {};
-    // Key could be q.id or string index or number index
     const ansKey = q.id || String(idx);
     const item = rawAnswers[ansKey] ?? rawAnswers[String(idx)] ?? rawAnswers[idx];
 
@@ -89,15 +138,20 @@ export default function StudentSubmissionDetailModal({
 
   // Helper to check question correctness and calculate points
   const getQuestionResult = (q: Question, idx: number) => {
-    const rawAnswers = attempt.answers || {};
     const ansKey = q.id || String(idx);
     const richItem = rawAnswers[ansKey] ?? rawAnswers[String(idx)] ?? rawAnswers[idx];
-
     const studentAns = getStudentAnswer(q, idx);
+
+    // If richItem has isCorrect pre-computed
+    const precomputedIsCorrect = richItem && typeof richItem === 'object' && 'isCorrect' in richItem
+      ? Boolean(richItem.isCorrect)
+      : null;
 
     if (q.type === 'multiple_choice') {
       const mc = q as MultipleChoiceQuestion;
-      const isCorrect = studentAns === mc.correctAnswerIndex;
+      const isCorrect = precomputedIsCorrect !== null
+        ? precomputedIsCorrect
+        : studentAns === mc.correctAnswerIndex;
       return {
         isCorrect,
         earnedPoints: isCorrect ? 0.25 : 0,
@@ -111,7 +165,8 @@ export default function StudentSubmissionDetailModal({
     if (q.type === 'true_false') {
       const tf = q as TrueFalseQuestion;
       let correctParts = 0;
-      const statementDetails = (tf.statements || []).map(stmt => {
+      const stmts = Array.isArray(tf.statements) ? tf.statements : [];
+      const statementDetails = stmts.map(stmt => {
         const userChoice = studentAns ? studentAns[stmt.id] : undefined;
         const isStatementCorrect = userChoice === stmt.isTrue;
         if (isStatementCorrect) correctParts++;
@@ -130,7 +185,9 @@ export default function StudentSubmissionDetailModal({
       else if (correctParts === 3) earnedPoints = 0.5;
       else if (correctParts === 4) earnedPoints = 1.0;
 
-      const isFullyCorrect = correctParts === (tf.statements?.length || 4);
+      const isFullyCorrect = precomputedIsCorrect !== null
+        ? precomputedIsCorrect
+        : correctParts === (stmts.length || 4);
 
       return {
         isCorrect: isFullyCorrect,
@@ -139,14 +196,16 @@ export default function StudentSubmissionDetailModal({
         maxPoints: 1.0,
         studentAns,
         correctCount: correctParts,
-        totalParts: tf.statements?.length || 4,
+        totalParts: stmts.length || 4,
         statementDetails,
       };
     }
 
     if (q.type === 'short_answer') {
       const sa = q as ShortAnswerQuestion;
-      const isCorrect = studentAns ? isShortAnswerCorrect(String(studentAns), sa.correctAnswer) : false;
+      const isCorrect = precomputedIsCorrect !== null
+        ? precomputedIsCorrect
+        : (studentAns ? isShortAnswerCorrect(String(studentAns), sa.correctAnswer) : false);
       return {
         isCorrect,
         earnedPoints: isCorrect ? 0.25 : 0,
@@ -157,7 +216,15 @@ export default function StudentSubmissionDetailModal({
       };
     }
 
-    return { isCorrect: false, earnedPoints: 0, maxPoints: 0.25, studentAns, correctCount: 0, totalParts: 1 };
+    const fallbackCorrect = Boolean(precomputedIsCorrect);
+    return {
+      isCorrect: fallbackCorrect,
+      earnedPoints: fallbackCorrect ? 0.25 : 0,
+      maxPoints: 0.25,
+      studentAns,
+      correctCount: fallbackCorrect ? 1 : 0,
+      totalParts: 1
+    };
   };
 
   // Compile evaluation for all questions
@@ -167,7 +234,7 @@ export default function StudentSubmissionDetailModal({
       index: idx,
       ...getQuestionResult(q, idx),
     }));
-  }, [resolvedQuestions, attempt.answers]);
+  }, [resolvedQuestions, rawAnswers]);
 
   // Overall statistics
   const stats = useMemo(() => {
@@ -225,7 +292,7 @@ export default function StudentSubmissionDetailModal({
     if (!onSaveComment || !commentText.trim()) return;
     setIsSavingComment(true);
     try {
-      await onSaveComment(attempt.id, commentText, progressText);
+      await onSaveComment(attempt?.id || '', commentText, progressText);
       setCommentSavedToast(true);
       setTimeout(() => setCommentSavedToast(false), 3000);
     } finally {
@@ -245,10 +312,21 @@ export default function StudentSubmissionDetailModal({
   };
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m} phút ${s} giây`;
+    const s = Number(seconds) || 0;
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m} phút ${sec} giây`;
   };
+
+  const formattedDate = useMemo(() => {
+    try {
+      if (!attempt?.date) return '—';
+      const d = new Date(attempt.date);
+      return isNaN(d.getTime()) ? String(attempt.date) : d.toLocaleString('vi-VN');
+    } catch {
+      return '—';
+    }
+  }, [attempt?.date]);
 
   // Performance classification
   const getRating = (score: number) => {
@@ -259,12 +337,18 @@ export default function StudentSubmissionDetailModal({
     return { label: 'Chưa đạt / Cần ôn luyện', color: 'bg-rose-100 text-rose-800 border-rose-300' };
   };
 
+  if (!attempt) return null;
+
   const rating = getRating(attempt.score ?? 0);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
+  // Render via React Portal to document.body to break out of any overflow-hidden containers
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-slate-900/70 backdrop-blur-md cursor-pointer transition-opacity"
+        onClick={onClose}
+      />
 
       {/* Main Modal Dialog */}
       <motion.div
@@ -272,7 +356,7 @@ export default function StudentSubmissionDetailModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative bg-white w-full max-w-5xl h-[92vh] max-h-[95vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-100"
+        className="relative bg-white w-full max-w-5xl h-[92vh] max-h-[95vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-100 z-10"
       >
         {/* Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between gap-4 shrink-0 shadow-md">
@@ -304,16 +388,18 @@ export default function StudentSubmissionDetailModal({
 
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={handlePrint}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
               title="In bài thi"
             >
               <Printer size={15} />
               <span>In bài</span>
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-300 hover:text-white"
+              className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-300 hover:text-white cursor-pointer"
             >
               <X size={22} />
             </button>
@@ -339,7 +425,7 @@ export default function StudentSubmissionDetailModal({
             <div className="flex items-center gap-3 text-slate-600 font-medium text-xs">
               <span className="flex items-center gap-1">
                 <Calendar size={13} className="text-slate-400" />
-                {new Date(attempt.date).toLocaleString('vi-VN')}
+                {formattedDate}
               </span>
               <span className="flex items-center gap-1">
                 <Clock size={13} className="text-slate-400" />
@@ -420,20 +506,23 @@ export default function StudentSubmissionDetailModal({
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="inline-flex rounded-xl bg-slate-100 p-0.5 text-xs font-bold">
                   <button
+                    type="button"
                     onClick={() => setFilterResult('all')}
-                    className={cn('px-2.5 py-1 rounded-lg transition-colors', filterResult === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900')}
+                    className={cn('px-2.5 py-1 rounded-lg transition-colors cursor-pointer', filterResult === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900')}
                   >
                     Tất cả ({evaluatedQuestions.length})
                   </button>
                   <button
+                    type="button"
                     onClick={() => setFilterResult('wrong')}
-                    className={cn('px-2.5 py-1 rounded-lg transition-colors', filterResult === 'wrong' ? 'bg-rose-600 text-white shadow-2xs' : 'text-rose-600 hover:text-rose-700')}
+                    className={cn('px-2.5 py-1 rounded-lg transition-colors cursor-pointer', filterResult === 'wrong' ? 'bg-rose-600 text-white shadow-2xs' : 'text-rose-600 hover:text-rose-700')}
                   >
                     Câu sai ({stats.wrong + stats.partiallyCorrect})
                   </button>
                   <button
+                    type="button"
                     onClick={() => setFilterResult('correct')}
-                    className={cn('px-2.5 py-1 rounded-lg transition-colors', filterResult === 'correct' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-emerald-700 hover:text-emerald-800')}
+                    className={cn('px-2.5 py-1 rounded-lg transition-colors cursor-pointer', filterResult === 'correct' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-emerald-700 hover:text-emerald-800')}
                   >
                     Câu đúng ({stats.fullyCorrect})
                   </button>
@@ -442,7 +531,7 @@ export default function StudentSubmissionDetailModal({
                 <select
                   value={filterType}
                   onChange={e => setFilterType(e.target.value as any)}
-                  className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold outline-none"
+                  className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold outline-none cursor-pointer"
                 >
                   <option value="all">Tất cả dạng thức</option>
                   <option value="multiple_choice">Phần I (Trắc nghiệm)</option>
@@ -455,16 +544,16 @@ export default function StudentSubmissionDetailModal({
             {/* Navigation Grid Pills */}
             <div className="flex flex-wrap gap-1.5 pt-1">
               {evaluatedQuestions.map((item, i) => {
-                const isTF = item.question.type === 'true_false';
                 const isPartially = (item as any).isPartiallyCorrect;
                 const isDone = item.studentAns !== undefined && item.studentAns !== null && item.studentAns !== '';
 
                 return (
                   <button
+                    type="button"
                     key={i}
                     onClick={() => scrollToQuestion(i)}
                     className={cn(
-                      'w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-black flex items-center justify-center border transition-transform hover:scale-105',
+                      'w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-black flex items-center justify-center border transition-transform hover:scale-105 cursor-pointer',
                       item.isCorrect
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
                         : isPartially
@@ -498,7 +587,6 @@ export default function StudentSubmissionDetailModal({
               {filteredQuestions.map((item) => {
                 const q = item.question;
                 const idx = item.index;
-                const isTF = q.type === 'true_false';
                 const isPartially = (item as any).isPartiallyCorrect;
 
                 return (
@@ -569,7 +657,7 @@ export default function StudentSubmissionDetailModal({
                     <div className="p-5 sm:p-6 space-y-4">
                       {/* Question Text */}
                       <div className="text-slate-800 font-bold text-sm sm:text-base leading-relaxed">
-                        <RichContent content={q.text} />
+                        <RichContent content={q.text || ''} />
                       </div>
 
                       {/* Image / Diagram if present */}
@@ -592,7 +680,7 @@ export default function StudentSubmissionDetailModal({
                         {/* 1. Multiple Choice Options */}
                         {q.type === 'multiple_choice' && (
                           <div className="space-y-2.5">
-                            {(q as MultipleChoiceQuestion).options.map((opt, oIdx) => {
+                            {((q as MultipleChoiceQuestion).options || []).map((opt, oIdx) => {
                               const isStudentSelected = item.studentAns === oIdx;
                               const isCorrectAnswer = (q as MultipleChoiceQuestion).correctAnswerIndex === oIdx;
 
@@ -676,7 +764,7 @@ export default function StudentSubmissionDetailModal({
                                   <div className="flex items-center gap-2 shrink-0">
                                     <div className="text-right text-xs">
                                       <div className="font-bold">
-                                        HS: <span className={cn('font-black uppercase', stmt.userChoice ? 'text-indigo-600' : stmt.userChoice === false ? 'text-slate-600' : 'text-slate-400 italic')}>
+                                        HS: <span className={cn('font-black uppercase', stmt.userChoice === true ? 'text-indigo-600' : stmt.userChoice === false ? 'text-slate-600' : 'text-slate-400 italic')}>
                                           {stmt.userChoice === true ? 'Đúng' : stmt.userChoice === false ? 'Sai' : 'Chưa chọn'}
                                         </span>
                                       </div>
@@ -766,9 +854,10 @@ export default function StudentSubmissionDetailModal({
                   className="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-indigo-800 focus:ring-2 focus:ring-indigo-400 outline-none flex-1"
                 />
                 <button
+                  type="button"
                   onClick={handleSaveCommentClick}
                   disabled={isSavingComment || !commentText.trim()}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100 disabled:opacity-50 cursor-pointer"
                 >
                   {isSavingComment ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />}
                   Lưu nhận xét
@@ -789,13 +878,15 @@ export default function StudentSubmissionDetailModal({
             Học sinh: <strong className="text-slate-700">{attempt.userName}</strong> • Đề: <strong className="text-slate-700">{attempt.examTitle}</strong>
           </span>
           <button
+            type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition-colors"
+            className="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition-colors cursor-pointer"
           >
             Đóng
           </button>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

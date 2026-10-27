@@ -286,8 +286,13 @@ function AssignmentRoster({ assignment, attempts, rosters, onComment, onViewSubm
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <button
-                            onClick={() => onViewSubmission(attempt)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onViewSubmission(attempt);
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer"
                             title="Kiểm tra chi tiết kết quả từng câu học sinh làm"
                           >
                             <Eye size={12} /> Xem bài làm
