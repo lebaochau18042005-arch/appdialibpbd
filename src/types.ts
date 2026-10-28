@@ -114,6 +114,7 @@ export interface QuizAttempt {
   assignmentId?: string;
   attemptNumber?: number;
   questionsSnapshot?: Question[];
+  answersByIndex?: Record<number, any>;
 }
 
 export interface TeacherWorkspace {

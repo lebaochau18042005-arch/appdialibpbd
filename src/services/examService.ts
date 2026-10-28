@@ -447,10 +447,16 @@ YÊU CẦU CHÍNH XÁC:
         }
       }
 
-      // Validate final count — must be 28
-      if (examQuestions.length !== 28) {
-        console.warn(`generateAIExam: Received ${examQuestions.length} questions instead of 28`);
-      }
+      // Ensure all question IDs are unique and prefixed by section type
+      const seenIds = new Set<string>();
+      examQuestions.forEach((q: any, idx: number) => {
+        let uniqueId = q.id;
+        if (!uniqueId || seenIds.has(uniqueId)) {
+          uniqueId = `${q.type || 'q'}_${idx + 1}`;
+        }
+        seenIds.add(uniqueId);
+        q.id = uniqueId;
+      });
 
       return examQuestions;
     } catch (error) {

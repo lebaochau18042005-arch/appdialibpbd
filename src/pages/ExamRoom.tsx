@@ -497,23 +497,54 @@ export default function ExamRoom() {
 
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
-    // Build rich answers for topic analysis
-    const detailedAnswers: Record<string, { topic: string; isCorrect: boolean; userAnswer: any }> = {};
-    examQuestions.forEach((q, idx) => {
+    // Ensure unique IDs across all questions to prevent collisions between parts
+    const seenIds = new Set<string>();
+    const sanitizedQuestions = examQuestions.map((q, idx) => {
+      let uniqueId = q.id;
+      if (!uniqueId || seenIds.has(uniqueId)) {
+        uniqueId = `${q.type || 'q'}_${idx + 1}`;
+      }
+      seenIds.add(uniqueId);
+      return { ...q, id: uniqueId };
+    });
+
+    // Build rich answers for topic analysis and teacher review
+    const detailedAnswers: Record<string, any> = {};
+    sanitizedQuestions.forEach((q, idx) => {
       const answer = answers[idx];
       let correct = false;
+      let earnedPoints = 0;
       if (q.type === 'multiple_choice') {
         correct = answer === q.correctAnswerIndex;
+        earnedPoints = correct ? 0.25 : 0;
       } else if (q.type === 'true_false') {
-        correct = answer ? q.statements.every(stmt => answer[stmt.id] === stmt.isTrue) : false;
+        let correctCount = 0;
+        if (answer) {
+          (q.statements || []).forEach((stmt: any) => { if (answer[stmt.id] === stmt.isTrue) correctCount++; });
+        }
+        correct = correctCount === (q.statements?.length || 4);
+        if (correctCount === 1) earnedPoints = 0.1;
+        else if (correctCount === 2) earnedPoints = 0.25;
+        else if (correctCount === 3) earnedPoints = 0.5;
+        else if (correctCount === 4) earnedPoints = 1.0;
       } else if (q.type === 'short_answer') {
-        correct = answer ? isShortAnswerCorrect(answer.toString(), q.correctAnswer) : false;
+        correct = (answer !== undefined && answer !== null) ? isShortAnswerCorrect(answer.toString(), q.correctAnswer) : false;
+        earnedPoints = correct ? 0.25 : 0;
       }
-      detailedAnswers[q.id || String(idx)] = {
+
+      const ansRecord = {
+        questionId: q.id,
+        index: idx,
+        type: q.type,
         topic: q.topic || 'Chung',
         isCorrect: correct,
         userAnswer: answer ?? null,
+        earnedPoints,
       };
+
+      // Store by both numeric index and unique question ID so lookup never fails or collides
+      detailedAnswers[String(idx)] = ansRecord;
+      detailedAnswers[q.id] = ansRecord;
     });
 
     const savedProfile = localStorage.getItem('examGeoProfile');
@@ -532,13 +563,14 @@ export default function ExamRoom() {
       date: new Date().toISOString(),
       mode: 'exam',
       score: Number(totalPoints.toFixed(2)),
-      totalQuestions: examQuestions.length,
+      totalQuestions: sanitizedQuestions.length,
       timeSpent,
       answers: detailedAnswers,
+      answersByIndex: { ...answers },
       tabSwitches: tabSwitchesRef.current,
       assignmentId: assignmentId || undefined,
       attemptNumber: attemptNumberParam,
-      questionsSnapshot: examQuestions,
+      questionsSnapshot: sanitizedQuestions,
     };
 
     try { await examService.saveAttempt(attempt); } catch { setStorageError('Chưa lưu được kết quả bài làm. Hãy giữ trang này để xem lại kết quả.'); }

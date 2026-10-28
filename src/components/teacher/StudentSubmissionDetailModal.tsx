@@ -124,37 +124,71 @@ export default function StudentSubmissionDetailModal({
     return [];
   }, [attempt, exams, rawAnswers]);
 
-  // Helper to extract student's answer for question index or id
+  // Helper to extract student's answer for question index or id with type safety
   const getStudentAnswer = (q: Question, idx: number) => {
-    const ansKey = q.id || String(idx);
-    const item = rawAnswers[ansKey] ?? rawAnswers[String(idx)] ?? rawAnswers[idx];
-
-    // If item is the rich object { userAnswer, isCorrect, ... }
-    if (item && typeof item === 'object' && 'userAnswer' in item) {
-      return item.userAnswer;
+    // 1. Direct match by index from answersByIndex if present
+    if (attempt?.answersByIndex && attempt.answersByIndex[idx] !== undefined) {
+      return attempt.answersByIndex[idx];
     }
-    return item;
+
+    // 2. Direct match by string index (e.g. "0", "1", "2"...)
+    const byIndex = rawAnswers[String(idx)] ?? rawAnswers[idx];
+    if (byIndex !== undefined) {
+      if (byIndex && typeof byIndex === 'object' && 'userAnswer' in byIndex) {
+        return byIndex.userAnswer;
+      }
+      return byIndex;
+    }
+
+    // 3. Match by q.id with strict question-type validation to prevent cross-part collisions
+    if (q.id && rawAnswers[q.id] !== undefined) {
+      const item = rawAnswers[q.id];
+      const val = (item && typeof item === 'object' && 'userAnswer' in item) ? item.userAnswer : item;
+
+      if (q.type === 'multiple_choice') {
+        if (typeof val === 'number' || (typeof val === 'string' && /^[0-3]$/.test(val))) {
+          return typeof val === 'number' ? val : parseInt(val, 10);
+        }
+      } else if (q.type === 'true_false') {
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          return val;
+        }
+      } else if (q.type === 'short_answer') {
+        if (typeof val === 'string' || typeof val === 'number') {
+          return val;
+        }
+      }
+    }
+
+    return undefined;
   };
 
   // Helper to check question correctness and calculate points
   const getQuestionResult = (q: Question, idx: number) => {
-    const ansKey = q.id || String(idx);
-    const richItem = rawAnswers[ansKey] ?? rawAnswers[String(idx)] ?? rawAnswers[idx];
     const studentAns = getStudentAnswer(q, idx);
 
-    // If richItem has isCorrect pre-computed
-    const precomputedIsCorrect = richItem && typeof richItem === 'object' && 'isCorrect' in richItem
-      ? Boolean(richItem.isCorrect)
-      : null;
+    // Look for precomputed item with type compatibility check
+    const richItem = (rawAnswers[String(idx)] ?? rawAnswers[idx]) ?? (q.id ? rawAnswers[q.id] : undefined);
+    let precomputedIsCorrect: boolean | null = null;
+    let precomputedEarnedPoints: number | null = null;
+
+    if (richItem && typeof richItem === 'object') {
+      if (studentAns !== undefined && 'isCorrect' in richItem) {
+        precomputedIsCorrect = Boolean(richItem.isCorrect);
+      }
+      if ('earnedPoints' in richItem && typeof richItem.earnedPoints === 'number') {
+        precomputedEarnedPoints = richItem.earnedPoints;
+      }
+    }
 
     if (q.type === 'multiple_choice') {
       const mc = q as MultipleChoiceQuestion;
       const isCorrect = precomputedIsCorrect !== null
         ? precomputedIsCorrect
-        : studentAns === mc.correctAnswerIndex;
+        : (studentAns !== undefined && studentAns === mc.correctAnswerIndex);
       return {
         isCorrect,
-        earnedPoints: isCorrect ? 0.25 : 0,
+        earnedPoints: precomputedEarnedPoints ?? (isCorrect ? 0.25 : 0),
         maxPoints: 0.25,
         studentAns,
         correctCount: isCorrect ? 1 : 0,
@@ -167,8 +201,8 @@ export default function StudentSubmissionDetailModal({
       let correctParts = 0;
       const stmts = Array.isArray(tf.statements) ? tf.statements : [];
       const statementDetails = stmts.map(stmt => {
-        const userChoice = studentAns ? studentAns[stmt.id] : undefined;
-        const isStatementCorrect = userChoice === stmt.isTrue;
+        const userChoice = (studentAns && typeof studentAns === 'object') ? studentAns[stmt.id] : undefined;
+        const isStatementCorrect = userChoice !== undefined && userChoice === stmt.isTrue;
         if (isStatementCorrect) correctParts++;
         return {
           id: stmt.id,
@@ -185,9 +219,13 @@ export default function StudentSubmissionDetailModal({
       else if (correctParts === 3) earnedPoints = 0.5;
       else if (correctParts === 4) earnedPoints = 1.0;
 
+      if (precomputedEarnedPoints !== null) {
+        earnedPoints = precomputedEarnedPoints;
+      }
+
       const isFullyCorrect = precomputedIsCorrect !== null
         ? precomputedIsCorrect
-        : correctParts === (stmts.length || 4);
+        : (correctParts === (stmts.length || 4) && studentAns !== undefined);
 
       return {
         isCorrect: isFullyCorrect,
@@ -205,10 +243,10 @@ export default function StudentSubmissionDetailModal({
       const sa = q as ShortAnswerQuestion;
       const isCorrect = precomputedIsCorrect !== null
         ? precomputedIsCorrect
-        : (studentAns ? isShortAnswerCorrect(String(studentAns), sa.correctAnswer) : false);
+        : (studentAns !== undefined && studentAns !== null && studentAns !== '' ? isShortAnswerCorrect(String(studentAns), sa.correctAnswer) : false);
       return {
         isCorrect,
-        earnedPoints: isCorrect ? 0.25 : 0,
+        earnedPoints: precomputedEarnedPoints ?? (isCorrect ? 0.25 : 0),
         maxPoints: 0.25,
         studentAns,
         correctCount: isCorrect ? 1 : 0,
@@ -257,6 +295,10 @@ export default function StudentSubmissionDetailModal({
     const saCorrect = saList.filter(e => e.isCorrect).length;
     const saEarned = saList.reduce((acc, cur) => acc + cur.earnedPoints, 0);
 
+    const calculatedTotal = Number((mcEarned + tfEarned + saEarned).toFixed(2));
+    const recordedScore = Number((attempt?.score ?? 0).toFixed(2));
+    const hasDiscrepancy = Math.abs(calculatedTotal - recordedScore) > 0.05;
+
     return {
       total,
       fullyCorrect,
@@ -271,8 +313,11 @@ export default function StudentSubmissionDetailModal({
       saTotal: saList.length,
       saCorrect,
       saEarned,
+      calculatedTotal,
+      recordedScore,
+      hasDiscrepancy,
     };
-  }, [evaluatedQuestions]);
+  }, [evaluatedQuestions, attempt?.score]);
 
   // Filtered questions
   const filteredQuestions = useMemo(() => {
@@ -452,6 +497,31 @@ export default function StudentSubmissionDetailModal({
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+          {/* Discrepancy Notice for legacy attempts */}
+          {stats.hasDiscrepancy && (
+            <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl flex items-start gap-3.5 text-xs text-amber-950 shadow-2xs">
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <AlertTriangle size={18} />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-amber-950 text-sm">
+                    Lưu ý về dữ liệu điểm:
+                  </span>
+                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 font-black rounded-lg text-xs">
+                    Điểm chính thức: {stats.recordedScore.toFixed(2)}đ
+                  </span>
+                  <span className="px-2 py-0.5 bg-amber-200/80 text-amber-900 font-bold rounded-lg text-xs">
+                    Điểm chi tiết: {stats.calculatedTotal.toFixed(2)}đ
+                  </span>
+                </div>
+                <p className="text-slate-700 leading-relaxed text-xs">
+                  Điểm số <strong>{stats.recordedScore.toFixed(2)}/10.0</strong> hiển thị ở tiêu đề là điểm số chính thức được hệ thống chấm tự động và ghi nhận khi học sinh nộp bài. Trong phiên bản đề thi trước, các câu hỏi giữa các phần có mã định danh (id) trùng nhau nên một số câu chưa được hiển thị đầy đủ đáp án gốc bên dưới ({stats.calculatedTotal.toFixed(2)}đ). Hệ thống đã được nâng cấp lưu mã độc lập cho từng câu đối với toàn bộ bài làm từ nay về sau.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* 3-Section Score Summary Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {/* Phần I */}
@@ -588,6 +658,7 @@ export default function StudentSubmissionDetailModal({
                 const q = item.question;
                 const idx = item.index;
                 const isPartially = (item as any).isPartiallyCorrect;
+                const isDone = item.studentAns !== undefined && item.studentAns !== null && item.studentAns !== '';
 
                 return (
                   <div
@@ -599,7 +670,9 @@ export default function StudentSubmissionDetailModal({
                         ? 'border-emerald-200'
                         : isPartially
                           ? 'border-amber-200'
-                          : 'border-rose-200'
+                          : !isDone
+                            ? 'border-slate-200'
+                            : 'border-rose-200'
                     )}
                   >
                     {/* Question Card Header */}
@@ -609,12 +682,14 @@ export default function StudentSubmissionDetailModal({
                         ? 'bg-emerald-50/70 border-emerald-100'
                         : isPartially
                           ? 'bg-amber-50/70 border-amber-100'
-                          : 'bg-rose-50/70 border-rose-100'
+                          : !isDone
+                            ? 'bg-slate-50 border-slate-200'
+                            : 'bg-rose-50/70 border-rose-100'
                     )}>
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           'w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white shadow-xs',
-                          item.isCorrect ? 'bg-emerald-600' : isPartially ? 'bg-amber-500' : 'bg-rose-600'
+                          item.isCorrect ? 'bg-emerald-600' : isPartially ? 'bg-amber-500' : !isDone ? 'bg-slate-400' : 'bg-rose-600'
                         )}>
                           {idx + 1}
                         </span>
@@ -640,12 +715,16 @@ export default function StudentSubmissionDetailModal({
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : isPartially
                               ? 'bg-amber-100 text-amber-800 border-amber-300'
-                              : 'bg-rose-100 text-rose-800 border-rose-300'
+                              : !isDone
+                                ? 'bg-slate-100 text-slate-600 border-slate-300'
+                                : 'bg-rose-100 text-rose-800 border-rose-300'
                         )}>
                           {item.isCorrect ? (
                             <><CheckCircle2 size={13} className="text-emerald-600" /> Đúng (+{item.earnedPoints}đ)</>
                           ) : isPartially ? (
                             <><CheckCircle2 size={13} className="text-amber-600" /> Đúng {item.correctCount}/{item.totalParts} ý (+{item.earnedPoints}đ)</>
+                          ) : !isDone ? (
+                            <><HelpCircle size={13} className="text-slate-500" /> Chưa lưu chi tiết</>
                           ) : (
                             <><XCircle size={13} className="text-rose-600" /> Sai (0.0đ)</>
                           )}

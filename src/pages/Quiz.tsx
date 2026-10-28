@@ -415,11 +415,21 @@ export default function Quiz() {
   const finishQuiz = async () => {
     if (finishedRef.current) return;
     finishedRef.current = true;
-    setIsFinished(true);
-    const completeAnswers = { ...detailedAnswers };
-    const omitted = quizQuestions.filter(q => !completeAnswers[q.id]);
-    omitted.forEach(q => { completeAnswers[q.id] = { topic: q.topic || 'Chung', isCorrect: false, userAnswer: null }; });
-    if (!recordAnswers(owner, omitted.map(question => ({ question, answer: null })))) setStorageError('Không lưu được một số câu vào sổ câu sai.');
+    const completeAnswers: Record<string, any> = {};
+    quizQuestions.forEach((q, idx) => {
+      const rec = detailedAnswers[q.id] || detailedAnswers[String(idx)] || {
+        topic: q.topic || 'Chung',
+        isCorrect: false,
+        userAnswer: null,
+      };
+      completeAnswers[String(idx)] = rec;
+      completeAnswers[q.id] = rec;
+    });
+
+    const omitted = quizQuestions.filter(q => !detailedAnswers[q.id]);
+    if (omitted.length > 0) {
+      recordAnswers(owner, omitted.map(question => ({ question, answer: null })));
+    }
     draft.clear();
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
 
@@ -438,7 +448,8 @@ export default function Quiz() {
       score: Number(scoreRef.current.toFixed(2)),
       totalQuestions: quizQuestions.length,
       timeSpent,
-      answers: completeAnswers
+      answers: completeAnswers,
+      questionsSnapshot: quizQuestions,
     };
 
     try { await examService.saveAttempt(attempt); } catch { setStorageError('Chưa lưu được kết quả bài làm. Hãy giữ trang này để xem lại kết quả.'); }
